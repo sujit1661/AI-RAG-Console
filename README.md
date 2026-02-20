@@ -4,6 +4,13 @@ A high-performance, full-stack **Retrieval-Augmented Generation (RAG)** system t
 
 ---
 
+
+## 📸 Preview
+
+![AI RAG Console Dashboard](image_rag.jpg)
+
+---
+
 ## 🚀 Overview
 
 AI RAG Console allows users to:
