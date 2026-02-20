@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html class="dark" lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>AI RAG Console - Premium Edition</title>
+
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined" rel="stylesheet"/>
+
+<script>
+tailwind.config = {
+    darkMode: "class",
+    theme: {
+        extend: {
+            colors: {
+                primary: "#ff2e62",
+                "matte-black": "#0A0A0A",
+                charcoal: "#111111"
+            },
+            fontFamily: {
+                display: ["Space Grotesk", "sans-serif"]
+            }
+        }
+    }
+}
+</script>
+
+<style>
+body { background: #000; color: #f1f5f9; }
+.neon-border { border: 1.5px solid #ff2e62; box-shadow: 0 0 10px rgba(255,46,98,.3); }
+.ai-bubble { border-left: 1.5px solid #ff2e62; box-shadow: -4px 0 10px rgba(255,46,98,.2); }
+.custom-scrollbar::-webkit-scrollbar { width: 4px; }
+.custom-scrollbar::-webkit-scrollbar-thumb { background:#222;border-radius:10px; }
+.custom-scrollbar::-webkit-scrollbar-thumb:hover { background:#ff2e62; }
+
+/* Message Entrance Animation */
+@keyframes slideUp {
+    from { opacity: 0; transform: translateY(15px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+.message-animate { animation: slideUp 0.4s ease-out forwards; }
+
+/* Typing Indicator Animation */
+@keyframes pulse {
+    0%, 100% { opacity: 0.3; transform: scale(0.8); }
+    50% { opacity: 1; transform: scale(1.1); }
+}
+.typing-dot { animation: pulse 1s infinite ease-in-out; }
+
+/* Send Button Feedback */
+#sendBtn:active { transform: scale(0.9); }
+</style>
+</head>
+
+<body class="font-display overflow-hidden h-screen flex flex-col">
+
+<header class="h-16 border-b border-primary/20 bg-matte-black flex items-center justify-between px-8">
+    <h1 class="text-xl font-bold uppercase">
+        AI <span class="text-primary">RAG</span> Console
+    </h1>
+    <div class="text-xs text-slate-400">System Active</div>
+</header>
+
+<div class="flex flex-1 overflow-hidden">
+
+<!-- SIDEBAR -->
+<aside class="w-80 bg-matte-black border-r border-white/5 flex flex-col p-6 gap-6">
+
+<h3 class="text-xs font-bold text-slate-500 uppercase">Data Ingestion</h3>
+
+<button id="browseBtn"
+class="border-2 border-dashed border-white/10 rounded-xl p-6 hover:border-primary hover:bg-primary/5 transition-all flex flex-col items-center justify-center gap-2 group">
+    <span id="uploadIcon" class="material-symbols-outlined text-slate-500 group-hover:text-primary">cloud_upload</span>
+    <span id="uploadText">Upload Document</span>
+</button>
+
+<input type="file" id="fileInput" hidden/>
+
+<div class="flex-1 flex flex-col min-h-0">
+    <div class="flex justify-between mb-4">
+        <h3 class="text-xs font-bold text-slate-500 uppercase">Library</h3>
+        <span id="fileCount"
+        class="text-[10px] bg-primary/20 text-primary px-2 py-0.5 rounded border border-primary/30">
+        0 FILES
+        </span>
+    </div>
+
+    <div id="libraryContainer"
+    class="flex-1 overflow-y-auto custom-scrollbar pr-2 flex flex-col gap-2">
+    </div>
+</div>
+
+</aside>
+
+<!-- MAIN CHAT -->
+<main class="flex-1 flex flex-col relative">
+
+<div id="chatContainer"
+class="flex-1 overflow-y-auto custom-scrollbar p-12 flex flex-col gap-8 pb-32">
+</div>
+
+<!-- INPUT -->
+<div class="absolute bottom-0 left-0 right-0 p-8 bg-gradient-to-t from-black via-black/90 to-transparent">
+<div class="max-w-4xl mx-auto relative">
+
+<div class="relative flex items-center bg-matte-black neon-border rounded-xl p-1">
+
+<input id="questionInput"
+class="w-full bg-transparent border-none text-slate-200 placeholder-slate-600 focus:ring-0 py-4 text-sm px-4"
+placeholder="Consult your data..."
+type="text"/>
+
+<button id="sendBtn"
+class="bg-primary text-white p-3 rounded-lg shadow-neon transition-transform">
+<span class="material-symbols-outlined">send</span>
+</button>
+
+</div>
+
+</div>
+</div>
+
+</main>
+</div>
+
+<script>
+const API_URL = "http://127.0.0.1:8000";
+
+const chatContainer = document.getElementById("chatContainer");
+const libraryContainer = document.getElementById("libraryContainer");
+const fileCount = document.getElementById("fileCount");
+const inputField = document.getElementById("questionInput");
+const sendBtn = document.getElementById("sendBtn");
+const browseBtn = document.getElementById("browseBtn");
+const fileInput = document.getElementById("fileInput");
+const uploadText = document.getElementById("uploadText");
+const uploadIcon = document.getElementById("uploadIcon");
+
+let uploadedFiles = [];
+
+// HELPER: Convert **bold** to <strong> tags
+function formatText(text) {
+    // Regex to find **text** and replace with bold span
+    return text.replace(/\*\*(.*?)\*\*/g, '<strong class="text-white font-bold">$1</strong>');
+}
+
+// ADD MESSAGE
+function addMessage(text, sender="user") {
+    const wrapper = document.createElement("div");
+    wrapper.className = sender === "user" ? "flex justify-end message-animate" : "flex justify-start message-animate";
+
+    const bubble = document.createElement("div");
+    if (sender === "user") {
+        bubble.className = "max-w-[70%] bg-charcoal text-slate-300 p-5 rounded-xl border border-white/5 shadow-lg";
+    } else {
+        bubble.className = "max-w-[85%] bg-matte-black ai-bubble text-slate-300 p-6 rounded-xl shadow-lg";
+    }
+
+    // Apply formatting here
+    bubble.innerHTML = `<p class="text-sm leading-relaxed">${formatText(text)}</p>`;
+    wrapper.appendChild(bubble);
+    chatContainer.appendChild(wrapper);
+    chatContainer.scrollTop = chatContainer.scrollHeight;
+}
+
+// SHOW TYPING INDICATOR
+function showTyping() {
+    const loader = document.createElement("div");
+    loader.id = "typing-loader";
+    loader.className = "flex justify-start message-animate";
+    loader.innerHTML = `
+        <div class="bg-matte-black ai-bubble p-4 rounded-xl flex gap-1">
+            <div class="w-1.5 h-1.5 bg-primary rounded-full typing-dot"></div>
+            <div class="w-1.5 h-1.5 bg-primary rounded-full typing-dot" style="animation-delay:0.2s"></div>
+            <div class="w-1.5 h-1.5 bg-primary rounded-full typing-dot" style="animation-delay:0.4s"></div>
+        </div>`;
+    chatContainer.appendChild(loader);
+    chatContainer.scrollTop = chatContainer.scrollHeight;
+}
+
+function hideTyping() {
+    const loader = document.getElementById("typing-loader");
+    if (loader) loader.remove();
+}
+
+// SEND MESSAGE
+async function sendMessage() {
+    const question = inputField.value.trim();
+    if (!question) return;
+
+    addMessage(question, "user");
+    inputField.value = "";
+    showTyping();
+
+    try {
+        const response = await fetch(API_URL + "/chat", {
+            method: "POST",
+            headers: {"Content-Type": "application/json"},
+            body: JSON.stringify({ question })
+        });
+
+        const data = await response.json();
+        hideTyping();
+        addMessage(data.answer, "bot");
+
+    } catch (err) {
+        hideTyping();
+        addMessage("Server error. Make sure backend is running.", "bot");
+    }
+}
+
+// FILE UPLOAD
+browseBtn.onclick = () => fileInput.click();
+fileInput.onchange = async function () {
+    const file = fileInput.files[0];
+    if (!file) return;
+
+    browseBtn.disabled = true;
+    uploadText.innerText = "Indexing...";
+    uploadIcon.innerText = "sync";
+    uploadIcon.classList.add("animate-spin-custom");
+
+    const formData = new FormData();
+    formData.append("file", file);
+
+    try {
+        const response = await fetch(API_URL + "/upload", { method: "POST", body: formData });
+        const data = await response.json();
+        if (response.ok) {
+            uploadedFiles.push(file.name);
+            renderLibrary();
+        } else { alert(data.detail || "Upload failed"); }
+    } catch (err) { alert("Upload failed."); }
+    finally {
+        browseBtn.disabled = false;
+        uploadText.innerText = "Upload Document";
+        uploadIcon.innerText = "cloud_upload";
+        uploadIcon.classList.remove("animate-spin-custom");
+        fileInput.value = "";
+    }
+};
+
+// DELETE FILE
+async function deleteFile(filename) {
+    if (!confirm(`Delete "${filename}"?`)) return;
+    try {
+        const response = await fetch(API_URL + "/delete", {
+            method: "POST",
+            headers: {"Content-Type": "application/json"},
+            body: JSON.stringify({ filename })
+        });
+        if (response.ok) {
+            uploadedFiles = uploadedFiles.filter(f => f !== filename);
+            renderLibrary();
+        }
+    } catch (err) { alert("Delete failed."); }
+}
+
+// RENDER LIBRARY
+function renderLibrary() {
+    libraryContainer.innerHTML = "";
+    uploadedFiles.forEach(name => {
+        const item = document.createElement("div");
+        item.className = "group p-3 bg-charcoal/50 rounded-xl border border-white/5 flex items-center justify-between hover:border-primary/50 transition-colors message-animate";
+        item.innerHTML = `
+            <p class="text-sm text-slate-200 truncate pr-2">${name}</p>
+            <button onclick="deleteFile('${name}')" class="text-slate-500 hover:text-primary transition-colors">
+                <span class="material-symbols-outlined text-lg">delete</span>
+            </button>`;
+        libraryContainer.appendChild(item);
+    });
+    fileCount.innerText = uploadedFiles.length + " FILES";
+}
+
+sendBtn.onclick = sendMessage;
+inputField.addEventListener("keypress", e => { if (e.key === "Enter") sendMessage(); });
+</script>
+
+</body>
+</html>

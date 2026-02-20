@@ -1,0 +1,14 @@
+fastapi
+uvicorn
+python-multipart
+pydantic
+python-dotenv
+groq
+chromadb
+sentence-transformers
+langchain-text-splitters
+pymupdf
+pandas
+openpyxl
+python-docx
+pytesseract
