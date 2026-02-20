@@ -7,7 +7,7 @@ A high-performance, full-stack **Retrieval-Augmented Generation (RAG)** system t
 
 ## 📸 Preview
 
-![AI RAG Console Dashboard](image_rag.jpg)
+![AI-RAG-Console](image_rag.jpg)
 
 ---
 
