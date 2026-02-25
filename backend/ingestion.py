@@ -5,11 +5,25 @@ import pytesseract
 from docx import Document
 
 def extract_pdf_text(path):
+    """
+    Extract text from PDF with page number tracking.
+    Returns: (text, page_info) where page_info is a list of (start_char, end_char, page_num) tuples
+    """
     doc = fitz.open(path)
     text = ""
-    for page in doc:
-        text += page.get_text()
-    return text
+    page_info = []
+    current_pos = 0
+    
+    for page_num in range(len(doc)):
+        page = doc[page_num]
+        page_text = page.get_text()
+        start_pos = current_pos
+        end_pos = current_pos + len(page_text)
+        text += page_text
+        page_info.append((start_pos, end_pos, page_num + 1))  # 1-indexed page numbers
+        current_pos = end_pos
+    
+    return text, page_info
 
 def extract_image_text(path):
     image = Image.open(path)

@@ -23,6 +23,10 @@ uploads/
 # Logs
 *.log
 
+# Auth files
+sessions.json
+users.json
+
 
 # Mac / Windows
 .DS_Store
