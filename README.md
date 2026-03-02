@@ -157,17 +157,39 @@ Open `index.html` in any modern web browser.
 ## 📂 Project Structure
 
 ```
-├── backend/
-│   ├── ingestion.py
-│   ├── chunking.py
-│   ├── retriever.py
-│   └── llm.py
-├── uploads/
-├── chroma_db/
-├── app.py
-├── index.html
-├── requirements.txt
-└── .env
+AI-RAG-Console-Premium/
+│
+├── backend/                         # Core RAG engine & business logic
+│   ├── auth.py                      # Authentication & workspace access control
+│   ├── chunking.py                  # Document chunking for vector embedding
+│   ├── ingestion.py                 # Multimodal document ingestion pipeline
+│   ├── llm.py                       # Groq LLM interaction & response generation
+│   ├── retriever.py                 # ChromaDB semantic search & retrieval
+│   ├── supabase_config.py           # Supabase client initialization
+│   ├── supabase_db.py               # Database operations (workspaces, tokens, metadata)
+│   ├── supabase_storage.py          # File storage handling
+│   └── utils.py                     # Shared helper utilities
+│
+├── app.py                           # FastAPI application entry point
+├── migrate_to_supabase.py           # Data migration to Supabase
+│
+├── supabase_schema.sql              # Database schema for workspaces & auth
+│
+├── landing.html                     # Landing page UI
+├── login.html                       # Login interface
+├── register.html                    # User registration
+├── index.html                       # Main dashboard
+│
+├── requirements.txt                 # Python dependencies
+├── requirements                     # Optional modular dependency list
+│
+├── README.md                        # Main project documentation
+├── README_SUPABASE.md               # Supabase integration guide
+├── SUPABASE_SETUP.md                # Setup instructions for Supabase
+├── MIGRATION_GUIDE.md               # Migration steps
+├── RUN_MIGRATION.md                 # Migration execution guide
+│
+├── .gitignore                       # Git ignored files
 ```
 
 ---
