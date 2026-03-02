@@ -4,11 +4,6 @@ A high-performance, full-stack **Retrieval-Augmented Generation (RAG)** system t
 
 The platform also supports secure user authentication and multi-workspace document management using Supabase.
 
----
-
-## 📸 Preview
-
-![AI-RAG-Console](image_rag.jpg)
 
 ---
 
@@ -82,6 +77,7 @@ The system integrates **FastAPI**, **Supabase (Database & Authentication)**, **C
 - Python 3.9+
 - Tesseract OCR installed on your system
 
+
 ### Install Tesseract
 
 **Windows:**  
@@ -94,6 +90,7 @@ sudo apt install tesseract-ocr
 ```
 
 ---
+
 
 ## ⚙️ Setup Instructions
 
