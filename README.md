@@ -2,8 +2,9 @@
 
 A high-performance, full-stack **Retrieval-Augmented Generation (RAG)** system that enables intelligent document interaction. Users can upload documents (PDF, Word, Excel, Images), index them into a vector database, and query them through a fast, context-aware AI chat interface powered by Groq.
 
----
+The platform also supports secure user authentication and multi-workspace document management using Supabase.
 
+---
 
 ## 📸 Preview
 
@@ -19,8 +20,9 @@ AI RAG Console allows users to:
 - Perform semantic search over embedded content  
 - Receive context-grounded AI responses  
 - Manage indexed documents dynamically  
+- Organize knowledge across multiple workspaces  
 
-The system integrates **FastAPI**, **ChromaDB**, **HuggingFace embeddings**, and **Groq LLM inference** to deliver accurate and low-latency results.
+The system integrates **FastAPI**, **Supabase (Database & Authentication)**, **ChromaDB**, **HuggingFace embeddings**, and **Groq LLM inference** to deliver secure, accurate, and low-latency results.
 
 ---
 
@@ -28,14 +30,27 @@ The system integrates **FastAPI**, **ChromaDB**, **HuggingFace embeddings**, and
 
 - **Multimodal Ingestion**
   - Supports `.pdf`, `.docx`, `.xlsx`, `.xls`, `.png`, `.jpg`
+
 - **OCR Integration**
   - Extracts text from images and scanned documents using Tesseract
+
 - **Semantic Search**
   - Powered by `BGE-small-en-v1.5` embeddings
+
 - **Persistent Vector Storage**
   - ChromaDB-based indexing and retrieval
+
+- **Authentication & Workspace Management**
+  - Secure login and user management via Supabase
+  - Multi-workspace document organization
+
 - **Ultra-Fast Inference**
   - Groq API integration for rapid LLM responses
+
+- **Response Transparency**
+  - Token usage visibility
+  - Page-level source reference display
+
 - **Modern UI**
   - Responsive dark-themed dashboard built with Tailwind CSS
   - Interactive chat interface with Markdown support
@@ -54,6 +69,7 @@ The system integrates **FastAPI**, **ChromaDB**, **HuggingFace embeddings**, and
 - FastAPI (Python)
 
 **AI & Data**
+- Supabase (Database & Authentication)
 - ChromaDB (Vector Database)
 - HuggingFace Sentence Transformers (BGE)
 - Groq API (LLM Inference)
@@ -96,12 +112,12 @@ python -m venv venv
 
 Activate:
 
-- Windows:
+Windows:
 ```bash
 venv\Scripts\activate
 ```
 
-- Linux / Mac:
+Linux / Mac:
 ```bash
 source venv/bin/activate
 ```
