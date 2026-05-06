@@ -19,7 +19,7 @@ def upload_file_to_supabase(workspace_slug: str, filename: str, file_content: by
         response = supabase.storage.from_(STORAGE_BUCKET).upload(
             path=storage_path,
             file=file_content,
-            file_options={"content-type": "application/octet-stream", "upsert": "false"}
+            file_options={"content-type": "application/octet-stream", "upsert": "true"}
         )
         
         if response:

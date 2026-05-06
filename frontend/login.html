@@ -143,6 +143,10 @@ document.getElementById("loginForm").onsubmit = async (e) => {
         
         // Handle success response
         if (data && data.success === true) {
+            // Store refresh token in sessionStorage for token refresh
+            if (data.refresh_token) {
+                sessionStorage.setItem("refresh_token", data.refresh_token);
+            }
             window.location.href = "/app";
         } else {
             errorMsg.textContent = data.detail || data.message || "Invalid credentials";

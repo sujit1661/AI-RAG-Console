@@ -1,6 +1,9 @@
-from fastapi import FastAPI, UploadFile, File, HTTPException, Depends, Request, Response
+from fastapi import FastAPI, UploadFile, File, HTTPException, Depends, Request, Response, BackgroundTasks
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, HTMLResponse, StreamingResponse
+from slowapi import Limiter, _rate_limit_exceeded_handler
+from slowapi.util import get_remote_address
+from slowapi.errors import RateLimitExceeded
 import shutil
 import os
 import re
@@ -22,29 +25,53 @@ from backend.retriever import (
 from backend.llm import generate_answer, generate_answer_stream
 from backend.auth import (
     authenticate_user, create_session, verify_session, delete_session,
-    get_current_user, init_default_user, create_user, get_user_info
+    get_current_user, init_default_user, create_user, get_user_info,
+    login_user
 )
+from backend.supabase_storage import upload_file_to_supabase
+from backend.supabase_db import add_document_metadata
+from backend.persistence import (
+    sync_workspace_create, sync_workspace_delete,
+    sync_chat_create, sync_chat_update, sync_chat_delete,
+    sync_message_add, load_messages_from_supabase
+)
+from backend.analytics import QueryTrace, save_feedback, get_analytics
+from backend.bm25_index import rebuild_from_chromadb
 
-# Setup logging
+# Setup logging — force UTF-8 on Windows console
+import sys
+_stdout_handler = logging.StreamHandler(sys.stdout)
+_stdout_handler.stream.reconfigure(encoding='utf-8') if hasattr(_stdout_handler.stream, 'reconfigure') else None
 logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
     handlers=[
-        logging.FileHandler('app.log'),
-        logging.StreamHandler()
+        logging.FileHandler('app.log', encoding='utf-8'),
+        _stdout_handler,
     ]
 )
 logger = logging.getLogger(__name__)
 
+# Rate limiter
+limiter = Limiter(key_func=get_remote_address)
 app = FastAPI()
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
 # Initialize default admin user
 init_default_user()
 
-# CORS
+# Rebuild BM25 indexes from ChromaDB on startup (non-blocking)
+try:
+    rebuild_from_chromadb()
+except Exception as _e:
+    logger.warning(f"BM25 startup rebuild skipped: {_e}")
+
+# CORS — restrict to localhost in dev; set ALLOWED_ORIGINS in .env for production
+_allowed_origins = os.getenv("ALLOWED_ORIGINS", "http://127.0.0.1:8000,http://localhost:8000").split(",")
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=[o.strip() for o in _allowed_origins],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -153,6 +180,10 @@ class ChatCreateRequest(BaseModel):
 class WorkspaceRequest(BaseModel):
     workspace_name: str
 
+class WorkspaceRenameRequest(BaseModel):
+    workspace_name: str
+    new_name: str
+
 class DeleteFileRequest(BaseModel):
     workspace_name: str
     filename: str
@@ -174,6 +205,10 @@ class ChangePasswordRequest(BaseModel):
     old_password: str
     new_password: str
 
+class FeedbackRequest(BaseModel):
+    trace_id: str
+    feedback: str  # "up" or "down"
+
 # -----------------------------
 # AUTH ENDPOINTS
 # -----------------------------
@@ -186,27 +221,29 @@ async def check_auth(token: Optional[str] = Depends(get_token)):
     return {"authenticated": False}
 
 @app.post("/auth/login")
-async def login(data: LoginRequest, response: Response):
-    """Login endpoint."""
+@limiter.limit("10/minute")
+async def login(request: Request, data: LoginRequest, response: Response):
+    """Login endpoint — tries Supabase Auth first, falls back to local."""
     try:
-        if authenticate_user(data.username, data.password):
-            token = create_session(data.username)
-            response.set_cookie(
-                key="session_token",
-                value=token,
-                httponly=True,
-                secure=False,  # Set to True in production with HTTPS
-                samesite="lax",
-                max_age=7 * 24 * 60 * 60  # 7 days
-            )
-            user_info = get_user_info(data.username)
-            if user_info is None:
-                user_info = {}  # Fallback if user info not found
-            logger.info(f"User {data.username} logged in successfully")
-            return {"success": True, "token": token, "username": data.username, "user_info": user_info}
-        else:
-            logger.warning(f"Failed login attempt for user {data.username}")
-            raise HTTPException(status_code=401, detail="Invalid credentials")
+        result = login_user(data.username, data.password)
+        token = result["token"]
+        response.set_cookie(
+            key="session_token",
+            value=token,
+            httponly=True,
+            secure=False,
+            samesite="lax",
+            max_age=7 * 24 * 60 * 60
+        )
+        user_info = get_user_info(data.username) or {}
+        logger.info(f"User {data.username} logged in via {result.get('source', 'unknown')}")
+        return {
+            "success": True,
+            "token": token,
+            "refresh_token": result.get("refresh_token"),
+            "username": data.username,
+            "user_info": user_info
+        }
     except HTTPException:
         raise
     except Exception as e:
@@ -214,7 +251,8 @@ async def login(data: LoginRequest, response: Response):
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.post("/auth/register")
-async def register(data: RegisterRequest, response: Response):
+@limiter.limit("5/minute")
+async def register(request: Request, data: RegisterRequest, response: Response):
     """Register a new user account."""
     try:
         # Validate username
@@ -290,53 +328,96 @@ async def logout(response: Response, token: Optional[str] = Depends(get_token)):
     logger.info("User logged out")
     return {"success": True}
 
+@app.post("/auth/refresh")
+async def refresh_token(request: Request, response: Response):
+    """Refresh Supabase JWT using refresh token."""
+    try:
+        body = await request.json()
+        refresh_tok = body.get("refresh_token", "")
+        if not refresh_tok:
+            raise HTTPException(status_code=400, detail="refresh_token required")
+
+        from backend.supabase_config import get_supabase
+        supabase = get_supabase()
+        res = supabase.auth.refresh_session(refresh_tok)
+        if not res.session:
+            raise HTTPException(status_code=401, detail="Invalid or expired refresh token")
+
+        new_token = res.session.access_token
+        new_refresh = res.session.refresh_token
+        response.set_cookie(
+            key="session_token",
+            value=new_token,
+            httponly=True,
+            secure=False,
+            samesite="lax",
+            max_age=7 * 24 * 60 * 60
+        )
+        return {"success": True, "token": new_token, "refresh_token": new_refresh}
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=401, detail="Token refresh failed")
+
 # -----------------------------
 # STATIC FILES
 # -----------------------------
 @app.get("/", response_class=HTMLResponse)
 async def serve_landing():
-    """Serve landing page."""
-    return FileResponse("landing.html")
+    return FileResponse("frontend/landing.html", headers={"Cache-Control": "no-cache, no-store, must-revalidate"})
 
 @app.get("/app", response_class=HTMLResponse)
 async def serve_index():
-    """Serve main application."""
-    return FileResponse("index.html")
+    return FileResponse("frontend/index.html", headers={"Cache-Control": "no-cache, no-store, must-revalidate"})
 
 @app.get("/login", response_class=HTMLResponse)
 async def serve_login():
-    """Serve login page."""
-    return FileResponse("login.html")
+    return FileResponse("frontend/login.html", headers={"Cache-Control": "no-cache, no-store, must-revalidate"})
 
 @app.get("/register", response_class=HTMLResponse)
 async def serve_register():
-    """Serve registration page."""
-    return FileResponse("register.html")
+    return FileResponse("frontend/register.html", headers={"Cache-Control": "no-cache, no-store, must-revalidate"})
 
 # -----------------------------
 # WORKSPACE ENDPOINTS
 # -----------------------------
 @app.get("/workspace/list")
 async def list_all_workspaces(username: str = Depends(require_auth)):
-    """List all workspaces with metadata."""
+    """List workspaces owned by the current user."""
     try:
         if not os.path.exists(UPLOAD_ROOT):
             return {"workspaces": []}
-        workspaces = [d for d in os.listdir(UPLOAD_ROOT) if os.path.isdir(os.path.join(UPLOAD_ROOT, d)) and d != "__pycache__"]
-        
-        # Get metadata for each workspace
+
+        # Only show workspaces that belong to this user (stored in owner file)
+        all_dirs = [d for d in os.listdir(UPLOAD_ROOT)
+                    if os.path.isdir(os.path.join(UPLOAD_ROOT, d)) and d != "__pycache__"]
+
         workspace_list = []
-        for ws in sorted(workspaces):
+        for ws in sorted(all_dirs):
             slug = ws
+            # Check ownership
+            owner_file = os.path.join(get_workspace_path(slug), ".owner")
+            if os.path.exists(owner_file):
+                with open(owner_file, "r") as f:
+                    owner = f.read().strip()
+                if owner != username:
+                    continue  # skip workspaces owned by other users
+            # If no .owner file (legacy), show to all (migration path)
+
+            # Read display name if set, otherwise use slug
+            display_name_file = os.path.join(get_workspace_path(slug), ".display_name")
+            display_name = ws
+            if os.path.exists(display_name_file):
+                with open(display_name_file, "r") as f:
+                    display_name = f.read().strip() or ws
+
             metadata = {
-                "name": ws,
+                "name": display_name,
                 "slug": slug,
                 "last_message": None,
                 "last_updated": None,
                 "message_count": 0
             }
-            
-            # Get last message from most recently updated chat (fallback to legacy history)
             try:
                 chats = load_chats_metadata(slug)
                 if chats:
@@ -367,12 +448,9 @@ async def list_all_workspaces(username: str = Depends(require_auth)):
                             metadata["last_updated"] = os.path.getmtime(hist_file)
             except:
                 pass
-            
             workspace_list.append(metadata)
-        
-        # Sort by last updated (most recent first)
+
         workspace_list.sort(key=lambda x: x["last_updated"] or 0, reverse=True)
-        
         return {"workspaces": workspace_list}
     except Exception as e:
         logger.error(f"Error listing workspaces: {str(e)}")
@@ -380,25 +458,40 @@ async def list_all_workspaces(username: str = Depends(require_auth)):
 
 @app.post("/workspace/create")
 async def create_workspace(data: WorkspaceRequest, username: str = Depends(require_auth)):
-    """Create a new workspace."""
+    """Create a new workspace owned by the current user."""
     if not data.workspace_name or not data.workspace_name.strip():
         raise HTTPException(status_code=400, detail="Workspace name cannot be empty")
-    
+
     try:
-        slug = get_safe_name(data.workspace_name)
-        if not slug:
+        # Prefix slug with username to avoid collisions across users
+        base_slug = get_safe_name(data.workspace_name)
+        if not base_slug:
             raise HTTPException(status_code=400, detail="Invalid workspace name")
-        
+
+        # Use username-prefixed slug on disk to guarantee uniqueness
+        slug = get_safe_name(f"{username}-{base_slug}")
         path = get_workspace_path(slug)
         if os.path.exists(path):
             raise HTTPException(status_code=400, detail="Workspace already exists")
-        
+
         os.makedirs(path, exist_ok=True)
-        # Ensure history file exists (legacy support)
+
+        # Write owner file
+        with open(os.path.join(path, ".owner"), "w") as f:
+            f.write(username)
+
+        # Legacy history file
         legacy_hist_file = os.path.join(path, "history.json")
         if not os.path.exists(legacy_hist_file):
             with open(legacy_hist_file, "w") as f:
                 json.dump([], f)
+
+        # Register in Supabase DB (non-fatal)
+        try:
+            sync_workspace_create(slug, data.workspace_name, username)
+        except Exception as e:
+            logger.warning(f"Supabase workspace create failed (non-fatal): {e}")
+
         logger.info(f"Workspace {slug} created by {username}")
         return {"message": "Created", "slug": slug}
     except HTTPException:
@@ -412,17 +505,55 @@ async def delete_entire_workspace(data: WorkspaceRequest, username: str = Depend
     slug = get_safe_name(data.workspace_name)
     path = get_workspace_path(slug)
 
-    # Clear Vector DB
-    try:
-        delete_workspace(slug)
-    except:
-        pass  # Ignore if collection doesn't exist
+    # Verify ownership
+    owner_file = os.path.join(path, ".owner")
+    if os.path.exists(owner_file):
+        with open(owner_file, "r") as f:
+            owner = f.read().strip()
+        if owner != username:
+            raise HTTPException(status_code=403, detail="Not authorized to delete this workspace")
 
-    # Delete files
+    # Clear user-scoped ChromaDB collection
+    try:
+        delete_workspace(slug, username)
+    except:
+        pass
+
     if os.path.exists(path):
         shutil.rmtree(path)
 
-    return {"message": f"Workspace {slug} deleted from disk and DB"}
+    # Sync deletion to Supabase
+    sync_workspace_delete(slug, username)
+
+    return {"message": f"Workspace {slug} deleted"}
+
+@app.post("/workspace/rename")
+async def rename_workspace(data: WorkspaceRenameRequest, username: str = Depends(require_auth)):
+    """Rename a workspace (updates display name, keeps slug for stability)."""
+    if not data.new_name or not data.new_name.strip():
+        raise HTTPException(status_code=400, detail="New name cannot be empty")
+
+    slug = get_safe_name(data.workspace_name)
+    path = get_workspace_path(slug)
+
+    if not os.path.exists(path):
+        raise HTTPException(status_code=404, detail="Workspace not found")
+
+    # Verify ownership
+    owner_file = os.path.join(path, ".owner")
+    if os.path.exists(owner_file):
+        with open(owner_file, "r") as f:
+            owner = f.read().strip()
+        if owner != username:
+            raise HTTPException(status_code=403, detail="Not authorized to rename this workspace")
+
+    # Store display name separately (slug stays the same to avoid breaking ChromaDB/file paths)
+    display_name_file = os.path.join(path, ".display_name")
+    with open(display_name_file, "w") as f:
+        f.write(data.new_name.strip())
+
+    logger.info(f"Workspace {slug} renamed to '{data.new_name}' by {username}")
+    return {"message": "Renamed", "slug": slug, "name": data.new_name.strip()}
 
 @app.get("/workspace/{workspace_name}/history")
 async def get_history(workspace_name: str, chat_id: Optional[str] = None, username: str = Depends(require_auth)):
@@ -430,6 +561,7 @@ async def get_history(workspace_name: str, chat_id: Optional[str] = None, userna
     if not os.path.exists(get_workspace_path(slug)):
         raise HTTPException(status_code=404, detail="Workspace not found")
     return {"history": load_history(slug, chat_id)}
+
 
 @app.get("/workspace/{workspace_name}/chats")
 async def list_workspace_chats(workspace_name: str, username: str = Depends(require_auth)):
@@ -464,6 +596,9 @@ async def create_chat(data: ChatCreateRequest, username: str = Depends(require_a
     save_chats_metadata(slug, chats)
     save_history(slug, [], chat_id)
 
+    # Sync to Supabase
+    sync_chat_create(slug, chat_id, title, username)
+
     return {"chat": {"id": chat_id, "title": title, "created_at": now, "updated_at": now}}
 
 @app.post("/chat/delete")
@@ -483,6 +618,9 @@ async def delete_chat(data: ChatDeleteRequest, username: str = Depends(require_a
     hist_path = get_chat_history_file(slug, data.chat_id)
     if os.path.exists(hist_path):
         os.remove(hist_path)
+
+    # Sync deletion to Supabase
+    sync_chat_delete(data.chat_id, username)
 
     return {"message": "Chat deleted"}
 
@@ -514,33 +652,68 @@ async def get_files(workspace_name: str, username: str = Depends(require_auth)):
 # -----------------------------
 # CORE RAG ENDPOINTS
 # -----------------------------
+
+MAX_UPLOAD_SIZE_MB = 50
+MAX_UPLOAD_SIZE_BYTES = MAX_UPLOAD_SIZE_MB * 1024 * 1024
+
 @app.post("/upload")
-async def upload(workspace_name: str, file: UploadFile = File(...), username: str = Depends(require_auth)):
+async def upload(workspace_name: str, file: UploadFile = File(...),
+                 background_tasks: BackgroundTasks = BackgroundTasks(),
+                 username: str = Depends(require_auth)):
     slug = get_safe_name(workspace_name)
     path = get_workspace_path(slug)
 
     if not os.path.exists(path):
         raise HTTPException(status_code=404, detail="Workspace not found")
 
-    # Safe filename - prevent path traversal
     safe_filename = os.path.basename(file.filename)
     if not safe_filename or safe_filename in [".", ".."]:
         raise HTTPException(status_code=400, detail="Invalid filename")
-    
-    # Additional security: remove any path components
     safe_filename = safe_filename.replace("/", "_").replace("\\", "_")
     file_path = os.path.join(path, safe_filename)
 
     if os.path.exists(file_path):
-        raise HTTPException(status_code=400, detail="File already exists")
+        raise HTTPException(
+            status_code=409,
+            detail=f'"{safe_filename}" already exists in this workspace. Delete it first if you want to re-upload.'
+        )
 
+    file_bytes = await file.read()
+    if len(file_bytes) > MAX_UPLOAD_SIZE_BYTES:
+        raise HTTPException(
+            status_code=413,
+            detail=f"File too large. Maximum allowed size is {MAX_UPLOAD_SIZE_MB}MB "
+                   f"(got {len(file_bytes) / 1024 / 1024:.1f}MB)."
+        )
+
+    # Write to disk immediately — respond fast
     with open(file_path, "wb") as buffer:
-        shutil.copyfileobj(file.file, buffer)
+        buffer.write(file_bytes)
 
+    # Heavy work runs in background — user gets instant response
+    background_tasks.add_task(_upload_to_supabase, slug, safe_filename, file_bytes, username)
+    background_tasks.add_task(_process_and_index, slug, safe_filename, file_path, username)
+
+    logger.info(f"File {safe_filename} saved, processing in background [{username}/{slug}]")
+    return {"status": "processing", "message": f'"{safe_filename}" uploaded. Indexing in background...'}
+
+
+def _upload_to_supabase(slug: str, filename: str, file_bytes: bytes, username: str):
     try:
-        ext = safe_filename.lower()
-        logger.info(f"Processing file {safe_filename} in workspace {slug}")
-        
+        storage_path = upload_file_to_supabase(slug, filename, file_bytes)
+        if storage_path:
+            add_document_metadata(slug, filename, storage_path, len(file_bytes), username)
+            logger.info(f"Supabase Storage upload complete: {filename}")
+    except Exception as e:
+        logger.warning(f"Supabase upload error (non-fatal): {e}")
+
+
+def _process_and_index(slug: str, filename: str, file_path: str, username: str):
+    """Background: extract → semantic chunk → embed → index."""
+    try:
+        ext = filename.lower()
+        logger.info(f"Background processing: {filename} [{username}/{slug}]")
+
         page_info = None
         if ext.endswith(".pdf"):
             text, page_info = extract_pdf_text(file_path)
@@ -551,61 +724,53 @@ async def upload(workspace_name: str, file: UploadFile = File(...), username: st
         elif ext.endswith((".png", ".jpg", ".jpeg")):
             text = extract_image_text(file_path)
         else:
-            if os.path.exists(file_path): os.remove(file_path)
-            raise HTTPException(status_code=400, detail="Format not supported")
+            logger.error(f"Unsupported format: {filename}")
+            return
 
-        if not text.strip():
-            if os.path.exists(file_path): os.remove(file_path)
-            raise HTTPException(status_code=400, detail="No readable content found in file")
+        if not text or not text.strip():
+            logger.warning(f"No text extracted from {filename}")
+            return
 
-        # Use page-aware chunking for PDFs, regular chunking for others
-        chunks_count = 0
         if page_info:
             from backend.chunking import chunk_text_with_pages
-            chunks_with_pages = chunk_text_with_pages(text, page_info)
-            add_documents(slug, chunks_with_pages, safe_filename)
-            chunks_count = len(chunks_with_pages)
+            chunks = chunk_text_with_pages(text, page_info)
+        elif ext.endswith((".xlsx", ".xls")):
+            from backend.chunking import chunk_excel_text
+            chunks = chunk_excel_text(text)
         else:
+            from backend.chunking import chunk_text
             chunks = chunk_text(text)
-            add_documents(slug, chunks, safe_filename)
-            chunks_count = len(chunks)
-        logger.info(f"Successfully indexed {chunks_count} chunks from {safe_filename}")
-        return {"status": "success", "chunks": chunks_count}
 
-    except HTTPException:
-        raise
+        add_documents(slug, chunks, filename, username=username)
+        logger.info(f"Background indexing complete: {filename} → {len(chunks)} chunks")
     except Exception as e:
-        logger.error(f"Error processing file {safe_filename}: {str(e)}")
-        if os.path.exists(file_path): os.remove(file_path)
-        raise HTTPException(status_code=500, detail=f"Error processing file: {str(e)}")
+        logger.error(f"Background processing failed for {filename}: {e}")
 
 @app.post("/chat")
 async def chat(data: ChatRequest, username: str = Depends(require_auth)):
     """Process chat query with RAG."""
     if not data.question or not data.question.strip():
         raise HTTPException(status_code=400, detail="Question cannot be empty")
-    
+    if len(data.question) > 2000:
+        raise HTTPException(status_code=400, detail="Question too long. Please keep it under 2000 characters.")
     if not data.workspace_name or not data.workspace_name.strip():
         raise HTTPException(status_code=400, detail="Workspace name cannot be empty")
-    
-    slug = get_safe_name(data.workspace_name)
 
+    slug = get_safe_name(data.workspace_name)
     if not os.path.exists(get_workspace_path(slug)):
         raise HTTPException(status_code=404, detail="Workspace not found")
 
     try:
         logger.info(f"Processing chat query in workspace {slug} by {username}")
-        context_chunks, metadatas = retrieve(slug, data.question)
-
+        context_chunks, metadatas = retrieve(slug, data.question, username=username, k=15)
         if not context_chunks:
             answer = "No context found in documents. Please upload some documents first."
             token_usage = {"prompt_tokens": 0, "completion_tokens": 0, "total_tokens": 0}
             page_numbers = []
         else:
             context = "\n\n".join(context_chunks)
-            answer, token_usage = generate_answer(context, data.question)
-            
-            # Extract unique page numbers from metadata
+            prior_history = load_history(slug, (data.chat_id or "").strip() or None)
+            answer, token_usage = generate_answer(context, data.question, history=prior_history)
             page_numbers = []
             for meta in metadatas:
                 if meta and "page" in meta and meta["page"] is not None:
@@ -613,7 +778,6 @@ async def chat(data: ChatRequest, username: str = Depends(require_auth)):
                     if page_num not in page_numbers:
                         page_numbers.append(page_num)
             page_numbers.sort()
-            
             logger.info(f"Generated answer with {len(context_chunks)} context chunks, pages: {page_numbers}")
     except Exception as e:
         logger.error(f"Error generating answer: {str(e)}")
@@ -641,18 +805,23 @@ async def chat(data: ChatRequest, username: str = Depends(require_auth)):
         history.append({"role": "user", "content": data.question})
         history.append({"role": "assistant", "content": answer})
         save_history(slug, history, chat_id)
-        
+
+        # Sync messages to Supabase
+        sync_message_add(chat_id, "user", data.question)
+        sync_message_add(chat_id, "assistant", answer)
+
         # Update chat's updated_at timestamp
         chats = load_chats_metadata(slug)
+        new_title = None
         for chat in chats:
             if chat["id"] == chat_id:
                 chat["updated_at"] = datetime.now().isoformat()
-                # Update title if it's the first message
                 if len(history) == 2:
-                    # Use first 50 chars of question as title
-                    chat["title"] = data.question[:50] + ("..." if len(data.question) > 50 else "")
+                    new_title = data.question[:50] + ("..." if len(data.question) > 50 else "")
+                    chat["title"] = new_title
                 break
         save_chats_metadata(slug, chats)
+        sync_chat_update(chat_id, new_title)
     except Exception as e:
         logger.warning(f"Error saving history: {str(e)}")
 
@@ -668,7 +837,8 @@ async def chat_stream(data: ChatRequest, username: str = Depends(require_auth)):
     """Process chat query with RAG using streaming response."""
     if not data.question or not data.question.strip():
         raise HTTPException(status_code=400, detail="Question cannot be empty")
-    
+    if len(data.question) > 2000:
+        raise HTTPException(status_code=400, detail="Question too long. Please keep it under 2000 characters.")
     if not data.workspace_name or not data.workspace_name.strip():
         raise HTTPException(status_code=400, detail="Workspace name cannot be empty")
     
@@ -678,9 +848,18 @@ async def chat_stream(data: ChatRequest, username: str = Depends(require_auth)):
         raise HTTPException(status_code=404, detail="Workspace not found")
 
     async def generate():
+        trace = QueryTrace(username, slug, data.question)
+        trace.__enter__()
         try:
-            logger.info(f"Processing streaming chat query in workspace {slug} by {username}")
-            context_chunks, metadatas = retrieve(slug, data.question)
+            q_lower = data.question.lower()
+            if any(w in q_lower for w in ["list", "all", "who", "names", "people", "everyone", "each", "every", "show all", "find all"]):
+                k = 20
+            elif any(w in q_lower for w in ["summary", "summarize", "overview", "explain", "what is", "describe", "tell me about"]):
+                k = 8
+            else:
+                k = 4
+            context_chunks, metadatas = retrieve(slug, data.question, username=username, k=k)
+            trace.set(chunks_retrieved=len(context_chunks), chunks_after_rerank=len(context_chunks))
             full_answer = ""
             token_usage = {"prompt_tokens": 0, "completion_tokens": 0, "total_tokens": 0}
             page_numbers = []
@@ -691,7 +870,7 @@ async def chat_stream(data: ChatRequest, username: str = Depends(require_auth)):
                 full_answer = answer
             else:
                 context = "\n\n".join(context_chunks)
-                
+
                 # Extract unique page numbers from metadata
                 for meta in metadatas:
                     if meta and "page" in meta and meta["page"] is not None:
@@ -699,9 +878,12 @@ async def chat_stream(data: ChatRequest, username: str = Depends(require_auth)):
                         if page_num not in page_numbers:
                             page_numbers.append(page_num)
                 page_numbers.sort()
-                
-                # Stream the answer
-                for item_type, item_data in generate_answer_stream(context, data.question):
+
+                # Load prior history for conversation context
+                prior_history = load_history(slug, (data.chat_id or "").strip() or None)
+
+                # Stream the answer with history
+                for item_type, item_data in generate_answer_stream(context, data.question, history=prior_history):
                     if item_type == "chunk":
                         full_answer += item_data
                         yield f"data: {json.dumps({'type': 'chunk', 'content': item_data})}\n\n"
@@ -710,8 +892,9 @@ async def chat_stream(data: ChatRequest, username: str = Depends(require_auth)):
                 
                 logger.info(f"Generated streaming answer with {len(context_chunks)} context chunks, pages: {page_numbers}")
             
-            # Send metadata (page numbers and token usage) before completion
-            yield f"data: {json.dumps({'type': 'metadata', 'page_numbers': page_numbers, 'token_usage': token_usage})}\n\n"
+            # Send metadata (page numbers, token usage, trace_id) before completion
+            trace.set(total_tokens=token_usage.get("total_tokens", 0), query_variants=1)
+            yield f"data: {json.dumps({'type': 'metadata', 'page_numbers': page_numbers, 'token_usage': token_usage, 'trace_id': trace.trace_id})}\n\n"
 
             # Get or create chat_id for history saving
             chat_id = (data.chat_id or "").strip() or None
@@ -733,17 +916,23 @@ async def chat_stream(data: ChatRequest, username: str = Depends(require_auth)):
                 history.append({"role": "user", "content": data.question})
                 history.append({"role": "assistant", "content": full_answer})
                 save_history(slug, history, chat_id)
-                
+
+                # Sync messages to Supabase
+                sync_message_add(chat_id, "user", data.question)
+                sync_message_add(chat_id, "assistant", full_answer)
+
                 # Update chat's updated_at timestamp
                 chats = load_chats_metadata(slug)
+                new_title = None
                 for chat in chats:
                     if chat["id"] == chat_id:
                         chat["updated_at"] = datetime.now().isoformat()
-                        # Update title if it's the first message
                         if len(history) == 2:
-                            chat["title"] = data.question[:50] + ("..." if len(data.question) > 50 else "")
+                            new_title = data.question[:50] + ("..." if len(data.question) > 50 else "")
+                            chat["title"] = new_title
                         break
                 save_chats_metadata(slug, chats)
+                sync_chat_update(chat_id, new_title)
             except Exception as e:
                 logger.warning(f"Error saving history: {str(e)}")
             
@@ -752,8 +941,11 @@ async def chat_stream(data: ChatRequest, username: str = Depends(require_auth)):
             
         except Exception as e:
             logger.error(f"Error generating streaming answer: {str(e)}")
+            trace.__exit__(type(e), e, None)
             error_msg = f"Error generating answer: {str(e)}"
             yield f"data: {json.dumps({'type': 'error', 'content': error_msg})}\n\n"
+            return
+        trace.__exit__(None, None, None)
 
     return StreamingResponse(
         generate(),
@@ -775,9 +967,39 @@ async def delete_one_file(data: DeleteFileRequest, username: str = Depends(requi
 
     file_path = os.path.join(workspace_path, data.filename)
 
-    delete_from_collection(slug, data.filename)
+    # Remove from ChromaDB
+    delete_from_collection(slug, data.filename, username)
 
+    # Remove from local disk
     if os.path.exists(file_path):
         os.remove(file_path)
 
+    # Remove from Supabase Storage
+    try:
+        from backend.supabase_storage import delete_file_from_supabase
+        delete_file_from_supabase(slug, data.filename)
+        logger.info(f"Deleted {data.filename} from Supabase Storage")
+    except Exception as e:
+        logger.warning(f"Supabase Storage delete failed (non-fatal): {e}")
+
     return {"message": "File deleted"}
+
+
+# -----------------------------
+# FEEDBACK & ANALYTICS ENDPOINTS
+# -----------------------------
+
+@app.post("/feedback")
+async def submit_feedback(data: FeedbackRequest, username: str = Depends(require_auth)):
+    """Submit thumbs up/down feedback for a query."""
+    if data.feedback not in ("up", "down"):
+        raise HTTPException(status_code=400, detail="feedback must be 'up' or 'down'")
+    save_feedback(data.trace_id, data.feedback)
+    return {"success": True}
+
+@app.get("/analytics")
+async def analytics(workspace_name: Optional[str] = None, username: str = Depends(require_auth)):
+    """Get query analytics for the current user."""
+    slug = get_safe_name(workspace_name) if workspace_name else None
+    data = get_analytics(username, slug)
+    return data

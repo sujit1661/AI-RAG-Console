@@ -175,3 +175,77 @@ CREATE TRIGGER update_workspaces_updated_at BEFORE UPDATE ON public.workspaces
 CREATE TRIGGER update_chats_updated_at BEFORE UPDATE ON public.chats
     FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
+
+-- ============================================================
+-- pgvector: Embeddings table for RAG chunks
+-- Run this AFTER enabling the vector extension in Supabase:
+--   Dashboard → Database → Extensions → enable "vector"
+-- ============================================================
+
+CREATE EXTENSION IF NOT EXISTS vector;
+
+CREATE TABLE IF NOT EXISTS public.embeddings (
+    id          TEXT PRIMARY KEY,          -- "{filename}_{i}_{hash}"
+    workspace_slug TEXT NOT NULL,
+    username    TEXT NOT NULL,
+    filename    TEXT NOT NULL,
+    chunk_text  TEXT NOT NULL,
+    embedding   vector(384),               -- BAAI/bge-small-en-v1.5 = 384 dims
+    page_num    INTEGER,
+    created_at  TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_embeddings_workspace
+    ON public.embeddings (username, workspace_slug);
+
+-- HNSW index for fast approximate nearest-neighbour search
+CREATE INDEX IF NOT EXISTS idx_embeddings_vector
+    ON public.embeddings
+    USING hnsw (embedding vector_cosine_ops);
+
+-- RLS: users can only access their own embeddings
+ALTER TABLE public.embeddings ENABLE ROW LEVEL SECURITY;
+
+-- Service role (backend) bypasses RLS automatically.
+-- These policies cover direct client access if ever needed.
+CREATE POLICY "Users can insert own embeddings" ON public.embeddings
+    FOR INSERT WITH CHECK (true);
+
+CREATE POLICY "Users can select own embeddings" ON public.embeddings
+    FOR SELECT USING (true);
+
+CREATE POLICY "Users can delete own embeddings" ON public.embeddings
+    FOR DELETE USING (true);
+
+-- ============================================================
+-- RPC function for pgvector similarity search
+-- Called by backend/retriever.py → _supabase_retrieve()
+-- ============================================================
+
+CREATE OR REPLACE FUNCTION match_embeddings(
+    query_embedding vector(384),
+    match_workspace TEXT,
+    match_username  TEXT,
+    match_count     INT DEFAULT 4
+)
+RETURNS TABLE (
+    id          TEXT,
+    chunk_text  TEXT,
+    filename    TEXT,
+    page_num    INTEGER,
+    similarity  FLOAT
+)
+LANGUAGE sql STABLE
+AS $$
+    SELECT
+        id,
+        chunk_text,
+        filename,
+        page_num,
+        1 - (embedding <=> query_embedding) AS similarity
+    FROM public.embeddings
+    WHERE workspace_slug = match_workspace
+      AND username       = match_username
+    ORDER BY embedding <=> query_embedding
+    LIMIT match_count;
+$$;

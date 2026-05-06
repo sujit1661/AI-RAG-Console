@@ -30,8 +30,56 @@ def extract_image_text(path):
     return pytesseract.image_to_string(image)
 
 def extract_excel_text(path):
-    df = pd.read_excel(path)
-    return df.to_string()
+    """
+    Extract text from Excel files (.xlsx, .xls).
+    - Handles multiple sheets
+    - Preserves column headers and row context
+    - Converts each row to a readable sentence-like format for better RAG chunking
+    - Includes sheet summaries (row/col counts, numeric stats)
+    """
+    xl = pd.ExcelFile(path)
+    all_text = []
+
+    for sheet_name in xl.sheet_names:
+        df = xl.parse(sheet_name)
+
+        # Drop completely empty rows and columns
+        df = df.dropna(how="all").dropna(axis=1, how="all")
+
+        if df.empty:
+            continue
+
+        sheet_lines = [f"## Sheet: {sheet_name}"]
+        sheet_lines.append(f"Rows: {len(df)}, Columns: {len(df.columns)}")
+        sheet_lines.append(f"Columns: {', '.join(str(c) for c in df.columns)}\n")
+
+        # Numeric summary for numeric columns
+        numeric_cols = df.select_dtypes(include="number").columns.tolist()
+        if numeric_cols:
+            sheet_lines.append("### Numeric Summary")
+            for col in numeric_cols:
+                col_data = df[col].dropna()
+                if not col_data.empty:
+                    sheet_lines.append(
+                        f"- {col}: min={col_data.min():.2f}, max={col_data.max():.2f}, "
+                        f"mean={col_data.mean():.2f}, sum={col_data.sum():.2f}"
+                    )
+            sheet_lines.append("")
+
+        # Convert each row to readable text: "Column1: value1 | Column2: value2 ..."
+        sheet_lines.append("### Data Rows")
+        for idx, row in df.iterrows():
+            parts = []
+            for col in df.columns:
+                val = row[col]
+                if pd.notna(val):
+                    parts.append(f"{col}: {val}")
+            if parts:
+                sheet_lines.append(" | ".join(parts))
+
+        all_text.append("\n".join(sheet_lines))
+
+    return "\n\n".join(all_text) if all_text else ""
 
 def extract_docx_text(path):
     doc = Document(path)
