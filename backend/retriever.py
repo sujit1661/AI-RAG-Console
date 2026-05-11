@@ -236,23 +236,6 @@ def retrieve(workspace_slug: str, query: str, username: str = "",
     merged = _rrf_merge(dedup(all_vector), dedup(all_bm25))[:CANDIDATE_K]
     docs  = [d for d, _ in merged]
     metas = [m for _, m in merged]
-<<<<<<< HEAD
-
-    # ── Rerank (disabled — BGE reranker is 1.1GB, too heavy for local use) ──
-    # Hybrid search + RRF already gives good ranking without a cross-encoder
-    docs, metas = docs[:k], metas[:k]
-
-    logger.info(f"Retrieved {len(docs)} chunks [{username}/{workspace_slug}]")
-    return docs, metas
-
-
-def delete_from_collection(workspace_slug: str, filename: str, username: str = ""):
-    _supabase_delete_file(workspace_slug, username, filename)
-    try:
-        _get_chroma_collection(workspace_slug, username).delete(where={"source": filename})
-    except Exception as e:
-=======
-
     # ── Rerank (Cohere if configured, else RRF order) ─────────
     try:
         from backend.cohere_reranker import rerank
@@ -270,7 +253,6 @@ def delete_from_collection(workspace_slug: str, filename: str, username: str = "
     try:
         _get_chroma_collection(workspace_slug, username).delete(where={"source": filename})
     except Exception as e:
->>>>>>> 0f84573 (feat: production RAG improvements)
         logger.warning(f"ChromaDB file delete failed: {e}")
     try:
         from backend.bm25_index import delete_file_from_index
