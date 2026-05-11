@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 from fastapi import FastAPI, UploadFile, File, HTTPException, Depends, Request, Response, BackgroundTasks
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, HTMLResponse, StreamingResponse
@@ -5,15 +6,23 @@ from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.util import get_remote_address
 from slowapi.errors import RateLimitExceeded
 import shutil
+=======
+"""
+RAGCORE — FastAPI entry point.
+All routes are in routers/. Business logic is in backend/.
+"""
+>>>>>>> 0f84573 (feat: production RAG improvements)
 import os
-import re
-import json
+import sys
 import logging
-from pydantic import BaseModel
-from typing import List, Optional
-from datetime import datetime
-import uuid
+from fastapi import FastAPI, Request
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import FileResponse, HTMLResponse
+from slowapi import Limiter, _rate_limit_exceeded_handler
+from slowapi.util import get_remote_address
+from slowapi.errors import RateLimitExceeded
 
+<<<<<<< HEAD
 # Custom modules
 from backend.ingestion import (
     extract_pdf_text, extract_excel_text, extract_docx_text, extract_image_text
@@ -72,48 +81,80 @@ _allowed_origins = os.getenv("ALLOWED_ORIGINS", "http://127.0.0.1:8000,http://lo
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[o.strip() for o in _allowed_origins],
+=======
+# ── Logging ───────────────────────────────────────────────────
+_stdout = logging.StreamHandler(sys.stdout)
+if hasattr(_stdout.stream, "reconfigure"):
+    _stdout.stream.reconfigure(encoding="utf-8")
+
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+    handlers=[logging.FileHandler("app.log", encoding="utf-8"), _stdout],
+)
+logger = logging.getLogger(__name__)
+
+# ── App ───────────────────────────────────────────────────────
+limiter = Limiter(key_func=get_remote_address)
+app = FastAPI(title="RAGCORE", version="1.0.0")
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+
+# ── CORS ──────────────────────────────────────────────────────
+_origins = os.getenv("ALLOWED_ORIGINS", "http://127.0.0.1:8000,http://localhost:8000").split(",")
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=[o.strip() for o in _origins],
+>>>>>>> 0f84573 (feat: production RAG improvements)
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-# Dependency to get auth token from cookie or header
-async def get_token(request: Request) -> Optional[str]:
-    """Extract token from cookie or Authorization header."""
-    # Try cookie first
-    token = request.cookies.get("session_token")
-    if token:
-        return token
-    # Try Authorization header
-    auth_header = request.headers.get("Authorization")
-    if auth_header and auth_header.startswith("Bearer "):
-        return auth_header.split(" ")[1]
-    return None
+# ── Startup ───────────────────────────────────────────────────
+from backend.auth import init_default_user
+from backend.bm25_index import rebuild_from_chromadb
 
-# Dependency to verify authentication
-async def require_auth(token: Optional[str] = Depends(get_token)) -> str:
-    """Dependency to require authentication."""
-    return get_current_user(token)
+init_default_user()
+try:
+    rebuild_from_chromadb()
+except Exception as e:
+    logger.warning(f"BM25 startup rebuild skipped: {e}")
 
-UPLOAD_ROOT = "uploads"
-os.makedirs(UPLOAD_ROOT, exist_ok=True)
+# ── Routers ───────────────────────────────────────────────────
+from routers.auth import router as auth_router
+from routers.workspace import router as workspace_router
+from routers.files import router as files_router
+from routers.chat import router as chat_router
 
-# -----------------------------
-# HELPERS
-# -----------------------------
+# Apply rate limits to auth router endpoints
+from slowapi import Limiter
+from routers.auth import router as _ar
+for route in _ar.routes:
+    if route.path == "/auth/login":
+        route.endpoint = limiter.limit("10/minute")(route.endpoint)
+    elif route.path == "/auth/register":
+        route.endpoint = limiter.limit("5/minute")(route.endpoint)
 
-def get_safe_name(name: str) -> str:
-    """Slugifies workspace name: 'My Project' -> 'my-project'"""
-    slug = re.sub(r'[^\w\s-]', '', name).strip().lower()
-    return re.sub(r'[-\s]+', '-', slug)
+app.include_router(auth_router)
+app.include_router(workspace_router)
+app.include_router(files_router)
+app.include_router(chat_router)
 
-def get_workspace_path(slug: str) -> str:
-    return os.path.join(UPLOAD_ROOT, slug)
+# ── Analytics ─────────────────────────────────────────────────
+from fastapi import Depends
+from typing import Optional
+from backend.deps import get_token
+from backend.auth import get_current_user
+from backend.analytics import save_feedback, get_analytics
+from backend.deps import get_safe_name
+from pydantic import BaseModel
 
-def get_chats_metadata_file(slug: str) -> str:
-    """Get path to chats metadata file."""
-    return os.path.join(get_workspace_path(slug), "chats.json")
+class FeedbackRequest(BaseModel):
+    trace_id: str
+    feedback: str
 
+<<<<<<< HEAD
 def get_chat_history_file(slug: str, chat_id: str) -> str:
     """Get path to a specific chat's history file."""
     return os.path.join(get_workspace_path(slug), f"chat_{chat_id}.json")
@@ -1003,3 +1044,38 @@ async def analytics(workspace_name: Optional[str] = None, username: str = Depend
     slug = get_safe_name(workspace_name) if workspace_name else None
     data = get_analytics(username, slug)
     return data
+=======
+@app.post("/feedback")
+async def submit_feedback(data: FeedbackRequest, token: Optional[str] = Depends(get_token)):
+    username = get_current_user(token)
+    if data.feedback not in ("up", "down"):
+        from fastapi import HTTPException
+        raise HTTPException(status_code=400, detail="feedback must be 'up' or 'down'")
+    save_feedback(data.trace_id, data.feedback)
+    return {"success": True}
+
+@app.get("/analytics")
+async def analytics(workspace_name: Optional[str] = None, token: Optional[str] = Depends(get_token)):
+    username = get_current_user(token)
+    slug = get_safe_name(workspace_name) if workspace_name else None
+    return get_analytics(username, slug)
+
+# ── Static pages ──────────────────────────────────────────────
+_NC = {"Cache-Control": "no-cache, no-store, must-revalidate"}
+
+@app.get("/", response_class=HTMLResponse)
+async def serve_landing():
+    return FileResponse("frontend/landing.html", headers=_NC)
+
+@app.get("/app", response_class=HTMLResponse)
+async def serve_index():
+    return FileResponse("frontend/index.html", headers=_NC)
+
+@app.get("/login", response_class=HTMLResponse)
+async def serve_login():
+    return FileResponse("frontend/login.html", headers=_NC)
+
+@app.get("/register", response_class=HTMLResponse)
+async def serve_register():
+    return FileResponse("frontend/register.html", headers=_NC)
+>>>>>>> 0f84573 (feat: production RAG improvements)
