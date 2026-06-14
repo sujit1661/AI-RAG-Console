@@ -140,6 +140,7 @@ html {
         <div class="flex items-center gap-4">
             <a href="#features" class="text-sm text-slate-400 hover:text-primary transition-colors">Features</a>
             <a href="#how-it-works" class="text-sm text-slate-400 hover:text-primary transition-colors">How It Works</a>
+            <a href="#ai-chat" class="text-sm text-slate-400 hover:text-primary transition-colors">AI Chat</a>
             <a href="#pricing" class="text-sm text-slate-400 hover:text-primary transition-colors">Pricing</a>
             <a href="/login" class="text-sm text-slate-400 hover:text-primary transition-colors">Login</a>
             <a href="/register" class="bg-primary text-white px-6 py-2 rounded-xl font-bold hover:scale-105 transition-all">Get Started</a>
@@ -242,6 +243,107 @@ html {
                 </div>
                 <h3 class="text-2xl font-bold mb-4">Chat History</h3>
                 <p class="text-slate-400">All your conversations are saved. Review past queries and answers anytime, organized by workspace.</p>
+            </div>
+
+            <div class="bg-matte-black neon-border rounded-2xl p-8 slide-in-left md:col-start-2">
+                <div class="w-16 h-16 bg-primary/20 rounded-xl flex items-center justify-center mb-6">
+                    <span class="material-symbols-outlined text-4xl text-primary">smart_toy</span>
+                </div>
+                <h3 class="text-2xl font-bold mb-4">General AI Chatbot</h3>
+                <p class="text-slate-400">Not everything needs a document. Switch to the built-in General AI assistant for coding help, writing, analysis, or any open-ended question.</p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- General AI Chatbot Section -->
+<section id="ai-chat" class="py-32 relative z-10 px-8">
+    <div class="max-w-7xl mx-auto">
+        <div class="grid md:grid-cols-2 gap-16 items-center">
+            <!-- Left: text -->
+            <div class="slide-in-left">
+                <div class="inline-flex items-center gap-2 bg-primary/10 border border-primary/30 rounded-full px-4 py-2 mb-6">
+                    <span class="material-symbols-outlined text-primary text-sm">smart_toy</span>
+                    <span class="text-xs font-bold text-primary uppercase tracking-widest">New Feature</span>
+                </div>
+                <h2 class="text-5xl font-black mb-6 leading-tight">
+                    General AI<br/><span class="gradient-text">Chatbot</span>
+                </h2>
+                <p class="text-lg text-slate-400 mb-6">
+                    Not everything needs a document. Our built-in General AI assistant answers any question using its broad knowledge — coding, writing, analysis, brainstorming, or just a conversation.
+                </p>
+                <ul class="space-y-3 mb-8">
+                    <li class="flex items-start gap-3">
+                        <span class="material-symbols-outlined text-primary text-lg mt-0.5">code</span>
+                        <div><p class="text-sm font-semibold text-white">Coding Help</p><p class="text-xs text-slate-500">Debug, explain, or generate code in any language.</p></div>
+                    </li>
+                    <li class="flex items-start gap-3">
+                        <span class="material-symbols-outlined text-primary text-lg mt-0.5">edit_note</span>
+                        <div><p class="text-sm font-semibold text-white">Writing & Analysis</p><p class="text-xs text-slate-500">Drafts, summaries, research, and brainstorming.</p></div>
+                    </li>
+                    <li class="flex items-start gap-3">
+                        <span class="material-symbols-outlined text-primary text-lg mt-0.5">forum</span>
+                        <div><p class="text-sm font-semibold text-white">Persistent Sessions</p><p class="text-xs text-slate-500">Conversations are saved locally across sessions.</p></div>
+                    </li>
+                    <li class="flex items-start gap-3">
+                        <span class="material-symbols-outlined text-primary text-lg mt-0.5">swap_horiz</span>
+                        <div><p class="text-sm font-semibold text-white">Seamless Switching</p><p class="text-xs text-slate-500">One click to switch between Document RAG and AI Chat.</p></div>
+                    </li>
+                </ul>
+                <a href="/ai-chat" class="inline-flex items-center gap-2 bg-primary text-white px-6 py-3 rounded-xl font-bold hover:scale-105 transition-all neon-glow">
+                    <span class="material-symbols-outlined text-lg">smart_toy</span>
+                    Try AI Chat
+                </a>
+            </div>
+            <!-- Right: visual mockup -->
+            <div class="slide-in-right">
+                <div class="bg-matte-black neon-border rounded-2xl overflow-hidden">
+                    <!-- Fake header -->
+                    <div class="px-4 py-3 border-b border-white/5 flex items-center gap-3">
+                        <div class="flex gap-1.5"><div class="w-2.5 h-2.5 rounded-full bg-red-500/70"></div><div class="w-2.5 h-2.5 rounded-full bg-yellow-500/70"></div><div class="w-2.5 h-2.5 rounded-full bg-green-500/70"></div></div>
+                        <div class="flex-1 bg-white/5 rounded-md h-5 flex items-center px-2"><span class="text-[9px] text-slate-600">ragcore.app/ai-chat</span></div>
+                    </div>
+                    <!-- Fake chat -->
+                    <div class="p-5 space-y-4">
+                        <div class="flex justify-end">
+                            <div class="bg-charcoal border border-white/10 rounded-2xl px-4 py-2.5 text-xs text-slate-300 max-w-[80%]">
+                                Write a Python function to reverse a linked list
+                            </div>
+                        </div>
+                        <div class="flex justify-start">
+                            <div class="border-l-2 border-primary bg-[#0D0D0D] rounded-2xl px-4 py-3 text-xs text-slate-300 max-w-[85%] space-y-1.5">
+                                <p class="text-primary font-semibold text-[10px] uppercase tracking-widest mb-2">AI Assistant</p>
+                                <p class="text-slate-300">Here's a clean implementation:</p>
+                                <div class="bg-black/50 rounded-lg p-2.5 font-mono text-[10px] text-slate-400 border border-white/5">
+                                    <span class="text-primary">def</span> reverse_list(head):<br/>
+                                    &nbsp;&nbsp;prev = <span class="text-primary">None</span><br/>
+                                    &nbsp;&nbsp;<span class="text-primary">while</span> head:<br/>
+                                    &nbsp;&nbsp;&nbsp;&nbsp;nxt = head.next<br/>
+                                    &nbsp;&nbsp;&nbsp;&nbsp;head.next = prev<br/>
+                                    &nbsp;&nbsp;&nbsp;&nbsp;prev = head<br/>
+                                    &nbsp;&nbsp;&nbsp;&nbsp;head = nxt<br/>
+                                    &nbsp;&nbsp;<span class="text-primary">return</span> prev
+                                </div>
+                            </div>
+                        </div>
+                        <div class="flex justify-end">
+                            <div class="bg-charcoal border border-white/10 rounded-2xl px-4 py-2.5 text-xs text-slate-300 max-w-[80%]">
+                                What's the time complexity?
+                            </div>
+                        </div>
+                        <div class="flex justify-start">
+                            <div class="border-l-2 border-primary bg-[#0D0D0D] rounded-2xl px-4 py-3 text-xs text-slate-400 max-w-[85%]">
+                                <span class="text-white">O(n)</span> time and <span class="text-white">O(1)</span> space — we visit each node once with no extra data structures.
+                            </div>
+                        </div>
+                        <!-- Typing indicator -->
+                        <div class="flex items-center gap-1.5 pl-1">
+                            <div class="w-1.5 h-1.5 rounded-full bg-primary animate-bounce" style="animation-delay:0s"></div>
+                            <div class="w-1.5 h-1.5 rounded-full bg-primary animate-bounce" style="animation-delay:.15s"></div>
+                            <div class="w-1.5 h-1.5 rounded-full bg-primary animate-bounce" style="animation-delay:.3s"></div>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
     </div>

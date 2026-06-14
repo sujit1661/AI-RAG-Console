@@ -33,7 +33,7 @@ app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
 # ── CORS ──────────────────────────────────────────────────────
-_origins = os.getenv("ALLOWED_ORIGINS", "http://127.0.0.1:8000,http://localhost:8000").split(",")
+_origins = os.getenv("ALLOWED_ORIGINS", "http://127.0.0.1:8000,http://localhost:8000,http://0.0.0.0:8000").split(",")
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[o.strip() for o in _origins],
@@ -57,11 +57,18 @@ from routers.auth import router as auth_router
 from routers.workspace import router as workspace_router
 from routers.files import router as files_router
 from routers.chat import router as chat_router
+from routers.general_chat import router as general_chat_router
+from routers.playground import router as playground_router
 
 app.include_router(auth_router)
 app.include_router(workspace_router)
 app.include_router(files_router)
 app.include_router(chat_router)
+app.include_router(general_chat_router)
+app.include_router(playground_router)
+
+from routers.pipeline_explorer import router as pipeline_explorer_router
+app.include_router(pipeline_explorer_router)
 
 # ── Analytics ─────────────────────────────────────────────────
 from backend.deps import get_token, get_safe_name
@@ -118,3 +125,23 @@ async def serve_login():
 @app.get("/register", response_class=HTMLResponse)
 async def serve_register():
     return FileResponse("frontend/register.html", headers=_NC)
+
+
+@app.get("/ai-chat", response_class=HTMLResponse)
+async def serve_general_chat():
+    return FileResponse("frontend/chat.html", headers=_NC)
+
+
+@app.get("/playground", response_class=HTMLResponse)
+async def serve_playground():
+    return FileResponse("frontend/playground.html", headers=_NC)
+
+
+@app.get("/pipeline", response_class=HTMLResponse)
+async def serve_pipeline():
+    return FileResponse("frontend/pipeline.html", headers=_NC)
+
+
+if __name__ == "__main__":
+    import uvicorn
+    uvicorn.run("app:app", host="0.0.0.0", port=8000, reload=True)

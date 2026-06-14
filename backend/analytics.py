@@ -28,11 +28,30 @@ class QueryTrace:
             f"[{self.trace_id}] QUERY START | user={self.username} "
             f"ws={self.workspace_slug} | q={self.question[:80]}"
         )
+        # Playground event
+        try:
+            from backend.playground import new_trace
+            self._pg_trace_id = new_trace(
+                self.username, "rag_query", self.question,
+                meta={"workspace": self.workspace_slug}
+            )
+        except Exception:
+            self._pg_trace_id = None
         return self
 
     def set(self, **kwargs):
         """Record metrics during the query."""
         self.metrics.update(kwargs)
+
+    def emit_stage(self, stage: str, status: str, message: str = "", meta: dict = None):
+        """Emit a playground pipeline stage event (no-op if playground unavailable)."""
+        try:
+            pg_id = getattr(self, "_pg_trace_id", None)
+            if pg_id:
+                from backend.playground import emit
+                emit(pg_id, stage, status, message, meta or {})
+        except Exception:
+            pass
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         elapsed = round((time.perf_counter() - self.start_time) * 1000, 1)
@@ -60,6 +79,15 @@ class QueryTrace:
             )
         except Exception:
             pass  # Never let analytics break the main flow
+        # Playground finish
+        try:
+            if getattr(self, "_pg_trace_id", None):
+                from backend.playground import finish_trace
+                finish_trace(self._pg_trace_id,
+                             status="error" if exc_type else "done",
+                             final_meta=self.metrics)
+        except Exception:
+            pass
 
 
 def _save_query_log(trace_id: str, username: str, workspace_slug: str,

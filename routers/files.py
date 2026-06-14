@@ -53,8 +53,21 @@ async def upload(workspace_name: str, file: UploadFile = File(...),
     with open(file_path, "wb") as f:
         f.write(file_bytes)
 
+    # Start playground trace for this upload
+    pg_trace_id = None
+    try:
+        from backend.playground import new_trace, emit
+        pg_trace_id = new_trace(username, "file_upload", safe_filename,
+                                meta={"workspace": slug, "size_bytes": len(file_bytes),
+                                      "filename": safe_filename})
+        emit(pg_trace_id, "file_upload", "done",
+             f"{safe_filename} ({len(file_bytes)/1024:.1f} KB)",
+             {"filename": safe_filename, "size_bytes": len(file_bytes), "workspace": slug})
+    except Exception:
+        pass
+
     background_tasks.add_task(_upload_to_supabase, slug, safe_filename, file_bytes, username)
-    background_tasks.add_task(_process_and_index, slug, safe_filename, file_path, username)
+    background_tasks.add_task(_process_and_index, slug, safe_filename, file_path, username, pg_trace_id)
 
     logger.info(f"File {safe_filename} saved, indexing in background [{username}/{slug}]")
     return {"status": "processing", "message": f'"{safe_filename}" uploaded. Indexing in background...'}
@@ -90,10 +103,23 @@ def _upload_to_supabase(slug: str, filename: str, file_bytes: bytes, username: s
         logger.warning(f"Supabase upload error (non-fatal): {e}")
 
 
-def _process_and_index(slug: str, filename: str, file_path: str, username: str):
+def _process_and_index(slug: str, filename: str, file_path: str, username: str,
+                       pg_trace_id: str = None):
+    def _pg(stage, status, msg="", meta=None):
+        if not pg_trace_id:
+            return
+        try:
+            from backend.playground import emit, finish_trace
+            emit(pg_trace_id, stage, status, msg, meta or {})
+            if status in ("done", "error") and stage in ("vector_store", "embedding"):
+                pass  # finish called explicitly below
+        except Exception:
+            pass
+
     try:
         ext = filename.lower()
         page_info = None
+        _pg("text_extraction", "running", f"Extracting text from {filename}")
         if ext.endswith(".pdf"):
             text, page_info = extract_pdf_text(file_path)
         elif ext.endswith((".xlsx", ".xls")):
@@ -104,11 +130,17 @@ def _process_and_index(slug: str, filename: str, file_path: str, username: str):
             text = extract_image_text(file_path)
         else:
             logger.error(f"Unsupported format: {filename}")
+            _pg("text_extraction", "error", f"Unsupported format: {filename}")
             return
 
         if not text or not text.strip():
             logger.warning(f"No text extracted from {filename}")
+            _pg("text_extraction", "error", "No text extracted")
             return
+
+        _pg("text_extraction", "done", f"{len(text):,} characters extracted",
+            {"chars": len(text), "has_pages": page_info is not None})
+        _pg("chunking", "running", "Splitting into chunks")
 
         if page_info:
             from backend.chunking import chunk_text_with_pages
@@ -120,7 +152,32 @@ def _process_and_index(slug: str, filename: str, file_path: str, username: str):
             from backend.chunking import chunk_text
             chunks = chunk_text(text)
 
+        _pg("chunking", "done", f"{len(chunks)} chunks created",
+            {"chunk_count": len(chunks), "strategy": "page-aware" if page_info else "recursive"})
+        _pg("embedding", "running", "Generating vector embeddings")
+        _pg("vector_store", "running", "Writing to Supabase pgvector + ChromaDB + BM25")
+
         add_documents(slug, chunks, filename, username=username)
+
+        _pg("embedding", "done", f"BAAI/bge-small-en-v1.5 (384 dims)",
+            {"model": "BAAI/bge-small-en-v1.5", "dims": 384, "chunks": len(chunks)})
+        _pg("vector_store", "done",
+            f"{len(chunks)} chunks → Supabase + ChromaDB + BM25",
+            {"supabase": True, "chromadb": True, "bm25": True, "chunks": len(chunks)})
+
+        try:
+            from backend.playground import finish_trace
+            finish_trace(pg_trace_id, "done",
+                         {"chunk_count": len(chunks), "filename": filename})
+        except Exception:
+            pass
+
         logger.info(f"Indexed {filename}: {len(chunks)} chunks [{username}/{slug}]")
     except Exception as e:
+        _pg("vector_store", "error", str(e))
+        try:
+            from backend.playground import finish_trace
+            finish_trace(pg_trace_id, "error")
+        except Exception:
+            pass
         logger.error(f"Background processing failed for {filename}: {e}")

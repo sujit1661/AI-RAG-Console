@@ -1,17 +1,18 @@
+import os
 import json
 import logging
 import uuid
 from datetime import datetime
 from typing import Optional
 
-from fastapi import APIRouter, Depends, HTTPException, Request
+from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 
 from backend.deps import (
     get_token, get_safe_name, get_workspace_path,
     load_chats_metadata, save_chats_metadata,
-    load_history, save_history, get_chat_history_file
+    load_history, save_history,
 )
 from backend.auth import get_current_user
 from backend.retriever import retrieve
@@ -21,9 +22,6 @@ from backend.analytics import QueryTrace
 
 logger = logging.getLogger(__name__)
 router = APIRouter(tags=["chat"])
-
-# Candidate pool before reranking
-CANDIDATE_K = 30
 
 
 class ChatRequest(BaseModel):
@@ -37,18 +35,12 @@ def _require_auth(token: Optional[str] = Depends(get_token)) -> str:
 
 
 def _adaptive_k(question: str) -> int:
-    """
-    Determine how many final chunks to return based on query complexity.
-    Simple factual → 4, broad/list → 15, default → 8.
-    Cohere reranker selects the best k from CANDIDATE_K=30 candidates.
-    """
+    """Return how many final chunks to return based on query type."""
     q = question.lower()
-    # Broad queries that need many chunks
     if any(w in q for w in ["list", "all", "every", "each", "who", "names",
                              "people", "everyone", "summary", "summarize",
                              "overview", "describe", "explain"]):
         return 15
-    # Simple factual queries
     if any(w in q for w in ["what is", "when", "where", "how many", "how much",
                              "define", "what does", "who is"]):
         return 4
@@ -81,7 +73,7 @@ def _save_and_sync(slug: str, chat_id: str, question: str, answer: str):
 
 
 def _resolve_chat_id(slug: str, requested_id: Optional[str]) -> str:
-    """Get or create a chat_id for the current turn."""
+    """Return existing chat_id, or create a new one."""
     chat_id = (requested_id or "").strip() or None
     if chat_id:
         return chat_id
@@ -94,6 +86,8 @@ def _resolve_chat_id(slug: str, requested_id: Optional[str]) -> str:
         return chat_id
     return sorted(chats, key=lambda c: c.get("updated_at") or c.get("created_at") or "", reverse=True)[0]["id"]
 
+
+# ── Endpoints ─────────────────────────────────────────────────
 
 @router.post("/chat")
 async def chat(data: ChatRequest, username: str = Depends(_require_auth)):
@@ -108,7 +102,6 @@ async def chat(data: ChatRequest, username: str = Depends(_require_auth)):
     if not os.path.exists(get_workspace_path(slug)):
         raise HTTPException(status_code=404, detail="Workspace not found")
 
-    import os
     k = _adaptive_k(data.question)
     try:
         context_chunks, metadatas = retrieve(slug, data.question, username=username, k=k)
@@ -141,7 +134,6 @@ async def chat_stream(data: ChatRequest, username: str = Depends(_require_auth))
     if not data.workspace_name or not data.workspace_name.strip():
         raise HTTPException(status_code=400, detail="Workspace name cannot be empty")
 
-    import os
     slug = get_safe_name(data.workspace_name)
     if not os.path.exists(get_workspace_path(slug)):
         raise HTTPException(status_code=404, detail="Workspace not found")
@@ -151,8 +143,25 @@ async def chat_stream(data: ChatRequest, username: str = Depends(_require_auth))
         trace.__enter__()
         try:
             k = _adaptive_k(data.question)
+            trace.emit_stage("query_received", "done",
+                             f"k={k}, workspace={slug}",
+                             {"question": data.question, "k": k, "workspace": slug})
+
+            trace.emit_stage("hybrid_search", "running", "Searching vector + BM25 indexes")
             context_chunks, metadatas = retrieve(slug, data.question, username=username, k=k)
             trace.set(chunks_retrieved=len(context_chunks), chunks_after_rerank=len(context_chunks))
+
+            sources = list({m.get("source", "") for m in metadatas if m})
+            trace.emit_stage("hybrid_search", "done",
+                             f"{len(context_chunks)} chunks retrieved",
+                             {"chunks": len(context_chunks), "sources": sources})
+            trace.emit_stage("rrf_merge", "done",
+                             "Reciprocal Rank Fusion applied",
+                             {"candidates": len(context_chunks)})
+            trace.emit_stage("rerank", "done" if context_chunks else "skip",
+                             f"Reranked to top {len(context_chunks)}",
+                             {"chunks_after_rerank": len(context_chunks)})
+
             full_answer = ""
             token_usage = {"prompt_tokens": 0, "completion_tokens": 0, "total_tokens": 0}
             page_numbers = []
@@ -161,10 +170,14 @@ async def chat_stream(data: ChatRequest, username: str = Depends(_require_auth))
                 msg = "No context found. Please upload documents first."
                 yield f"data: {json.dumps({'type': 'chunk', 'content': msg})}\n\n"
                 full_answer = msg
+                trace.emit_stage("llm_generation", "skip", "No context — skipped")
             else:
                 context = "\n\n".join(context_chunks)
                 page_numbers = sorted({m["page"] for m in metadatas if m and m.get("page") is not None})
                 prior = load_history(slug, (data.chat_id or "").strip() or None)
+                trace.emit_stage("llm_generation", "running",
+                                 "Streaming from LLM",
+                                 {"context_chars": len(context), "pages": page_numbers})
                 for item_type, item_data in generate_answer_stream(context, data.question, history=prior):
                     if item_type == "chunk":
                         full_answer += item_data
@@ -173,10 +186,19 @@ async def chat_stream(data: ChatRequest, username: str = Depends(_require_auth))
                         token_usage = item_data
 
             trace.set(total_tokens=token_usage.get("total_tokens", 0))
+            trace.emit_stage("llm_generation", "done",
+                             f"{token_usage.get('total_tokens', 0)} tokens",
+                             token_usage)
             yield f"data: {json.dumps({'type': 'metadata', 'page_numbers': page_numbers, 'token_usage': token_usage, 'trace_id': trace.trace_id})}\n\n"
 
             chat_id = _resolve_chat_id(slug, data.chat_id)
+            trace.emit_stage("storage", "running", "Persisting to local JSON + Supabase")
             _save_and_sync(slug, chat_id, data.question, full_answer)
+            trace.emit_stage("storage", "done", "Saved",
+                             {"chat_id": chat_id})
+            trace.emit_stage("response", "done",
+                             f"{len(full_answer)} chars",
+                             {"answer_length": len(full_answer), "pages": page_numbers})
             yield f"data: {json.dumps({'type': 'done'})}\n\n"
 
         except Exception as e:

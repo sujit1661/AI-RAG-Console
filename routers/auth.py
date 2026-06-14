@@ -1,5 +1,4 @@
 from fastapi import APIRouter, Depends, HTTPException, Request, Response
-from fastapi.security import HTTPBearer
 from pydantic import BaseModel
 from typing import Optional
 import re

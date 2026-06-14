@@ -179,7 +179,7 @@ def add_documents(workspace_slug: str, chunks, filename: str,
 
 
 def retrieve(workspace_slug: str, query: str, username: str = "",
-             k: int = 4, expand_queries: bool = False) -> Tuple[List[str], List[dict]]:
+             k: int = 4) -> Tuple[List[str], List[dict]]:
     """
     Hybrid retrieval: vector search + BM25 → RRF merge → rerank → top k.
     """
@@ -272,7 +272,3 @@ def delete_workspace(workspace_slug: str, username: str = ""):
         delete_workspace_index(workspace_slug, username)
     except Exception:
         pass
-
-
-def list_workspaces():
-    return [c.name for c in _chroma_client.list_collections()]

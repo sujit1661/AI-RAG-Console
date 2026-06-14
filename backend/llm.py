@@ -7,6 +7,16 @@ load_dotenv()
 
 client = Groq(api_key=os.getenv("GROQ_API_KEY"))
 
+GENERAL_SYSTEM_PROMPT = """You are a helpful, knowledgeable AI assistant. You can answer questions on any topic using your general knowledge.
+
+RULES:
+- Be concise but thorough. Prioritize clarity.
+- Format responses using markdown where helpful: **bold**, bullet lists, headings, code blocks.
+- For coding questions, always include working code examples with comments.
+- If you are unsure about something, say so clearly rather than guessing.
+- Stay conversational and helpful.
+"""
+
 SYSTEM_PROMPT = """You are a helpful AI assistant that answers questions based on provided document context.
 
 RULES:
@@ -117,4 +127,71 @@ def generate_answer_stream(context: str, question: str,
                 "total_tokens": chunk.usage.total_tokens if chunk.usage else 0
             }
 
+    yield ("usage", usage if usage else {"prompt_tokens": 0, "completion_tokens": 0, "total_tokens": 0})
+
+
+# ── General AI Chat (no document context) ─────────────────────
+
+MAX_GENERAL_HISTORY = 20  # more history is fine without context overhead
+
+
+def _build_general_messages(question: str, history: List[Dict] = None) -> List[Dict]:
+    """Build messages for general (non-RAG) chat."""
+    messages = [{"role": "system", "content": GENERAL_SYSTEM_PROMPT}]
+    if history:
+        for msg in history[-MAX_GENERAL_HISTORY:]:
+            role = msg.get("role")
+            content = msg.get("content", "")
+            if role in ("user", "assistant") and content:
+                messages.append({"role": role, "content": content})
+    messages.append({"role": "user", "content": question})
+    return messages
+
+
+def generate_general_answer(question: str, history: List[Dict] = None):
+    """
+    General AI answer without document context.
+    Returns (answer_text, token_usage_dict).
+    """
+    messages = _build_general_messages(question, history)
+    response = client.chat.completions.create(
+        model="openai/gpt-oss-120b",
+        messages=messages,
+        temperature=0.7,
+        max_tokens=2000,
+        max_completion_tokens=2000,
+    )
+    answer = response.choices[0].message.content
+    usage = {
+        "prompt_tokens": response.usage.prompt_tokens if response.usage else 0,
+        "completion_tokens": response.usage.completion_tokens if response.usage else 0,
+        "total_tokens": response.usage.total_tokens if response.usage else 0,
+    }
+    return answer, usage
+
+
+def generate_general_answer_stream(question: str, history: List[Dict] = None) -> Generator:
+    """
+    Streaming general AI answer without document context.
+    Yields ("chunk", text) and ("usage", dict).
+    """
+    messages = _build_general_messages(question, history)
+    stream = client.chat.completions.create(
+        model="openai/gpt-oss-120b",
+        messages=messages,
+        temperature=0.7,
+        max_tokens=2000,
+        max_completion_tokens=2000,
+        stream=True,
+    )
+    usage = None
+    for chunk in stream:
+        if chunk.choices[0].delta.content is not None:
+            yield ("chunk", chunk.choices[0].delta.content)
+        if chunk.usage:
+            usage = {
+                "prompt_tokens": chunk.usage.prompt_tokens if chunk.usage else 0,
+                "completion_tokens": chunk.usage.completion_tokens if chunk.usage else 0,
+                "total_tokens": chunk.usage.total_tokens if chunk.usage else 0,
+            }
     yield ("usage", usage if usage else {"prompt_tokens": 0, "completion_tokens": 0, "total_tokens": 0})

@@ -10,15 +10,38 @@
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined"/>
 <script>
 tailwind.config = {
-    darkMode: "class",
-    theme: { extend: { colors: { primary: "#ff2e62", "matte-black": "#0A0A0A", charcoal: "#111111" }, fontFamily: { display: ["Space Grotesk","sans-serif"] } } }
+  darkMode: "class",
+  theme: { extend: {
+    colors: { primary: "#ff2e62", "matte-black": "#0A0A0A", charcoal: "#111111" },
+    fontFamily: { display: ["Space Grotesk","sans-serif"] }
+  }}
 }
 </script>
 <style>
+*{box-sizing:border-box;}
 body{background:#000;color:#f1f5f9;font-family:'Space Grotesk',sans-serif;}
-.neon-border{border:1px solid rgba(255,46,98,0.3);box-shadow:0 0 15px rgba(255,46,98,0.1);}
+::-webkit-scrollbar{width:4px;height:4px;}
+::-webkit-scrollbar-thumb{background:#222;border-radius:10px;}
+
+/* Sidebar */
+.ws-item{border-left:2px solid transparent;transition:all .15s;}
+.ws-item:hover{background:rgba(255,255,255,.03);border-left-color:rgba(255,46,98,.3);}
+.ws-item.active{background:rgba(255,46,98,.08);border-left-color:#ff2e62;}
+.chat-row{transition:all .15s;border-radius:8px;}
+.chat-row:hover{background:rgba(255,255,255,.04);}
+.chat-row.active{background:rgba(255,46,98,.1);color:#fff;}
+.file-row{transition:all .15s;border-radius:8px;}
+.file-row:hover{background:rgba(255,255,255,.04);}
+.sec-header{display:flex;align-items:center;justify-content:space-between;padding:10px 16px 6px;cursor:pointer;user-select:none;}
+.sec-label{font-size:.62rem;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:#475569;}
+.sec-body{overflow:hidden;transition:max-height .25s ease;}
+.sec-body.collapsed{max-height:0!important;}
+.chev{transition:transform .2s;color:#475569;}
+.chev.open{transform:rotate(180deg);}
+
+/* AI bubble */
 .ai-bubble{border-left:3px solid #ff2e62;background:#0D0D0D;}
-.ai-bubble h2{font-size:1rem;color:#ff2e62;font-weight:700;margin:.75em 0 .4em;}
+.ai-bubble h1,.ai-bubble h2{font-size:1rem;color:#ff2e62;font-weight:700;margin:.75em 0 .4em;}
 .ai-bubble h3{font-size:.9rem;font-weight:700;margin:.75em 0 .4em;}
 .ai-bubble p{margin:.4em 0;line-height:1.6;}
 .ai-bubble ul,.ai-bubble ol{padding-left:1.4em;margin:.4em 0;}
@@ -27,105 +50,190 @@ body{background:#000;color:#f1f5f9;font-family:'Space Grotesk',sans-serif;}
 .ai-bubble code{background:#1a1a1a;border:1px solid #333;border-radius:4px;padding:1px 5px;font-size:.8em;color:#ff2e62;}
 .ai-bubble pre{background:#0a0a0a;border:1px solid #222;border-radius:8px;padding:12px;overflow-x:auto;margin:.5em 0;}
 .ai-bubble pre code{background:none;border:none;padding:0;color:#e2e8f0;font-size:.82em;}
-.workspace-item.active{border-color:#ff2e62;background:rgba(255,46,98,0.1);color:white;}
-.chat-item.active{border-color:#ff2e62;background:rgba(255,46,98,0.1);color:white;}
+.ai-bubble table{width:100%;border-collapse:collapse;margin:.5em 0;font-size:.82em;}
+.ai-bubble th,.ai-bubble td{border:1px solid #1e293b;padding:6px 10px;}
+.ai-bubble th{background:#111;color:#ff2e62;}
+
+/* Modals */
+.modal-backdrop{position:fixed;inset:0;z-index:200;background:rgba(0,0,0,.85);backdrop-filter:blur(6px);display:flex;align-items:center;justify-content:center;padding:16px;}
+.modal-backdrop.hidden{display:none;}
+.modal-box{background:#0f0f0f;border:1px solid rgba(255,255,255,.1);border-radius:20px;width:100%;max-width:440px;overflow:hidden;}
+.modal-header{padding:20px 24px 16px;border-bottom:1px solid rgba(255,255,255,.06);}
+.modal-body{padding:20px 24px;}
+.modal-footer{padding:16px 24px;border-top:1px solid rgba(255,255,255,.06);display:flex;gap:10px;justify-content:flex-end;}
+.inp{width:100%;background:#000;border:1px solid rgba(255,255,255,.1);border-radius:10px;padding:10px 14px;font-size:.82rem;color:#f1f5f9;outline:none;transition:border-color .15s;font-family:'Space Grotesk',sans-serif;}
+.inp:focus{border-color:rgba(255,46,98,.5);}
+.inp.error{border-color:rgba(239,68,68,.6);}
+.btn-primary{background:#ff2e62;color:#fff;border:none;border-radius:10px;padding:9px 20px;font-size:.8rem;font-weight:700;cursor:pointer;transition:all .15s;font-family:'Space Grotesk',sans-serif;}
+.btn-primary:hover{background:#ff1a52;transform:scale(1.02);}
+.btn-primary:disabled{opacity:.4;pointer-events:none;}
+.btn-ghost{background:transparent;color:#94a3b8;border:1px solid rgba(255,255,255,.1);border-radius:10px;padding:9px 20px;font-size:.8rem;font-weight:600;cursor:pointer;transition:all .15s;font-family:'Space Grotesk',sans-serif;}
+.btn-ghost:hover{border-color:rgba(255,255,255,.25);color:#fff;}
+.btn-danger{background:rgba(239,68,68,.12);color:#ef4444;border:1px solid rgba(239,68,68,.3);border-radius:10px;padding:9px 20px;font-size:.8rem;font-weight:700;cursor:pointer;transition:all .15s;font-family:'Space Grotesk',sans-serif;}
+.btn-danger:hover{background:rgba(239,68,68,.2);}
+.btn-danger:disabled{opacity:.4;pointer-events:none;}
+.field-error{font-size:.7rem;color:#ef4444;margin-top:4px;}
+
+/* Misc */
+.neon-border{border:1px solid rgba(255,46,98,.3);box-shadow:0 0 15px rgba(255,46,98,.1);}
 .locked-section{opacity:.3;filter:grayscale(1);pointer-events:none;}
-.custom-scrollbar::-webkit-scrollbar{width:4px;}
-.custom-scrollbar::-webkit-scrollbar-thumb{background:#222;border-radius:10px;}
-.spinner{width:40px;height:40px;border:3px solid rgba(255,255,255,.1);border-top-color:#ff2e62;border-radius:50%;animation:spin .8s linear infinite;}
+.spinner{border:2px solid rgba(255,255,255,.1);border-top-color:#ff2e62;border-radius:50%;animation:spin .8s linear infinite;}
 @keyframes spin{to{transform:rotate(360deg);}}
 .thinking-dots{display:inline-flex;gap:4px;align-items:center;}
 .thinking-dot{width:8px;height:8px;background:#ff2e62;border-radius:50%;animation:tb 1.4s infinite ease-in-out;}
 .thinking-dot:nth-child(1){animation-delay:-.32s;}
 .thinking-dot:nth-child(2){animation-delay:-.16s;}
 @keyframes tb{0%,80%,100%{transform:scale(.8);opacity:.5;}40%{transform:scale(1.2);opacity:1;}}
-.modal-backdrop{position:fixed;inset:0;z-index:200;background:rgba(0,0,0,.8);backdrop-filter:blur(4px);display:flex;align-items:center;justify-content:center;}
-.modal-backdrop.hidden{display:none;}
-#wsSwitchOverlay{position:absolute;inset:0;z-index:50;background:rgba(0,0,0,.6);backdrop-filter:blur(2px);display:flex;align-items:center;justify-content:center;}
+#wsSwitchOverlay{position:absolute;inset:0;z-index:50;background:rgba(0,0,0,.65);backdrop-filter:blur(3px);display:flex;align-items:center;justify-content:center;}
 #wsSwitchOverlay.hidden{display:none;}
+.badge-count{display:inline-flex;align-items:center;justify-content:center;min-width:18px;height:18px;padding:0 5px;background:rgba(255,46,98,.15);border:1px solid rgba(255,46,98,.25);border-radius:20px;font-size:.6rem;font-weight:800;color:#ff2e62;}
+.search-input{width:100%;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:8px;padding:7px 10px 7px 32px;font-size:.75rem;color:#f1f5f9;outline:none;transition:border-color .15s;font-family:'Space Grotesk',sans-serif;}
+.search-input:focus{border-color:rgba(255,46,98,.35);background:rgba(255,255,255,.06);}
 </style>
 </head>
 <body class="h-screen flex flex-col overflow-hidden">
 
-<!-- Header -->
-<header class="h-16 border-b border-white/5 bg-matte-black flex items-center justify-between px-8 flex-shrink-0">
-  <div class="flex items-center gap-2">
-    <div class="w-3 h-3 bg-primary rounded-full animate-pulse"></div>
-    <h1 class="text-lg font-bold tracking-tighter uppercase">RAG<span class="text-primary font-black">CORE</span></h1>
-  </div>
+<!-- ── Header ──────────────────────────────────────────────── -->
+<header class="h-14 border-b border-white/5 bg-[#0A0A0A] flex items-center justify-between px-6 flex-shrink-0">
   <div class="flex items-center gap-3">
-    <div id="wsBadge" class="text-[10px] font-bold bg-white/5 border border-white/10 px-4 py-1.5 rounded-full text-slate-400">NO WORKSPACE SELECTED</div>
-    <button onclick="showProfile()" class="text-[10px] font-bold bg-white/5 border border-white/10 px-4 py-1.5 rounded-full text-slate-400 hover:text-primary hover:border-primary/50 transition-all flex items-center gap-2">
-      <span class="material-symbols-outlined text-sm">account_circle</span>
-      <span id="usernameDisplay">User</span>
+    <a href="/app" class="flex items-center gap-2">
+      <div class="w-2.5 h-2.5 bg-primary rounded-full animate-pulse"></div>
+      <h1 class="text-base font-bold tracking-tighter uppercase">RAG<span class="text-primary font-black">CORE</span></h1>
+    </a>
+    <div class="flex items-center bg-white/5 border border-white/10 rounded-xl p-1 gap-0.5">
+      <div class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold bg-primary/20 text-primary border border-primary/30">
+        <span class="material-symbols-outlined text-sm">folder_open</span><span>Document RAG</span>
+      </div>
+      <a href="/ai-chat" class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold text-slate-400 hover:text-white transition-all">
+        <span class="material-symbols-outlined text-sm">smart_toy</span><span>AI Chat</span>
+      </a>
+      <a href="/playground" class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold text-slate-400 hover:text-white transition-all">
+        <span class="material-symbols-outlined text-sm">biotech</span><span>Playground</span>
+      </a>
+      <a href="/pipeline" class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold text-slate-400 hover:text-white transition-all">
+        <span class="material-symbols-outlined text-sm">account_tree</span><span>Pipeline</span>
+      </a>
+    </div>
+  </div>
+  <div class="flex items-center gap-2">
+    <div id="wsBadge" class="text-[10px] font-bold bg-white/5 border border-white/10 px-3 py-1.5 rounded-full text-slate-500 hidden sm:flex items-center gap-1.5">
+      <span class="material-symbols-outlined text-xs">folder</span><span id="wsBadgeText">NO WORKSPACE</span>
+    </div>
+    <button onclick="showProfile()" class="text-[10px] font-bold bg-white/5 border border-white/10 px-3 py-1.5 rounded-full text-slate-400 hover:text-primary hover:border-primary/40 transition-all flex items-center gap-1.5">
+      <span class="material-symbols-outlined text-sm">account_circle</span><span id="usernameDisplay">—</span>
     </button>
-    <button onclick="logout()" class="text-[10px] font-bold bg-white/5 border border-white/10 px-4 py-1.5 rounded-full text-slate-400 hover:text-primary hover:border-primary/50 transition-all flex items-center gap-2">
-      <span class="material-symbols-outlined text-sm">logout</span>Logout
+    <button onclick="showHelpModal()" class="text-[10px] font-bold bg-white/5 border border-white/10 px-3 py-1.5 rounded-full text-slate-400 hover:text-primary hover:border-primary/40 transition-all flex items-center gap-1.5">
+      <span class="material-symbols-outlined text-sm">help_outline</span><span>Guide</span>
+    </button>
+    <button onclick="logout()" class="text-[10px] font-bold bg-white/5 border border-white/10 px-3 py-1.5 rounded-full text-slate-400 hover:text-primary hover:border-primary/40 transition-all flex items-center gap-1.5">
+      <span class="material-symbols-outlined text-sm">logout</span><span>Logout</span>
     </button>
   </div>
 </header>
 
 <div class="flex flex-1 overflow-hidden">
-<!-- Sidebar -->
-<aside class="w-80 bg-matte-black border-r border-white/5 flex flex-col overflow-hidden flex-shrink-0">
-  <div class="p-4 border-b border-white/5">
-    <button onclick="createNewWorkspace()" class="w-full bg-primary/10 hover:bg-primary/20 border border-primary/30 hover:border-primary/50 text-primary px-4 py-3 rounded-xl font-bold text-sm flex items-center justify-center gap-2 transition-all">
+
+<!-- ── Sidebar ──────────────────────────────────────────────── -->
+<aside class="w-80 flex-shrink-0 flex flex-col overflow-hidden" style="background:#0a0a0a;border-right:1px solid rgba(255,255,255,.05);">
+
+  <!-- New Workspace button -->
+  <div class="p-3 border-b" style="border-color:rgba(255,255,255,.05);">
+    <button onclick="openCreateWsModal()" class="w-full flex items-center justify-center gap-2 rounded-xl py-2.5 px-4 text-sm font-bold transition-all" style="background:rgba(255,46,98,.1);border:1px solid rgba(255,46,98,.25);color:#ff2e62;" onmouseover="this.style.background='rgba(255,46,98,.18)'" onmouseout="this.style.background='rgba(255,46,98,.1)'">
       <span class="material-symbols-outlined text-lg">add</span><span>New Workspace</span>
     </button>
   </div>
-  <div class="flex-1 overflow-y-auto custom-scrollbar p-2">
-    <div id="workspaceList" class="flex flex-col gap-1"></div>
-  </div>
-  <!-- Chats -->
-  <div id="chatSection" class="border-t border-white/5 p-4 locked-section">
-    <div class="flex justify-between items-center mb-3">
-      <label class="text-[10px] font-black text-slate-500 uppercase tracking-widest">Chats</label>
-      <span id="chatCount" class="text-[9px] bg-primary/20 text-primary px-2 py-0.5 rounded border border-primary/30">0</span>
-    </div>
-    <button id="newChatBtn" class="w-full bg-white/5 hover:bg-white/10 border border-white/10 hover:border-primary/40 text-slate-300 px-4 py-2.5 rounded-xl font-bold text-xs flex items-center justify-center gap-2 transition-all mb-2">
-      <span class="material-symbols-outlined text-sm">add_comment</span><span>New Chat</span>
-    </button>
-    <div id="chatList" class="flex flex-col gap-1 max-h-48 overflow-y-auto custom-scrollbar"></div>
-  </div>
-  <!-- Documents -->
-  <div id="librarySection" class="border-t border-white/5 p-4 locked-section">
-    <div class="flex justify-between items-center mb-3">
-      <label class="text-[10px] font-black text-slate-500 uppercase tracking-widest">Documents</label>
+
+  <!-- ── WORKSPACES section ── -->
+  <div style="border-bottom:1px solid rgba(255,255,255,.05);">
+    <div class="sec-header" onclick="toggleSec('secWs')">
       <div class="flex items-center gap-2">
-        <span id="fileCount" class="text-[9px] bg-primary/20 text-primary px-2 py-0.5 rounded border border-primary/30">0</span>
-        <button onclick="showHelpModal()" class="text-slate-600 hover:text-primary transition-colors" title="How to use">
-          <span class="material-symbols-outlined text-sm">help_outline</span>
+        <span class="material-symbols-outlined text-sm" style="color:#ff2e62">workspaces</span>
+        <span class="sec-label">Workspaces</span>
+        <span class="badge-count" id="wsCnt">0</span>
+      </div>
+      <span class="material-symbols-outlined text-sm chev open" id="chevWs">expand_more</span>
+    </div>
+    <div class="sec-body" id="secWs" style="max-height:500px;">
+      <!-- Search -->
+      <div class="px-3 pb-2 relative">
+        <span class="material-symbols-outlined absolute left-6 top-1/2 -translate-y-1/2 text-slate-600" style="font-size:15px">search</span>
+        <input id="wsSearch" class="search-input" placeholder="Filter workspaces…" oninput="filterWorkspaces(this.value)"/>
+      </div>
+      <div id="workspaceList" class="overflow-y-auto pb-2" style="max-height:260px;"></div>
+    </div>
+  </div>
+
+  <!-- ── CHATS section ── -->
+  <div id="chatSection" class="locked-section" style="border-bottom:1px solid rgba(255,255,255,.05);">
+    <div class="sec-header" onclick="toggleSec('secChats')">
+      <div class="flex items-center gap-2">
+        <span class="material-symbols-outlined text-sm" style="color:#818cf8">chat_bubble</span>
+        <span class="sec-label">Chats</span>
+        <span class="badge-count" id="chatCount">0</span>
+      </div>
+      <div class="flex items-center gap-1">
+        <button onclick="event.stopPropagation();openNewChatModal()" class="p-1 rounded-lg transition-colors hover:text-primary text-slate-600" title="New chat">
+          <span class="material-symbols-outlined text-sm">add</span>
         </button>
+        <span class="material-symbols-outlined text-sm chev open" id="chevChats">expand_more</span>
       </div>
     </div>
-    <button id="uploadBtn" class="w-full bg-primary/10 hover:bg-primary/20 border border-primary/30 hover:border-primary/60 text-primary rounded-xl p-3 flex items-center justify-center gap-2 transition-all font-bold text-sm">
-      <span class="material-symbols-outlined text-lg">upload_file</span><span>Upload Document</span>
-    </button>
-    <input type="file" id="fileInput" hidden accept=".pdf,.docx,.xlsx,.xls,.png,.jpg,.jpeg"/>
-    <p class="text-[9px] text-slate-600 text-center mt-2">PDF · DOCX · Excel · Images (max 50MB)</p>
-    <div id="uploadStatus" class="hidden mt-2 text-[10px] text-center py-2 rounded-lg"></div>
-    <div id="libraryContainer" class="flex flex-col gap-2 max-h-64 overflow-y-auto custom-scrollbar mt-3"></div>
+    <div class="sec-body" id="secChats" style="max-height:240px;">
+      <div id="chatList" class="overflow-y-auto px-2 pb-2" style="max-height:220px;"></div>
+    </div>
+  </div>
+
+  <!-- ── DOCUMENTS section ── -->
+  <div id="librarySection" class="locked-section flex flex-col" style="flex:1;overflow:hidden;min-height:0;">
+    <div class="sec-header flex-shrink-0" onclick="toggleSec('secDocs')">
+      <div class="flex items-center gap-2">
+        <span class="material-symbols-outlined text-sm" style="color:#06b6d4">description</span>
+        <span class="sec-label">Documents</span>
+        <span class="badge-count" id="fileCount">0</span>
+      </div>
+      <div class="flex items-center gap-1">
+        <span class="material-symbols-outlined text-sm chev open" id="chevDocs">expand_more</span>
+      </div>
+    </div>
+    <div class="sec-body flex flex-col" id="secDocs" style="max-height:none;flex:1;overflow:hidden;min-height:0;">
+      <div class="px-3 pb-2 flex-shrink-0">
+        <button id="uploadBtn" class="w-full flex items-center justify-center gap-2 rounded-xl py-2.5 px-4 text-sm font-bold transition-all" style="background:rgba(6,182,212,.08);border:1px solid rgba(6,182,212,.2);color:#06b6d4;" onmouseover="this.style.background='rgba(6,182,212,.15)'" onmouseout="this.style.background='rgba(6,182,212,.08)'">
+          <span class="material-symbols-outlined text-base">upload_file</span><span>Upload Document</span>
+        </button>
+        <input type="file" id="fileInput" hidden accept=".pdf,.docx,.xlsx,.xls,.png,.jpg,.jpeg"/>
+        <p class="text-center mt-1.5" style="font-size:.62rem;color:#334155;">PDF · DOCX · Excel · Images (max 50MB)</p>
+        <div id="uploadStatus" class="hidden mt-2 text-center py-1.5 px-3 rounded-lg" style="font-size:.7rem;"></div>
+      </div>
+      <div id="libraryContainer" class="overflow-y-auto px-2 pb-3" style="flex:1;min-height:0;"></div>
+    </div>
+  </div>
+
+  <!-- Workflow hint -->
+  <div class="flex-shrink-0 px-4 py-2.5 border-t" style="border-color:rgba(255,255,255,.04);">
+    <p style="font-size:.62rem;color:#1e293b;text-align:center;line-height:1.6;">
+      ① Create workspace &nbsp;→&nbsp; ② Upload docs &nbsp;→&nbsp; ③ Chat
+    </p>
   </div>
 </aside>
 
-<!-- Main -->
-<main class="flex-1 flex flex-col bg-[#050505] relative overflow-hidden">
+<!-- ── Main chat area ──────────────────────────────────────── -->
+<main class="flex-1 flex flex-col relative overflow-hidden" style="background:#050505;">
   <div id="wsSwitchOverlay" class="hidden">
     <div class="flex flex-col items-center gap-3">
-      <div class="spinner" style="width:32px;height:32px;border-width:3px;"></div>
-      <p class="text-xs text-slate-400 uppercase tracking-widest">Loading workspace...</p>
+      <div class="spinner" style="width:28px;height:28px;"></div>
+      <p style="font-size:.7rem;color:#64748b;text-transform:uppercase;letter-spacing:.1em;">Loading workspace…</p>
     </div>
   </div>
-  <div id="chatContainer" class="flex-1 overflow-y-auto custom-scrollbar p-8 flex flex-col gap-6 pb-36">
-    <div class="ai-bubble p-6 rounded-xl border border-white/5 max-w-2xl">
-      <p class="text-sm text-slate-400">Select a workspace to start.</p>
+  <div id="chatContainer" class="flex-1 overflow-y-auto p-8 flex flex-col gap-5" style="padding-bottom:120px;">
+    <div class="ai-bubble p-5 rounded-xl max-w-xl" style="border:1px solid rgba(255,255,255,.05);">
+      <p style="font-size:.82rem;color:#94a3b8;">Select or create a workspace to get started.</p>
     </div>
   </div>
-  <div class="absolute bottom-0 left-0 right-0 p-6 bg-gradient-to-t from-black via-black/80 to-transparent">
-    <div id="inputWrapper" class="locked-section max-w-4xl mx-auto flex items-center bg-matte-black neon-border rounded-2xl p-2">
-      <input id="chatInput" disabled type="text" placeholder="Ask a question about your documents..."
-        class="w-full bg-transparent border-none text-white placeholder-slate-600 focus:ring-0 px-4 py-3 text-sm"/>
-      <button id="sendBtn" class="bg-primary text-white p-3 rounded-xl hover:scale-105 transition-all flex-shrink-0">
+  <div class="absolute bottom-0 left-0 right-0 p-5" style="background:linear-gradient(to top, #050505 60%, transparent);">
+    <div id="inputWrapper" class="locked-section max-w-4xl mx-auto flex items-center rounded-2xl p-2 gap-2 neon-border" style="background:#0a0a0a;">
+      <input id="chatInput" disabled type="text" placeholder="Ask a question about your documents…"
+        class="flex-1 bg-transparent border-none text-white outline-none px-4 py-3 text-sm placeholder-slate-600"/>
+      <button id="sendBtn" class="flex-shrink-0 bg-primary text-white p-3 rounded-xl hover:scale-105 transition-all">
         <span class="material-symbols-outlined">send</span>
       </button>
     </div>
@@ -133,536 +241,866 @@ body{background:#000;color:#f1f5f9;font-family:'Space Grotesk',sans-serif;}
 </main>
 </div>
 
+<!-- ════════════════════════════════════════════════════════════
+     MODALS
+═══════════════════════════════════════════════════════════════ -->
+
+<!-- Create Workspace Modal -->
+<div id="modalCreateWs" class="modal-backdrop hidden" onclick="if(event.target===this)closeModal('modalCreateWs')">
+  <div class="modal-box">
+    <div class="modal-header">
+      <div class="flex items-center gap-3">
+        <span class="material-symbols-outlined text-primary">add_box</span>
+        <div>
+          <h2 style="font-size:.95rem;font-weight:700;">Create Workspace</h2>
+          <p style="font-size:.65rem;color:#64748b;text-transform:uppercase;letter-spacing:.08em;margin-top:2px;">Step 1 of your workflow</p>
+        </div>
+      </div>
+    </div>
+    <div class="modal-body flex flex-col gap-4">
+      <div>
+        <label style="font-size:.72rem;font-weight:700;color:#94a3b8;display:block;margin-bottom:6px;text-transform:uppercase;letter-spacing:.06em;">Workspace Name <span style="color:#ff2e62">*</span></label>
+        <input id="cwName" class="inp" placeholder="e.g. Research Papers, Q4 Reports…" maxlength="50" oninput="validateCreateWs()"/>
+        <p id="cwNameErr" class="field-error hidden"></p>
+      </div>
+      <div>
+        <label style="font-size:.72rem;font-weight:700;color:#94a3b8;display:block;margin-bottom:6px;text-transform:uppercase;letter-spacing:.06em;">Description <span style="font-size:.65rem;font-weight:400;color:#475569;">(optional)</span></label>
+        <input id="cwDesc" class="inp" placeholder="What documents will live here?" maxlength="120"/>
+      </div>
+      <div id="cwErr" class="hidden rounded-lg px-3 py-2" style="background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.2);font-size:.75rem;color:#ef4444;"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-ghost" onclick="closeModal('modalCreateWs')">Cancel</button>
+      <button id="cwBtn" class="btn-primary" onclick="submitCreateWs()">
+        <span class="material-symbols-outlined text-sm mr-1">add</span>Create
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- Rename Workspace Modal -->
+<div id="modalRenameWs" class="modal-backdrop hidden" onclick="if(event.target===this)closeModal('modalRenameWs')">
+  <div class="modal-box">
+    <div class="modal-header">
+      <div class="flex items-center gap-3">
+        <span class="material-symbols-outlined" style="color:#818cf8">edit</span>
+        <h2 style="font-size:.95rem;font-weight:700;">Rename Workspace</h2>
+      </div>
+    </div>
+    <div class="modal-body flex flex-col gap-3">
+      <p style="font-size:.78rem;color:#64748b;">Current: <span id="rnCurrentName" style="color:#94a3b8;font-weight:600;"></span></p>
+      <input id="rnNewName" class="inp" placeholder="New name…" maxlength="50"/>
+      <div id="rnErr" class="hidden rounded-lg px-3 py-2" style="background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.2);font-size:.75rem;color:#ef4444;"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-ghost" onclick="closeModal('modalRenameWs')">Cancel</button>
+      <button class="btn-primary" onclick="submitRenameWs()">Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- Delete Workspace Modal -->
+<div id="modalDeleteWs" class="modal-backdrop hidden" onclick="if(event.target===this)closeModal('modalDeleteWs')">
+  <div class="modal-box">
+    <div class="modal-header">
+      <div class="flex items-center gap-3">
+        <span class="material-symbols-outlined" style="color:#ef4444">warning</span>
+        <div>
+          <h2 style="font-size:.95rem;font-weight:700;">Delete Workspace</h2>
+          <p style="font-size:.68rem;color:#64748b;margin-top:2px;">This action cannot be undone.</p>
+        </div>
+      </div>
+    </div>
+    <div class="modal-body flex flex-col gap-4">
+      <div class="rounded-xl p-4" style="background:rgba(239,68,68,.06);border:1px solid rgba(239,68,68,.15);">
+        <p style="font-size:.78rem;color:#fca5a5;line-height:1.6;">All documents, chat history, and embeddings for <strong id="delWsNameDisplay" style="color:#f1f5f9;"></strong> will be permanently deleted.</p>
+      </div>
+      <div>
+        <label style="font-size:.72rem;font-weight:700;color:#94a3b8;display:block;margin-bottom:6px;">Type <span id="delWsConfirmLabel" style="color:#ef4444;font-family:monospace;"></span> to confirm</label>
+        <input id="delWsConfirmInput" class="inp" placeholder="Type workspace name…" oninput="validateDeleteWs()"/>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-ghost" onclick="closeModal('modalDeleteWs')">Cancel</button>
+      <button id="delWsBtn" class="btn-danger" disabled onclick="submitDeleteWs()">Delete Workspace</button>
+    </div>
+  </div>
+</div>
+
+<!-- New Chat Modal -->
+<div id="modalNewChat" class="modal-backdrop hidden" onclick="if(event.target===this)closeModal('modalNewChat')">
+  <div class="modal-box">
+    <div class="modal-header">
+      <div class="flex items-center gap-3">
+        <span class="material-symbols-outlined" style="color:#818cf8">add_comment</span>
+        <h2 style="font-size:.95rem;font-weight:700;">New Chat</h2>
+      </div>
+    </div>
+    <div class="modal-body">
+      <label style="font-size:.72rem;font-weight:700;color:#94a3b8;display:block;margin-bottom:6px;text-transform:uppercase;letter-spacing:.06em;">Chat Title <span style="font-size:.65rem;font-weight:400;color:#475569;">(optional)</span></label>
+      <input id="ncTitle" class="inp" placeholder="e.g. Q3 Analysis, Summary Request…" maxlength="60"
+        onkeydown="if(event.key==='Enter')submitNewChat()"/>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-ghost" onclick="closeModal('modalNewChat')">Cancel</button>
+      <button class="btn-primary" onclick="submitNewChat()">
+        <span class="material-symbols-outlined text-sm mr-1">add_comment</span>Create
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- Delete File Modal -->
+<div id="modalDeleteFile" class="modal-backdrop hidden" onclick="if(event.target===this)closeModal('modalDeleteFile')">
+  <div class="modal-box">
+    <div class="modal-header">
+      <div class="flex items-center gap-3">
+        <span class="material-symbols-outlined" style="color:#ef4444">delete_forever</span>
+        <div>
+          <h2 style="font-size:.95rem;font-weight:700;">Delete Document</h2>
+          <p style="font-size:.68rem;color:#64748b;margin-top:2px;">Removes the file and all its indexed embeddings.</p>
+        </div>
+      </div>
+    </div>
+    <div class="modal-body">
+      <div class="rounded-xl p-3 flex items-center gap-3" style="background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.07);">
+        <span class="material-symbols-outlined" id="delFileIcon" style="color:#64748b;">description</span>
+        <span id="delFilename" style="font-size:.82rem;color:#f1f5f9;font-weight:600;"></span>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-ghost" onclick="closeModal('modalDeleteFile')">Cancel</button>
+      <button class="btn-danger" onclick="submitDeleteFile()">Delete</button>
+    </div>
+  </div>
+</div>
+
+<!-- Delete Chat Modal -->
+<div id="modalDeleteChat" class="modal-backdrop hidden" onclick="if(event.target===this)closeModal('modalDeleteChat')">
+  <div class="modal-box">
+    <div class="modal-header">
+      <div class="flex items-center gap-3">
+        <span class="material-symbols-outlined" style="color:#ef4444">delete</span>
+        <h2 style="font-size:.95rem;font-weight:700;">Delete Chat</h2>
+      </div>
+    </div>
+    <div class="modal-body">
+      <p style="font-size:.82rem;color:#94a3b8;">This will permanently delete "<span id="delChatTitle" style="color:#f1f5f9;"></span>" and its message history.</p>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-ghost" onclick="closeModal('modalDeleteChat')">Cancel</button>
+      <button class="btn-danger" onclick="submitDeleteChat()">Delete</button>
+    </div>
+  </div>
+</div>
+
 <!-- Help Modal -->
 <div id="helpModal" class="modal-backdrop hidden" onclick="if(event.target===this)closeHelpModal()">
-<div class="bg-[#111] border border-white/10 rounded-2xl p-8 w-full max-w-lg mx-4 relative">
-  <button onclick="closeHelpModal()" class="absolute top-4 right-4 text-slate-500 hover:text-white"><span class="material-symbols-outlined">close</span></button>
-  <div class="flex items-center gap-3 mb-6">
-    <span class="material-symbols-outlined text-primary text-3xl">auto_awesome</span>
-    <div><h2 class="text-lg font-bold">How to use RAGCORE</h2><p class="text-[10px] text-slate-500 uppercase tracking-widest">Quick start</p></div>
+  <div class="modal-box" style="max-width:500px;">
+    <div class="modal-header">
+      <div class="flex items-center gap-3">
+        <span class="material-symbols-outlined text-primary text-2xl">auto_awesome</span>
+        <div><h2 style="font-size:.95rem;font-weight:700;">How to use RAGCORE</h2><p style="font-size:.62rem;color:#64748b;text-transform:uppercase;letter-spacing:.08em;margin-top:2px;">Quick Start</p></div>
+      </div>
+    </div>
+    <div class="modal-body flex flex-col gap-4">
+      <div class="flex gap-3"><div style="width:28px;height:28px;border-radius:50%;background:rgba(255,46,98,.2);border:1px solid rgba(255,46,98,.4);display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:.75rem;font-weight:800;color:#ff2e62;">1</div><div><p style="font-size:.82rem;font-weight:600;margin-bottom:3px;">Create a Workspace</p><p style="font-size:.72rem;color:#64748b;">Click <span style="color:#ff2e62;font-weight:600;">+ New Workspace</span>. Each workspace holds its own documents and chat history.</p></div></div>
+      <div class="flex gap-3"><div style="width:28px;height:28px;border-radius:50%;background:rgba(255,46,98,.2);border:1px solid rgba(255,46,98,.4);display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:.75rem;font-weight:800;color:#ff2e62;">2</div><div><p style="font-size:.82rem;font-weight:600;margin-bottom:3px;">Upload Documents</p><p style="font-size:.72rem;color:#64748b;">Click <span style="color:#06b6d4;font-weight:600;">Upload Document</span>. Supports PDF, Word, Excel, images. Max 50MB.</p></div></div>
+      <div class="flex gap-3"><div style="width:28px;height:28px;border-radius:50%;background:rgba(255,46,98,.2);border:1px solid rgba(255,46,98,.4);display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:.75rem;font-weight:800;color:#ff2e62;">3</div><div><p style="font-size:.82rem;font-weight:600;margin-bottom:3px;">Preview & Verify</p><p style="font-size:.72rem;color:#64748b;">Hover a file and click the preview icon to verify it was indexed correctly before chatting.</p></div></div>
+      <div class="flex gap-3"><div style="width:28px;height:28px;border-radius:50%;background:rgba(255,46,98,.2);border:1px solid rgba(255,46,98,.4);display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:.75rem;font-weight:800;color:#ff2e62;">4</div><div><p style="font-size:.82rem;font-weight:600;margin-bottom:3px;">Ask Questions</p><p style="font-size:.72rem;color:#64748b;">Type in the input bar. The AI answers only from your documents. Use follow-up questions — context is remembered.</p></div></div>
+      <div class="rounded-xl p-3" style="background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.07);">
+        <p style="font-size:.65rem;font-weight:800;color:#475569;text-transform:uppercase;letter-spacing:.08em;margin-bottom:8px;">Tips</p>
+        <ul style="font-size:.72rem;color:#64748b;display:flex;flex-direction:column;gap:4px;">
+          <li>• Upload multiple documents — AI searches across all of them</li>
+          <li>• Page numbers below answers show which document was used</li>
+          <li>• Use 👍 / 👎 on answers to provide feedback</li>
+          <li>• Try the Pipeline Explorer to see how RAG works inside</li>
+        </ul>
+      </div>
+    </div>
+    <div class="modal-footer"><button class="btn-primary w-full" style="justify-content:center;" onclick="closeHelpModal()">Got it, let's go!</button></div>
   </div>
-  <div class="space-y-4">
-    <div class="flex gap-4"><div class="w-8 h-8 rounded-full bg-primary/20 border border-primary/40 flex items-center justify-center flex-shrink-0 text-primary font-bold text-sm">1</div><div><p class="text-sm font-semibold text-white mb-1">Create a Workspace</p><p class="text-xs text-slate-400">Click <span class="text-primary font-semibold">+ New Workspace</span>. Each workspace keeps documents and chats separate.</p></div></div>
-    <div class="flex gap-4"><div class="w-8 h-8 rounded-full bg-primary/20 border border-primary/40 flex items-center justify-center flex-shrink-0 text-primary font-bold text-sm">2</div><div><p class="text-sm font-semibold text-white mb-1">Upload Documents</p><p class="text-xs text-slate-400">Click <span class="text-primary font-semibold">Upload Document</span>. Supports PDF, Word, Excel, images. Max 50MB.</p></div></div>
-    <div class="flex gap-4"><div class="w-8 h-8 rounded-full bg-primary/20 border border-primary/40 flex items-center justify-center flex-shrink-0 text-primary font-bold text-sm">3</div><div><p class="text-sm font-semibold text-white mb-1">Ask Questions</p><p class="text-xs text-slate-400">Type in the chat box. The AI answers only from your documents. Ask for summaries, facts, or comparisons.</p></div></div>
-    <div class="flex gap-4"><div class="w-8 h-8 rounded-full bg-primary/20 border border-primary/40 flex items-center justify-center flex-shrink-0 text-primary font-bold text-sm">4</div><div><p class="text-sm font-semibold text-white mb-1">Manage Chats &amp; Files</p><p class="text-xs text-slate-400">Create multiple chats per workspace. Hover workspaces to rename or delete. Delete files from the Documents panel.</p></div></div>
-  </div>
-  <div class="mt-5 p-4 bg-white/5 rounded-xl border border-white/10">
-    <p class="text-[10px] text-slate-500 font-bold uppercase tracking-widest mb-2">Tips</p>
-    <ul class="text-xs text-slate-400 space-y-1">
-      <li>• Upload multiple documents — AI searches across all of them</li>
-      <li>• Ask follow-up questions — AI remembers the conversation</li>
-      <li>• Page numbers below answers show where info came from</li>
-      <li>• Use 👍 / 👎 on answers to give feedback</li>
-    </ul>
-  </div>
-  <button onclick="closeHelpModal()" class="w-full mt-5 bg-primary text-white py-3 rounded-xl font-bold hover:scale-105 transition-all text-sm">Got it, let's go!</button>
-</div>
 </div>
 
 <!-- Profile Modal -->
 <div id="profileModal" class="modal-backdrop hidden" onclick="if(event.target===this)closeProfileModal()">
-<div class="bg-[#111] border border-white/10 rounded-2xl p-8 w-full max-w-md mx-4 relative">
-  <button onclick="closeProfileModal()" class="absolute top-4 right-4 text-slate-500 hover:text-white"><span class="material-symbols-outlined">close</span></button>
-  <div class="flex items-center gap-3 mb-6">
-    <span class="material-symbols-outlined text-primary text-3xl">account_circle</span>
-    <div><h2 class="text-lg font-bold" id="profileUsername">—</h2><p class="text-[10px] text-slate-500 uppercase tracking-widest">Profile</p></div>
+  <div class="modal-box" style="max-width:400px;">
+    <div class="modal-header">
+      <div class="flex items-center gap-3">
+        <span class="material-symbols-outlined text-primary text-2xl">account_circle</span>
+        <div><h2 id="profileUsername" style="font-size:.95rem;font-weight:700;">—</h2><p style="font-size:.62rem;color:#64748b;text-transform:uppercase;letter-spacing:.08em;margin-top:2px;">Profile</p></div>
+      </div>
+    </div>
+    <div class="modal-body flex flex-col gap-3">
+      <div class="flex justify-between py-2" style="border-bottom:1px solid rgba(255,255,255,.05);font-size:.78rem;"><span style="color:#64748b;">Email</span><span id="profileEmail" style="color:#94a3b8;">—</span></div>
+      <div class="flex justify-between py-2" style="border-bottom:1px solid rgba(255,255,255,.05);font-size:.78rem;"><span style="color:#64748b;">Member since</span><span id="profileCreated" style="color:#94a3b8;">—</span></div>
+      <div class="flex justify-between py-2" style="font-size:.78rem;"><span style="color:#64748b;">Last login</span><span id="profileLastLogin" style="color:#94a3b8;">—</span></div>
+      <button onclick="document.getElementById('pwChangeSection').classList.toggle('hidden')" class="btn-ghost w-full" style="font-size:.75rem;text-align:center;margin-top:4px;">Change Password</button>
+      <div id="pwChangeSection" class="hidden flex flex-col gap-3">
+        <div id="pwError" class="hidden rounded-lg px-3 py-2" style="background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.2);font-size:.72rem;color:#ef4444;"></div>
+        <div id="pwSuccess" class="hidden rounded-lg px-3 py-2" style="background:rgba(16,185,129,.1);border:1px solid rgba(16,185,129,.2);font-size:.72rem;color:#10b981;">Password changed successfully.</div>
+        <input type="password" id="oldPassword" class="inp" placeholder="Current password"/>
+        <input type="password" id="newPassword" class="inp" placeholder="New password (min 6 chars)"/>
+        <button onclick="changePassword()" class="btn-primary">Update Password</button>
+      </div>
+    </div>
   </div>
-  <div class="space-y-3 mb-5">
-    <div class="flex justify-between text-sm border-b border-white/5 pb-2"><span class="text-slate-500">Email</span><span id="profileEmail" class="text-slate-300">—</span></div>
-    <div class="flex justify-between text-sm border-b border-white/5 pb-2"><span class="text-slate-500">Member since</span><span id="profileCreated" class="text-slate-300">—</span></div>
-    <div class="flex justify-between text-sm"><span class="text-slate-500">Last login</span><span id="profileLastLogin" class="text-slate-300">—</span></div>
-  </div>
-  <button onclick="document.getElementById('pwChangeSection').classList.toggle('hidden')" class="w-full text-xs text-slate-400 hover:text-primary border border-white/10 hover:border-primary/40 rounded-xl py-2 transition-all mb-3">Change Password</button>
-  <div id="pwChangeSection" class="hidden space-y-3">
-    <div id="pwError" class="hidden bg-red-500/20 border border-red-500/40 text-red-400 text-xs p-2 rounded-lg"></div>
-    <div id="pwSuccess" class="hidden bg-green-500/20 border border-green-500/40 text-green-400 text-xs p-2 rounded-lg">Password changed successfully.</div>
-    <input type="password" id="oldPassword" placeholder="Current password" class="w-full bg-black border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white placeholder-slate-600 focus:border-primary outline-none"/>
-    <input type="password" id="newPassword" placeholder="New password (min 6 chars)" class="w-full bg-black border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white placeholder-slate-600 focus:border-primary outline-none"/>
-    <button onclick="changePassword()" class="w-full bg-primary text-white py-2.5 rounded-xl text-sm font-bold hover:scale-105 transition-all">Update Password</button>
-  </div>
-</div>
 </div>
 
+<!-- Doc Preview Modal -->
+<div id="previewModal" class="modal-backdrop hidden" onclick="if(event.target===this)closePreviewModal()">
+  <div class="modal-box" style="max-width:520px;">
+    <div class="modal-header">
+      <div class="flex items-center gap-2 flex-1 min-w-0">
+        <span class="material-symbols-outlined text-primary">preview</span>
+        <span id="previewTitle" style="font-size:.82rem;font-weight:700;color:#f1f5f9;truncate;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:360px;">—</span>
+      </div>
+      <button onclick="closePreviewModal()" style="flex-shrink:0;color:#475569;" class="hover:text-white transition-colors ml-2">
+        <span class="material-symbols-outlined">close</span>
+      </button>
+    </div>
+    <div id="previewBody" class="modal-body"></div>
+  </div>
+</div>
+
+<!-- ════════ JAVASCRIPT ════════ -->
 <script>
-const API_BASE = "http://127.0.0.1:8000";
+const API_BASE = "";
 let activeWS = null;
 let activeChatId = null;
 let currentUser = null;
 let _isSwitching = false;
 let _refreshToken = null;
+// modal state
+let _pendingRenameSlug = null;
+let _pendingDeleteSlug = null;
+let _pendingDeleteFile = null;
+let _pendingDeleteChatId = null;
+// workspace data cache
+let _allWorkspaces = [];
 
 // ── Init ──────────────────────────────────────────────────────
 window.onload = async () => {
-    try {
-        const res = await fetch(`${API_BASE}/auth/check`, { credentials: "include" });
-        const data = await res.json();
-        if (!data.authenticated) { window.location.href = "/login"; return; }
-    } catch { window.location.href = "/login"; return; }
-
-    await loadUserInfo();
-    const rt = sessionStorage.getItem("refresh_token");
-    if (rt) { _refreshToken = rt; scheduleTokenRefresh(3600); }
-    await refreshWorkspaces();
-    // Always show help modal on load so users can always access it
-    setTimeout(showHelpModal, 600);
+  try {
+    const r = await fetch("/auth/check", {credentials:"include"});
+    const d = await r.json();
+    if (!d.authenticated) { location.href="/login"; return; }
+  } catch { location.href="/login"; return; }
+  await loadUserInfo();
+  const rt = sessionStorage.getItem("refresh_token");
+  if (rt) { _refreshToken = rt; scheduleTokenRefresh(3600); }
+  await refreshWorkspaces();
+  if (!localStorage.getItem("ragcore_help_seen")) setTimeout(showHelpModal, 600);
+  document.addEventListener("keydown", e => {
+    if (e.key === "Escape") {
+      document.querySelectorAll(".modal-backdrop:not(.hidden)").forEach(m => {
+        if (m.id === "helpModal") closeHelpModal();
+        else if (m.id === "profileModal") closeProfileModal();
+        else if (m.id === "previewModal") closePreviewModal();
+        else m.classList.add("hidden");
+      });
+    }
+  });
 };
 
 async function loadUserInfo() {
-    try {
-        const res = await fetch(`${API_BASE}/auth/user`, { credentials: "include" });
-        if (res.ok) { currentUser = await res.json(); document.getElementById("usernameDisplay").textContent = currentUser.username; }
-    } catch {}
+  try {
+    const r = await fetch("/auth/user", {credentials:"include"});
+    if (r.ok) {
+      currentUser = await r.json();
+      document.getElementById("usernameDisplay").textContent = currentUser.username || "—";
+    }
+  } catch {}
 }
 
-// ── Auth ──────────────────────────────────────────────────────
 async function logout() {
-    try { await fetch(`${API_BASE}/auth/logout`, { method: "POST", credentials: "include" }); } catch {}
-    window.location.href = "/";
+  try { await fetch("/auth/logout", {method:"POST",credentials:"include"}); } catch {}
+  location.href = "/";
 }
 
-function scheduleTokenRefresh(secs = 3600) {
-    setTimeout(async () => {
-        if (!_refreshToken) return;
-        try {
-            const res = await fetch(`${API_BASE}/auth/refresh`, { method: "POST", headers: {"Content-Type":"application/json"}, credentials: "include", body: JSON.stringify({ refresh_token: _refreshToken }) });
-            if (res.ok) { const d = await res.json(); if (d.refresh_token) { _refreshToken = d.refresh_token; scheduleTokenRefresh(3600); } }
-            else window.location.href = "/login";
-        } catch {}
-    }, Math.max((secs - 300) * 1000, 10000));
+function scheduleTokenRefresh(secs) {
+  setTimeout(async () => {
+    if (!_refreshToken) return;
+    try {
+      const r = await fetch("/auth/refresh", {method:"POST",headers:{"Content-Type":"application/json"},credentials:"include",body:JSON.stringify({refresh_token:_refreshToken})});
+      if (r.ok) { const d = await r.json(); if (d.refresh_token) { _refreshToken = d.refresh_token; scheduleTokenRefresh(3600); } }
+      else location.href = "/login";
+    } catch {}
+  }, Math.max((secs - 300) * 1000, 10000));
+}
+
+// ── Section collapse ──────────────────────────────────────────
+function toggleSec(id) {
+  const body = document.getElementById(id);
+  const chevId = "chev" + id.replace("sec","");
+  const chev = document.getElementById(chevId);
+  const collapsed = body.classList.toggle("collapsed");
+  if (chev) chev.classList.toggle("open", !collapsed);
 }
 
 // ── Workspaces ────────────────────────────────────────────────
 async function refreshWorkspaces() {
-    try {
-        const res = await fetch(`${API_BASE}/workspace/list`, { credentials: "include" });
-        const data = await res.json();
-        const container = document.getElementById("workspaceList");
-        container.innerHTML = "";
-        if (!data.workspaces || data.workspaces.length === 0) {
-            container.innerHTML = `<div class="text-center py-8 text-slate-500 text-sm"><span class="material-symbols-outlined text-4xl mb-2 opacity-50 block">folder_off</span><p>No workspaces yet</p><p class="text-xs mt-1">Create one to get started</p></div>`;
-            return;
-        }
-        data.workspaces.forEach(ws => {
-            const slug = typeof ws === "string" ? ws : ws.slug;
-            const name = typeof ws === "string" ? ws : ws.name;
-            const lastMsg = typeof ws === "object" ? ws.last_message : null;
-            const msgCount = typeof ws === "object" ? ws.message_count : 0;
-            const isActive = slug === activeWS;
-            const div = document.createElement("div");
-            div.className = `workspace-item p-3 rounded-lg border border-white/5 cursor-pointer group ${isActive ? "active" : ""}`;
-            div.onclick = () => switchWorkspace(slug);
-            div.innerHTML = `
-              <div class="flex items-start justify-between gap-2">
-                <div class="flex-1 min-w-0">
-                  <div class="flex items-center gap-2 mb-1">
-                    <span class="material-symbols-outlined text-sm text-slate-400">folder</span>
-                    <span class="font-semibold text-sm truncate">${escapeHtml(name)}</span>
-                  </div>
-                  ${lastMsg ? `<div class="text-[10px] text-slate-500 truncate">${escapeHtml(lastMsg)}</div>` : ""}
-                  ${msgCount > 0 ? `<div class="text-[9px] text-slate-600 mt-1">${msgCount} message${msgCount !== 1 ? "s" : ""}</div>` : ""}
-                </div>
-                <div class="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                  <button onclick="event.stopPropagation();renameWorkspace('${slug}')" class="hover:text-primary p-1" title="Rename"><span class="material-symbols-outlined text-sm">edit</span></button>
-                  <button onclick="event.stopPropagation();deleteWS('${slug}')" class="hover:text-primary p-1" title="Delete"><span class="material-symbols-outlined text-sm">delete</span></button>
-                </div>
-              </div>`;
-            container.appendChild(div);
-        });
-    } catch (e) { console.error("refreshWorkspaces:", e); }
+  try {
+    const r = await fetch("/workspace/list", {credentials:"include"});
+    const d = await r.json();
+    _allWorkspaces = d.workspaces || [];
+    document.getElementById("wsCnt").textContent = _allWorkspaces.length;
+    renderWorkspaceList(_allWorkspaces);
+  } catch {}
 }
 
-async function createNewWorkspace() {
-    const name = prompt("Workspace name:");
-    if (!name || !name.trim()) return;
-    try {
-        const res = await fetch(`${API_BASE}/workspace/create`, { method: "POST", headers: {"Content-Type":"application/json"}, credentials: "include", body: JSON.stringify({ workspace_name: name.trim() }) });
-        const data = await res.json();
-        if (!res.ok) { alert(data.detail || "Failed to create workspace"); return; }
-        await refreshWorkspaces();
-        switchWorkspace(data.slug);
-    } catch (e) { alert("Error: " + e.message); }
+function filterWorkspaces(q) {
+  const filtered = q.trim()
+    ? _allWorkspaces.filter(ws => (ws.name||ws).toLowerCase().includes(q.toLowerCase()))
+    : _allWorkspaces;
+  renderWorkspaceList(filtered);
 }
 
-async function deleteWS(slug) {
-    if (!confirm(`Delete workspace "${slug}"? This removes all files and chat history.`)) return;
-    try {
-        const res = await fetch(`${API_BASE}/workspace/delete`, { method: "POST", headers: {"Content-Type":"application/json"}, credentials: "include", body: JSON.stringify({ workspace_name: slug }) });
-        if (!res.ok) { const d = await res.json(); alert(d.detail || "Failed to delete"); return; }
-        if (activeWS === slug) resetWorkspaceUI();
-        await refreshWorkspaces();
-    } catch (e) { alert("Error: " + e.message); }
-}
-
-async function renameWorkspace(slug) {
-    const newName = prompt("New workspace name:");
-    if (!newName || !newName.trim()) return;
-    try {
-        const res = await fetch(`${API_BASE}/workspace/rename`, { method: "POST", headers: {"Content-Type":"application/json"}, credentials: "include", body: JSON.stringify({ workspace_name: slug, new_name: newName.trim() }) });
-        if (!res.ok) { const d = await res.json(); alert(d.detail || "Failed to rename"); return; }
-        await refreshWorkspaces();
-    } catch (e) { alert("Error: " + e.message); }
+function renderWorkspaceList(list) {
+  const container = document.getElementById("workspaceList");
+  if (!list.length) {
+    container.innerHTML = '<div style="text-align:center;padding:28px 16px;color:#334155;font-size:.78rem;">' +
+      '<span class="material-symbols-outlined" style="font-size:2.5rem;display:block;margin-bottom:8px;opacity:.3;">folder_off</span>' +
+      '<p>No workspaces yet</p><p style="font-size:.68rem;margin-top:4px;color:#1e293b;">Create one to get started</p></div>';
+    return;
+  }
+  container.innerHTML = "";
+  list.forEach(ws => {
+    const slug = typeof ws === "string" ? ws : ws.slug;
+    const name = typeof ws === "string" ? ws : ws.name;
+    const lastMsg = ws.last_message || null;
+    const msgCount = ws.message_count || 0;
+    const isActive = slug === activeWS;
+    const div = document.createElement("div");
+    div.className = "ws-item" + (isActive ? " active" : "");
+    div.style.cssText = "cursor:pointer;padding:10px 14px;margin-bottom:1px;display:flex;align-items:flex-start;justify-content:space-between;gap:8px;";
+    div.addEventListener("click", () => switchWorkspace(slug));
+    div.innerHTML =
+      '<div style="flex:1;min-width:0;">' +
+        '<div style="display:flex;align-items:center;gap:6px;margin-bottom:3px;">' +
+          '<span class="material-symbols-outlined" style="font-size:14px;color:' + (isActive?"#ff2e62":"#475569") + '">folder' + (isActive?"_open":"") + '</span>' +
+          '<span style="font-size:.8rem;font-weight:600;color:' + (isActive?"#f1f5f9":"#cbd5e1") + ';overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">' + esc(name) + '</span>' +
+          (msgCount > 0 ? '<span style="font-size:.58rem;font-weight:800;color:#ff2e62;background:rgba(255,46,98,.12);border:1px solid rgba(255,46,98,.2);border-radius:20px;padding:0 5px;white-space:nowrap;">' + msgCount + ' msg' + (msgCount!==1?"s":"") + '</span>' : '') +
+        '</div>' +
+        (lastMsg ? '<p style="font-size:.68rem;color:#334155;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;padding-left:20px;">' + esc(lastMsg) + '</p>' : '') +
+      '</div>' +
+      '<div class="ws-actions" style="display:flex;gap:2px;opacity:0;transition:opacity .15s;flex-shrink:0;">' +
+        '<button onclick="event.stopPropagation();openRenameWsModal(\'' + slug + '\',\'' + esc(name).replace(/'/g,"\\'") + '\')" style="padding:3px;border-radius:6px;color:#475569;background:transparent;border:none;cursor:pointer;transition:color .15s;" title="Rename" onmouseover="this.style.color=\'#ff2e62\'" onmouseout="this.style.color=\'#475569\'"><span class="material-symbols-outlined" style="font-size:14px;">edit</span></button>' +
+        '<button onclick="event.stopPropagation();openDeleteWsModal(\'' + slug + '\',\'' + esc(name).replace(/'/g,"\\'") + '\')" style="padding:3px;border-radius:6px;color:#475569;background:transparent;border:none;cursor:pointer;transition:color .15s;" title="Delete" onmouseover="this.style.color=\'#ef4444\'" onmouseout="this.style.color=\'#475569\'"><span class="material-symbols-outlined" style="font-size:14px;">delete</span></button>' +
+      '</div>';
+    div.addEventListener("mouseenter", () => div.querySelector(".ws-actions").style.opacity = "1");
+    div.addEventListener("mouseleave", () => div.querySelector(".ws-actions").style.opacity = "0");
+    container.appendChild(div);
+  });
 }
 
 function resetWorkspaceUI() {
-    activeWS = null; activeChatId = null;
-    document.getElementById("wsBadge").innerText = "NO WORKSPACE SELECTED";
-    document.getElementById("chatContainer").innerHTML = '<div class="ai-bubble p-6 rounded-xl border border-white/5 max-w-2xl"><p class="text-sm text-slate-400">Select a workspace to start.</p></div>';
-    document.getElementById("chatSection").classList.add("locked-section");
-    document.getElementById("librarySection").classList.add("locked-section");
-    document.getElementById("inputWrapper").classList.add("locked-section");
-    document.getElementById("chatInput").disabled = true;
-    document.getElementById("chatList").innerHTML = "";
-    document.getElementById("libraryContainer").innerHTML = "";
-    document.getElementById("chatCount").innerText = "0";
-    document.getElementById("fileCount").innerText = "0";
+  activeWS = null; activeChatId = null;
+  document.getElementById("wsBadge").classList.add("hidden");
+  document.getElementById("chatContainer").innerHTML = '<div class="ai-bubble p-5 rounded-xl max-w-xl" style="border:1px solid rgba(255,255,255,.05);"><p style="font-size:.82rem;color:#94a3b8;">Select a workspace to start.</p></div>';
+  document.getElementById("chatSection").classList.add("locked-section");
+  document.getElementById("librarySection").classList.add("locked-section");
+  document.getElementById("inputWrapper").classList.add("locked-section");
+  document.getElementById("chatInput").disabled = true;
+  document.getElementById("chatList").innerHTML = "";
+  document.getElementById("libraryContainer").innerHTML = "";
+  document.getElementById("chatCount").textContent = "0";
+  document.getElementById("fileCount").textContent = "0";
 }
 
 async function switchWorkspace(slug) {
-    if (activeWS === slug || _isSwitching) return;
-    _isSwitching = true;
-    document.getElementById("wsSwitchOverlay").classList.remove("hidden");
-    activeWS = slug; activeChatId = null;
-    document.getElementById("wsBadge").innerText = `ACTIVE: ${slug.toUpperCase()}`;
-    document.getElementById("chatSection").classList.remove("locked-section");
-    document.getElementById("librarySection").classList.remove("locked-section");
-    document.getElementById("inputWrapper").classList.remove("locked-section");
-    document.getElementById("chatInput").disabled = false;
-    document.getElementById("chatContainer").innerHTML = "";
-    refreshWorkspaces();
-    try { await loadChats(); refreshLibrary(); }
-    finally { document.getElementById("wsSwitchOverlay").classList.add("hidden"); _isSwitching = false; document.getElementById("chatInput").focus(); }
+  if (activeWS === slug || _isSwitching) return;
+  _isSwitching = true;
+  document.getElementById("wsSwitchOverlay").classList.remove("hidden");
+  activeWS = slug; activeChatId = null;
+  const wsObj = _allWorkspaces.find(w => (w.slug||w) === slug);
+  const name = wsObj ? (wsObj.name||slug) : slug;
+  const badge = document.getElementById("wsBadge");
+  badge.classList.remove("hidden");
+  document.getElementById("wsBadgeText").textContent = name.toUpperCase();
+  document.getElementById("chatSection").classList.remove("locked-section");
+  document.getElementById("librarySection").classList.remove("locked-section");
+  document.getElementById("inputWrapper").classList.remove("locked-section");
+  document.getElementById("chatInput").disabled = false;
+  document.getElementById("chatContainer").innerHTML = "";
+  refreshWorkspaces();
+  try { await loadChats(); refreshLibrary(); }
+  finally { document.getElementById("wsSwitchOverlay").classList.add("hidden"); _isSwitching = false; document.getElementById("chatInput").focus(); }
 }
-</script>
 
-<script>
+// ── Create Workspace Modal ────────────────────────────────────
+function openCreateWsModal() {
+  document.getElementById("cwName").value = "";
+  document.getElementById("cwDesc").value = "";
+  document.getElementById("cwNameErr").classList.add("hidden");
+  document.getElementById("cwErr").classList.add("hidden");
+  document.getElementById("cwBtn").disabled = false;
+  openModal("modalCreateWs");
+  setTimeout(() => document.getElementById("cwName").focus(), 80);
+}
+
+function validateCreateWs() {
+  const val = document.getElementById("cwName").value.trim();
+  const errEl = document.getElementById("cwNameErr");
+  const btn = document.getElementById("cwBtn");
+  if (!val) { errEl.textContent = "Name is required."; errEl.classList.remove("hidden"); btn.disabled = true; return false; }
+  if (val.length < 2) { errEl.textContent = "At least 2 characters."; errEl.classList.remove("hidden"); btn.disabled = true; return false; }
+  errEl.classList.add("hidden"); btn.disabled = false; return true;
+}
+
+async function submitCreateWs() {
+  if (!validateCreateWs()) return;
+  const name = document.getElementById("cwName").value.trim();
+  const btn = document.getElementById("cwBtn");
+  btn.disabled = true; btn.textContent = "Creating…";
+  try {
+    const r = await fetch("/workspace/create", {method:"POST",headers:{"Content-Type":"application/json"},credentials:"include",body:JSON.stringify({workspace_name:name})});
+    const d = await r.json();
+    if (!r.ok) { document.getElementById("cwErr").textContent = d.detail || "Failed"; document.getElementById("cwErr").classList.remove("hidden"); btn.disabled = false; btn.innerHTML = '<span class="material-symbols-outlined text-sm mr-1">add</span>Create'; return; }
+    closeModal("modalCreateWs");
+    await refreshWorkspaces();
+    switchWorkspace(d.slug);
+  } catch(e) { document.getElementById("cwErr").textContent = e.message; document.getElementById("cwErr").classList.remove("hidden"); btn.disabled = false; btn.innerHTML = '<span class="material-symbols-outlined text-sm mr-1">add</span>Create'; }
+}
+
+document.getElementById("cwName").addEventListener("keydown", e => { if (e.key === "Enter") submitCreateWs(); });
+
+// ── Rename Workspace ──────────────────────────────────────────
+function openRenameWsModal(slug, currentName) {
+  _pendingRenameSlug = slug;
+  document.getElementById("rnCurrentName").textContent = currentName;
+  document.getElementById("rnNewName").value = currentName;
+  document.getElementById("rnErr").classList.add("hidden");
+  openModal("modalRenameWs");
+  setTimeout(() => { const el = document.getElementById("rnNewName"); el.focus(); el.select(); }, 80);
+}
+
+async function submitRenameWs() {
+  const newName = document.getElementById("rnNewName").value.trim();
+  if (!newName) { document.getElementById("rnErr").textContent = "Name cannot be empty."; document.getElementById("rnErr").classList.remove("hidden"); return; }
+  try {
+    const r = await fetch("/workspace/rename", {method:"POST",headers:{"Content-Type":"application/json"},credentials:"include",body:JSON.stringify({workspace_name:_pendingRenameSlug, new_name:newName})});
+    if (!r.ok) { const d = await r.json(); document.getElementById("rnErr").textContent = d.detail||"Failed"; document.getElementById("rnErr").classList.remove("hidden"); return; }
+    closeModal("modalRenameWs");
+    await refreshWorkspaces();
+  } catch(e) { document.getElementById("rnErr").textContent = e.message; document.getElementById("rnErr").classList.remove("hidden"); }
+}
+
+document.getElementById("rnNewName").addEventListener("keydown", e => { if (e.key==="Enter") submitRenameWs(); });
+
+// ── Delete Workspace ──────────────────────────────────────────
+function openDeleteWsModal(slug, name) {
+  _pendingDeleteSlug = slug;
+  document.getElementById("delWsNameDisplay").textContent = name;
+  document.getElementById("delWsConfirmLabel").textContent = name;
+  document.getElementById("delWsConfirmInput").value = "";
+  document.getElementById("delWsBtn").disabled = true;
+  openModal("modalDeleteWs");
+  setTimeout(() => document.getElementById("delWsConfirmInput").focus(), 80);
+}
+
+function validateDeleteWs() {
+  const val = document.getElementById("delWsConfirmInput").value;
+  const name = document.getElementById("delWsConfirmLabel").textContent;
+  document.getElementById("delWsBtn").disabled = val !== name;
+}
+
+async function submitDeleteWs() {
+  try {
+    const r = await fetch("/workspace/delete", {method:"POST",headers:{"Content-Type":"application/json"},credentials:"include",body:JSON.stringify({workspace_name:_pendingDeleteSlug})});
+    if (!r.ok) { const d = await r.json(); alert(d.detail||"Failed"); return; }
+    closeModal("modalDeleteWs");
+    if (activeWS === _pendingDeleteSlug) resetWorkspaceUI();
+    await refreshWorkspaces();
+  } catch(e) { alert(e.message); }
+}
+
 // ── Chats ─────────────────────────────────────────────────────
 async function loadChats() {
-    if (!activeWS) return;
-    const chatListEl = document.getElementById("chatList");
-    chatListEl.innerHTML = "";
-    try {
-        const res = await fetch(`${API_BASE}/workspace/${activeWS}/chats`, { credentials: "include" });
-        const data = await res.json();
-        const chats = data.chats || [];
-        document.getElementById("chatCount").innerText = chats.length;
-        if (chats.length === 0) { await createNewChat(false); return; }
-        if (!activeChatId) activeChatId = chats[0].id;
-        renderChatList(chats);
-        await loadChatHistory();
-    } catch (e) { console.error("loadChats:", e); addBubble("Error loading chats.", "assistant"); }
+  if (!activeWS) return;
+  const listEl = document.getElementById("chatList");
+  listEl.innerHTML = "";
+  try {
+    const r = await fetch("/workspace/" + activeWS + "/chats", {credentials:"include"});
+    const d = await r.json();
+    const chats = d.chats || [];
+    document.getElementById("chatCount").textContent = chats.length;
+    if (!chats.length) { await _createNewChatDirect(); return; }
+    if (!activeChatId) activeChatId = chats[0].id;
+    renderChatList(chats);
+    await loadChatHistory();
+  } catch(e) { addBubble("Error loading chats.", "assistant"); }
 }
 
 function renderChatList(chats) {
-    const chatListEl = document.getElementById("chatList");
-    chatListEl.innerHTML = "";
-    document.getElementById("chatCount").innerText = chats.length;
-    chats.forEach(c => {
-        const isActive = c.id === activeChatId;
-        const div = document.createElement("div");
-        div.className = `chat-item p-2.5 rounded-lg border border-white/5 cursor-pointer group flex items-start justify-between gap-2 ${isActive ? "active" : ""}`;
-        div.onclick = () => selectChat(c.id);
-        div.innerHTML = `
-          <div class="flex-1 min-w-0">
-            <div class="flex items-center gap-2">
-              <span class="material-symbols-outlined text-sm text-slate-400">chat</span>
-              <span class="text-xs font-semibold truncate">${escapeHtml(c.title || "Chat")}</span>
-            </div>
-            <div class="text-[9px] text-slate-600 mt-1">${c.updated_at ? new Date(c.updated_at).toLocaleString() : ""}</div>
-          </div>
-          <button onclick="event.stopPropagation();deleteChat('${c.id}')" class="opacity-0 group-hover:opacity-100 hover:text-primary p-1 rounded flex-shrink-0" title="Delete chat">
-            <span class="material-symbols-outlined text-sm">delete</span>
-          </button>`;
-        chatListEl.appendChild(div);
-    });
+  const listEl = document.getElementById("chatList");
+  listEl.innerHTML = "";
+  document.getElementById("chatCount").textContent = chats.length;
+  chats.forEach(c => {
+    const isActive = c.id === activeChatId;
+    const div = document.createElement("div");
+    div.className = "chat-row" + (isActive ? " active" : "");
+    div.style.cssText = "display:flex;align-items:flex-start;justify-content:space-between;gap:6px;padding:8px 10px;cursor:pointer;";
+    div.addEventListener("click", () => selectChat(c.id));
+    div.innerHTML =
+      '<div style="flex:1;min-width:0;">' +
+        '<div style="display:flex;align-items:center;gap:5px;">' +
+          '<span class="material-symbols-outlined" style="font-size:13px;color:' + (isActive?"#818cf8":"#475569") + '">chat</span>' +
+          '<span style="font-size:.75rem;font-weight:' + (isActive?"700":"600") + ';overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:' + (isActive?"#f1f5f9":"#94a3b8") + ';">' + esc(c.title || "Chat") + '</span>' +
+        '</div>' +
+        '<div style="font-size:.62rem;color:#334155;padding-left:18px;margin-top:2px;">' + (c.updated_at ? new Date(c.updated_at).toLocaleString() : "") + '</div>' +
+      '</div>' +
+      '<button class="del-chat-btn" onclick="event.stopPropagation();openDeleteChatModal(\'' + c.id + '\',\'' + esc(c.title||"Chat").replace(/'/g,"\\'") + '\')" style="opacity:0;transition:opacity .15s;flex-shrink:0;padding:3px;border-radius:6px;color:#475569;background:transparent;border:none;cursor:pointer;" title="Delete" onmouseover="this.style.color=\'#ef4444\'" onmouseout="this.style.color=\'#475569\'"><span class="material-symbols-outlined" style="font-size:14px;">delete</span></button>';
+    div.addEventListener("mouseenter", () => div.querySelector(".del-chat-btn").style.opacity = "1");
+    div.addEventListener("mouseleave", () => div.querySelector(".del-chat-btn").style.opacity = "0");
+    listEl.appendChild(div);
+  });
 }
 
 async function refreshChatList() {
-    if (!activeWS) return;
-    try {
-        const res = await fetch(`${API_BASE}/workspace/${activeWS}/chats`, { credentials: "include" });
-        const data = await res.json();
-        renderChatList(data.chats || []);
-    } catch {}
+  if (!activeWS) return;
+  try {
+    const r = await fetch("/workspace/" + activeWS + "/chats", {credentials:"include"});
+    const d = await r.json();
+    renderChatList(d.chats || []);
+  } catch {}
 }
 
-async function selectChat(chatId) {
-    activeChatId = chatId;
-    await loadChatHistory();
-    await refreshChatList();
-}
+async function selectChat(id) { activeChatId = id; await loadChatHistory(); await refreshChatList(); }
 
 async function loadChatHistory() {
-    const chatBox = document.getElementById("chatContainer");
-    chatBox.innerHTML = "";
-    if (!activeWS || !activeChatId) { addBubble("Select or create a chat to start.", "assistant"); return; }
-    try {
-        const res = await fetch(`${API_BASE}/workspace/${activeWS}/history?chat_id=${encodeURIComponent(activeChatId)}`, { credentials: "include" });
-        const data = await res.json();
-        if (!data.history || data.history.length === 0) {
-            addBubble("Chat ready. Upload files and ask questions.", "assistant");
-        } else {
-            data.history.forEach(m => { if (m.role === "user" || m.role === "assistant") addBubble(m.content, m.role); });
-            setTimeout(() => { chatBox.scrollTop = chatBox.scrollHeight; }, 100);
-        }
-    } catch { addBubble("Error loading chat history.", "assistant"); }
+  const box = document.getElementById("chatContainer");
+  box.innerHTML = "";
+  if (!activeWS || !activeChatId) { addBubble("Select or create a chat to start.", "assistant"); return; }
+  try {
+    const r = await fetch("/workspace/" + activeWS + "/history?chat_id=" + encodeURIComponent(activeChatId), {credentials:"include"});
+    const d = await r.json();
+    if (!d.history || !d.history.length) { addBubble("Chat ready. Upload documents and ask questions.", "assistant"); }
+    else { d.history.forEach(m => { if (m.role==="user"||m.role==="assistant") addBubble(m.content, m.role); }); setTimeout(() => { box.scrollTop = box.scrollHeight; }, 80); }
+  } catch { addBubble("Error loading chat history.", "assistant"); }
 }
 
-async function createNewChat(promptForTitle = true) {
-    if (!activeWS) { alert("Select a workspace first"); return; }
-    const title = promptForTitle ? (prompt("Chat title (optional):") || "") : "";
-    try {
-        const res = await fetch(`${API_BASE}/chat/create`, { method: "POST", headers: {"Content-Type":"application/json"}, credentials: "include", body: JSON.stringify({ workspace_name: activeWS, chat_title: title }) });
-        const data = await res.json();
-        if (!res.ok) { alert(data.detail || "Error creating chat"); return; }
-        activeChatId = data.chat?.id;
-        await loadChats();
-    } catch (e) { alert("Error: " + e.message); }
+function openNewChatModal() {
+  if (!activeWS) return;
+  document.getElementById("ncTitle").value = "";
+  openModal("modalNewChat");
+  setTimeout(() => document.getElementById("ncTitle").focus(), 80);
 }
 
-async function deleteChat(chatId) {
-    if (!confirm("Delete this chat? This cannot be undone.")) return;
-    try {
-        const res = await fetch(`${API_BASE}/chat/delete`, { method: "POST", headers: {"Content-Type":"application/json"}, credentials: "include", body: JSON.stringify({ workspace_name: activeWS, chat_id: chatId }) });
-        if (!res.ok) { const d = await res.json(); alert(d.detail || "Error deleting chat"); return; }
-        if (activeChatId === chatId) activeChatId = null;
-        await loadChats();
-    } catch (e) { alert("Error: " + e.message); }
+async function submitNewChat() {
+  const title = document.getElementById("ncTitle").value.trim();
+  closeModal("modalNewChat");
+  await _createNewChatDirect(title);
 }
 
-document.getElementById("newChatBtn").addEventListener("click", () => createNewChat(true));
+async function _createNewChatDirect(title) {
+  if (!activeWS) return;
+  try {
+    const r = await fetch("/chat/create", {method:"POST",headers:{"Content-Type":"application/json"},credentials:"include",body:JSON.stringify({workspace_name:activeWS,chat_title:title||""})});
+    const d = await r.json();
+    if (!r.ok) return;
+    activeChatId = d.chat?.id;
+    await loadChats();
+  } catch {}
+}
+
+function openDeleteChatModal(chatId, title) {
+  _pendingDeleteChatId = chatId;
+  document.getElementById("delChatTitle").textContent = title;
+  openModal("modalDeleteChat");
+}
+
+async function submitDeleteChat() {
+  try {
+    const r = await fetch("/chat/delete", {method:"POST",headers:{"Content-Type":"application/json"},credentials:"include",body:JSON.stringify({workspace_name:activeWS,chat_id:_pendingDeleteChatId})});
+    if (!r.ok) return;
+    closeModal("modalDeleteChat");
+    if (activeChatId === _pendingDeleteChatId) activeChatId = null;
+    await loadChats();
+  } catch {}
+}
 
 // ── Files ─────────────────────────────────────────────────────
 document.getElementById("uploadBtn").addEventListener("click", () => document.getElementById("fileInput").click());
 
 document.getElementById("fileInput").addEventListener("change", async () => {
-    const file = document.getElementById("fileInput").files[0];
-    if (!file) return;
-    const statusEl = document.getElementById("uploadStatus");
-    const showStatus = (msg, type) => {
-        statusEl.className = `mt-2 text-[10px] text-center py-2 px-3 rounded-lg ${type === "success" ? "bg-green-500/20 text-green-400 border border-green-500/30" : type === "error" ? "bg-red-500/20 text-red-400 border border-red-500/30" : "bg-white/5 text-slate-400 border border-white/10"}`;
-        statusEl.textContent = msg;
-        statusEl.classList.remove("hidden");
-        if (type !== "loading") setTimeout(() => statusEl.classList.add("hidden"), 4000);
-    };
-    if (!activeWS) { showStatus("Select a workspace first", "error"); document.getElementById("fileInput").value = ""; return; }
-    const allowed = [".pdf",".docx",".xlsx",".xls",".png",".jpg",".jpeg"];
-    const ext = "." + file.name.split(".").pop().toLowerCase();
-    if (!allowed.includes(ext)) { showStatus("Not supported. Use PDF, DOCX, Excel, or image", "error"); document.getElementById("fileInput").value = ""; return; }
-    showStatus(`Uploading ${file.name} (${(file.size/1024/1024).toFixed(1)}MB)...`, "loading");
-    const uploadBtn = document.getElementById("uploadBtn");
-    uploadBtn.disabled = true;
-    const formData = new FormData();
-    formData.append("file", file);
-    try {
-        const res = await fetch(`${API_BASE}/upload?workspace_name=${activeWS}`, { method: "POST", credentials: "include", body: formData });
-        const data = await res.json();
-        if (!res.ok) showStatus(data.detail || "Upload failed", "error");
-        else { showStatus(`✓ "${file.name}" uploaded — indexing in background`, "success"); refreshLibrary(); }
-    } catch (e) { showStatus("Connection error: " + e.message, "error"); }
-    finally { uploadBtn.disabled = false; document.getElementById("fileInput").value = ""; }
+  const file = document.getElementById("fileInput").files[0];
+  if (!file) return;
+  const statusEl = document.getElementById("uploadStatus");
+  const showStatus = (msg, type) => {
+    statusEl.className = "mt-2 text-center py-1.5 px-3 rounded-lg";
+    if (type==="success") statusEl.style.cssText = "background:rgba(16,185,129,.1);border:1px solid rgba(16,185,129,.25);color:#10b981;font-size:.7rem;";
+    else if (type==="error") statusEl.style.cssText = "background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.25);color:#ef4444;font-size:.7rem;";
+    else statusEl.style.cssText = "background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);color:#94a3b8;font-size:.7rem;";
+    statusEl.textContent = msg; statusEl.classList.remove("hidden");
+    if (type !== "loading") setTimeout(() => statusEl.classList.add("hidden"), 4000);
+  };
+  if (!activeWS) { showStatus("Select a workspace first", "error"); document.getElementById("fileInput").value = ""; return; }
+  const allowed = [".pdf",".docx",".xlsx",".xls",".png",".jpg",".jpeg"];
+  const ext = "." + file.name.split(".").pop().toLowerCase();
+  if (!allowed.includes(ext)) { showStatus("Unsupported format. Use PDF, DOCX, Excel, or image.", "error"); document.getElementById("fileInput").value = ""; return; }
+  showStatus("Uploading " + file.name + " (" + (file.size/1024/1024).toFixed(1) + "MB)…", "loading");
+  const btn = document.getElementById("uploadBtn"); btn.disabled = true;
+  const fd = new FormData(); fd.append("file", file);
+  try {
+    const r = await fetch("/upload?workspace_name=" + activeWS, {method:"POST",credentials:"include",body:fd});
+    const d = await r.json();
+    if (!r.ok) showStatus(d.detail || "Upload failed", "error");
+    else { showStatus('✓ "' + file.name + '" uploaded — indexing in background', "success"); refreshLibrary(); }
+  } catch(e) { showStatus("Connection error: " + e.message, "error"); }
+  finally { btn.disabled = false; document.getElementById("fileInput").value = ""; }
 });
 
 async function refreshLibrary() {
-    if (!activeWS) { document.getElementById("libraryContainer").innerHTML = ""; document.getElementById("fileCount").innerText = "0"; return; }
-    try {
-        const res = await fetch(`${API_BASE}/workspace/${activeWS}/files`, { credentials: "include" });
-        const data = await res.json();
-        const container = document.getElementById("libraryContainer");
-        document.getElementById("fileCount").innerText = data.files.length;
-        container.innerHTML = "";
-        if (data.files.length === 0) {
-            container.innerHTML = `<div class="text-center py-6"><span class="material-symbols-outlined text-3xl text-slate-600 mb-2 block">folder_open</span><p class="text-xs text-slate-500">No files yet</p></div>`;
-            return;
-        }
-        const icons = { pdf:"description", docx:"description", doc:"description", xlsx:"table_chart", xls:"table_chart", png:"image", jpg:"image", jpeg:"image" };
-        data.files.forEach(f => {
-            const ext = f.split(".").pop().toLowerCase();
-            const icon = icons[ext] || "insert_drive_file";
-            const div = document.createElement("div");
-            div.className = "group p-2.5 bg-white/5 border border-white/10 rounded-lg hover:bg-white/10 hover:border-primary/30 transition-all flex items-center justify-between gap-2";
-            div.innerHTML = `
-              <div class="flex items-center gap-2 flex-1 min-w-0">
-                <span class="material-symbols-outlined text-sm text-slate-400 flex-shrink-0">${icon}</span>
-                <span class="text-xs text-slate-300 truncate" title="${escapeHtml(f)}">${escapeHtml(f)}</span>
-              </div>
-              <button class="del-file opacity-0 group-hover:opacity-100 hover:text-primary p-1 rounded flex-shrink-0" title="Delete"><span class="material-symbols-outlined text-sm">delete</span></button>`;
-            div.querySelector(".del-file").addEventListener("click", () => deleteFile(f));
-            container.appendChild(div);
-        });
-    } catch { document.getElementById("libraryContainer").innerHTML = '<p class="text-xs text-red-400 text-center py-4">Error loading files</p>'; }
+  if (!activeWS) { document.getElementById("libraryContainer").innerHTML = ""; document.getElementById("fileCount").textContent = "0"; return; }
+  try {
+    const r = await fetch("/workspace/" + activeWS + "/files", {credentials:"include"});
+    const d = await r.json();
+    const container = document.getElementById("libraryContainer");
+    document.getElementById("fileCount").textContent = d.files.length;
+    container.innerHTML = "";
+    if (!d.files.length) {
+      container.innerHTML = '<div style="text-align:center;padding:20px 12px;color:#334155;font-size:.75rem;"><span class="material-symbols-outlined" style="font-size:2rem;display:block;margin-bottom:6px;opacity:.3;">folder_open</span><p>No files yet</p></div>';
+      return;
+    }
+    const EXT_ICONS = {pdf:"picture_as_pdf",docx:"description",doc:"description",xlsx:"table_chart",xls:"table_chart",png:"image",jpg:"image",jpeg:"image"};
+    const EXT_COLORS = {pdf:"#ef4444",docx:"#3b82f6",doc:"#3b82f6",xlsx:"#10b981",xls:"#10b981",png:"#8b5cf6",jpg:"#8b5cf6",jpeg:"#8b5cf6"};
+    d.files.forEach(f => {
+      const ext = f.split(".").pop().toLowerCase();
+      const icon = EXT_ICONS[ext] || "insert_drive_file";
+      const col  = EXT_COLORS[ext] || "#64748b";
+      const div = document.createElement("div");
+      div.className = "file-row";
+      div.style.cssText = "display:flex;align-items:center;justify-content:space-between;gap:6px;padding:7px 10px;";
+      div.innerHTML =
+        '<div style="display:flex;align-items:center;gap:7px;flex:1;min-width:0;">' +
+          '<span class="material-symbols-outlined" style="font-size:16px;color:' + col + ';flex-shrink:0;">' + icon + '</span>' +
+          '<div style="flex:1;min-width:0;">' +
+            '<p style="font-size:.75rem;color:#cbd5e1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="' + esc(f) + '">' + esc(f) + '</p>' +
+            '<p style="font-size:.62rem;color:#334155;margin-top:1px;">' + ext.toUpperCase() + ' · Indexed</p>' +
+          '</div>' +
+        '</div>' +
+        '<div class="file-actions" style="display:flex;gap:2px;opacity:0;transition:opacity .15s;flex-shrink:0;">' +
+          '<button class="prev-btn" style="padding:3px;border-radius:6px;color:#475569;background:transparent;border:none;cursor:pointer;transition:color .15s;" title="Preview" onmouseover="this.style.color=\'#06b6d4\'" onmouseout="this.style.color=\'#475569\'"><span class="material-symbols-outlined" style="font-size:14px;">preview</span></button>' +
+          '<button class="del-btn" style="padding:3px;border-radius:6px;color:#475569;background:transparent;border:none;cursor:pointer;transition:color .15s;" title="Delete" onmouseover="this.style.color=\'#ef4444\'" onmouseout="this.style.color=\'#475569\'"><span class="material-symbols-outlined" style="font-size:14px;">delete</span></button>' +
+        '</div>';
+      div.addEventListener("mouseenter", () => div.querySelector(".file-actions").style.opacity = "1");
+      div.addEventListener("mouseleave", () => div.querySelector(".file-actions").style.opacity = "0");
+      div.querySelector(".prev-btn").addEventListener("click", () => previewFile(f));
+      div.querySelector(".del-btn").addEventListener("click", () => openDeleteFileModal(f));
+      container.appendChild(div);
+    });
+  } catch { document.getElementById("libraryContainer").innerHTML = '<p style="font-size:.72rem;color:#ef4444;text-align:center;padding:12px;">Error loading files</p>'; }
 }
 
-async function deleteFile(filename) {
-    if (!confirm(`Delete "${filename}"? This removes the file and its indexed content.`)) return;
-    try {
-        const res = await fetch(`${API_BASE}/delete-file`, { method: "POST", headers: {"Content-Type":"application/json"}, credentials: "include", body: JSON.stringify({ workspace_name: activeWS, filename }) });
-        if (!res.ok) { const d = await res.json(); alert(d.detail || "Error deleting file"); return; }
-        refreshLibrary();
-    } catch (e) { alert("Error: " + e.message); }
+function openDeleteFileModal(filename) {
+  _pendingDeleteFile = filename;
+  const ext = filename.split(".").pop().toLowerCase();
+  const icons = {pdf:"picture_as_pdf",docx:"description",xlsx:"table_chart",png:"image",jpg:"image",jpeg:"image"};
+  document.getElementById("delFileIcon").textContent = icons[ext] || "insert_drive_file";
+  document.getElementById("delFilename").textContent = filename;
+  openModal("modalDeleteFile");
 }
-</script>
 
-<script>
+async function submitDeleteFile() {
+  try {
+    const r = await fetch("/delete-file", {method:"POST",headers:{"Content-Type":"application/json"},credentials:"include",body:JSON.stringify({workspace_name:activeWS,filename:_pendingDeleteFile})});
+    if (!r.ok) { const d = await r.json(); alert(d.detail||"Error"); return; }
+    closeModal("modalDeleteFile");
+    refreshLibrary();
+  } catch(e) { alert(e.message); }
+}
+
+// ── Preview ───────────────────────────────────────────────────
+function previewFile(filename) {
+  const ext = filename.split(".").pop().toLowerCase();
+  document.getElementById("previewTitle").textContent = filename;
+  const body = document.getElementById("previewBody");
+  const imgExts = ["png","jpg","jpeg"];
+  const EXT_ICONS = {pdf:"picture_as_pdf",docx:"description",doc:"description",xlsx:"table_chart",xls:"table_chart",png:"image",jpg:"image",jpeg:"image"};
+  const EXT_LABELS = {pdf:"PDF Document",docx:"Word Document",doc:"Word Document",xlsx:"Excel Spreadsheet",xls:"Excel Spreadsheet",png:"PNG Image",jpg:"JPEG Image",jpeg:"JPEG Image"};
+  const EXT_COLORS = {pdf:"#ef4444",docx:"#3b82f6",xlsx:"#10b981",png:"#8b5cf6",jpg:"#8b5cf6",jpeg:"#8b5cf6"};
+  const icon = EXT_ICONS[ext] || "insert_drive_file";
+  const label = EXT_LABELS[ext] || "Document";
+  const color = EXT_COLORS[ext] || "#64748b";
+
+  const chips = (list) => list.map(([k,v,c]) =>
+    '<div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid rgba(255,255,255,.05);font-size:.75rem;">' +
+    '<span style="color:#64748b;">' + k + '</span>' +
+    '<span style="color:' + (c||"#94a3b8") + ';font-weight:600;">' + v + '</span></div>'
+  ).join("");
+
+  if (imgExts.includes(ext)) {
+    body.innerHTML =
+      '<div style="text-align:center;padding:12px 0;">' +
+        '<span class="material-symbols-outlined" style="font-size:3rem;color:' + color + ';display:block;margin-bottom:12px;">' + icon + '</span>' +
+        '<p style="font-size:.85rem;font-weight:600;color:#f1f5f9;margin-bottom:4px;">' + esc(filename) + '</p>' +
+        '<p style="font-size:.72rem;color:#64748b;margin-bottom:16px;">' + label + '</p>' +
+        '<div style="background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.07);border-radius:10px;padding:12px;">' +
+          chips([["Status","✓ Indexed","#10b981"],["Format",ext.toUpperCase()],["Workspace",activeWS||"—"]]) +
+          '<p style="font-size:.68rem;color:#334155;text-align:center;margin-top:10px;">Image is indexed and ready for AI queries.</p>' +
+        '</div>' +
+      '</div>';
+  } else {
+    body.innerHTML =
+      '<div style="text-align:center;padding:12px 0;">' +
+        '<span class="material-symbols-outlined" style="font-size:3rem;color:' + color + ';display:block;margin-bottom:12px;">' + icon + '</span>' +
+        '<p style="font-size:.85rem;font-weight:600;color:#f1f5f9;margin-bottom:4px;">' + esc(filename) + '</p>' +
+        '<p style="font-size:.72rem;color:#64748b;margin-bottom:16px;">' + label + '</p>' +
+        '<div style="background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.07);border-radius:10px;padding:12px;">' +
+          chips([["Status","✓ Indexed","#10b981"],["Format",ext.toUpperCase()],["Workspace",activeWS||"—"]]) +
+        '</div>' +
+        '<p style="font-size:.68rem;color:#334155;text-align:center;margin-top:14px;">Chunked &amp; embedded — ready for AI queries.</p>' +
+      '</div>';
+  }
+  openModal("previewModal");
+}
+
+function closePreviewModal() { closeModal("previewModal"); }
+
 // ── Chat / Messaging ──────────────────────────────────────────
 async function sendMessage() {
-    const input = document.getElementById("chatInput");
-    const val = input.value.trim();
-    if (!val || !activeWS) return;
-    if (val.length > 2000) { addBubble(`Question too long (${val.length} chars). Max 2000.`, "assistant"); return; }
-    if (!activeChatId) { await createNewChat(false); if (!activeChatId) return; }
-
-    addBubble(val, "user");
-    input.value = "";
-    input.disabled = true;
-    document.getElementById("sendBtn").disabled = true;
-    const thinkId = showThinkingAnimation();
-
-    try {
-        const res = await fetch(`${API_BASE}/chat/stream`, {
-            method: "POST", headers: {"Content-Type":"application/json"}, credentials: "include",
-            body: JSON.stringify({ workspace_name: activeWS, question: val, chat_id: activeChatId })
-        });
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
-
-        const reader = res.body.getReader();
-        const decoder = new TextDecoder();
-        let buffer = "", fullAnswer = "", pageNumbers = [], tokenUsage = {}, traceId = null;
-
-        while (true) {
-            const { done, value } = await reader.read();
-            if (done) break;
-            buffer += decoder.decode(value, { stream: true });
-            const lines = buffer.split("\n\n");
-            buffer = lines.pop() || "";
-            for (const line of lines) {
-                if (!line.startsWith("data: ")) continue;
-                try {
-                    const d = JSON.parse(line.slice(6));
-                    if (d.type === "chunk") { fullAnswer += d.content; updateBubble(thinkId, fullAnswer); }
-                    else if (d.type === "metadata") { if (d.page_numbers) pageNumbers = d.page_numbers; if (d.token_usage) tokenUsage = d.token_usage; if (d.trace_id) traceId = d.trace_id; }
-                    else if (d.type === "done") { finalizeBubble(thinkId, fullAnswer, pageNumbers, tokenUsage, traceId); refreshChatList(); break; }
-                    else if (d.type === "error") { updateBubble(thinkId, d.content || "Error generating answer"); break; }
-                } catch {}
-            }
-        }
-        // If stream ended without "done" event, finalize anyway
-        if (fullAnswer) finalizeBubble(thinkId, fullAnswer, pageNumbers, tokenUsage, traceId);
-    } catch (e) {
-        updateBubble(thinkId, `Error: ${e.message}`);
-    } finally {
-        input.disabled = false;
-        document.getElementById("sendBtn").disabled = false;
-        input.focus();
+  const input = document.getElementById("chatInput");
+  const val = input.value.trim();
+  if (!val || !activeWS) return;
+  if (val.length > 2000) { addBubble("Question too long (" + val.length + " chars). Max 2000.", "assistant"); return; }
+  if (!activeChatId) { await _createNewChatDirect(); if (!activeChatId) return; }
+  addBubble(val, "user");
+  input.value = ""; input.disabled = true; document.getElementById("sendBtn").disabled = true;
+  const thinkId = showThinkingAnimation();
+  try {
+    const r = await fetch("/chat/stream", {method:"POST",headers:{"Content-Type":"application/json"},credentials:"include",body:JSON.stringify({workspace_name:activeWS,question:val,chat_id:activeChatId})});
+    if (!r.ok) throw new Error("HTTP " + r.status);
+    const reader = r.body.getReader(), dec = new TextDecoder();
+    let buf = "", fullAnswer = "", pageNumbers = [], tokenUsage = {}, traceId = null;
+    while (true) {
+      const {done,value} = await reader.read();
+      if (done) break;
+      buf += dec.decode(value, {stream:true});
+      const lines = buf.split("\n\n"); buf = lines.pop() || "";
+      for (const line of lines) {
+        if (!line.startsWith("data: ")) continue;
+        try {
+          const d = JSON.parse(line.slice(6));
+          if (d.type==="chunk") { fullAnswer += d.content; updateBubble(thinkId, fullAnswer); }
+          else if (d.type==="metadata") { if (d.page_numbers) pageNumbers = d.page_numbers; if (d.token_usage) tokenUsage = d.token_usage; if (d.trace_id) traceId = d.trace_id; }
+          else if (d.type==="done") { finalizeBubble(thinkId, fullAnswer, pageNumbers, tokenUsage, traceId); refreshChatList(); break; }
+          else if (d.type==="error") { updateBubble(thinkId, d.content||"Error"); break; }
+        } catch {}
+      }
     }
+    if (fullAnswer) finalizeBubble(thinkId, fullAnswer, pageNumbers, tokenUsage, traceId);
+  } catch(e) { updateBubble(thinkId, "Error: " + e.message); }
+  finally { input.disabled = false; document.getElementById("sendBtn").disabled = false; input.focus(); }
 }
 
 document.getElementById("sendBtn").addEventListener("click", sendMessage);
-document.getElementById("chatInput").addEventListener("keydown", e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendMessage(); } });
+document.getElementById("chatInput").addEventListener("keydown", e => { if (e.key==="Enter" && !e.shiftKey) { e.preventDefault(); sendMessage(); } });
 
-// ── Bubble helpers ────────────────────────────────────────────
 function addBubble(text, role) {
-    const chat = document.getElementById("chatContainer");
-    const wrap = document.createElement("div");
-    wrap.className = role === "user" ? "flex justify-end" : "flex justify-start";
-    const id = "bubble-" + Date.now() + Math.random();
-    wrap.id = id;
-    const content = role === "assistant" ? renderMarkdown(text) : escapeHtml(text);
-    wrap.innerHTML = `<div class="p-5 rounded-2xl text-sm max-w-[80%] ${role === "user" ? "bg-charcoal border border-white/10" : "ai-bubble border border-white/5"}">${content}</div>`;
-    chat.appendChild(wrap);
-    chat.scrollTop = chat.scrollHeight;
-    return id;
+  const chat = document.getElementById("chatContainer");
+  const wrap = document.createElement("div");
+  wrap.className = role==="user" ? "flex justify-end" : "flex justify-start";
+  const id = "b" + Date.now() + Math.random();
+  wrap.id = id;
+  const content = role==="assistant" ? renderMarkdown(text) : esc(text);
+  wrap.innerHTML = '<div class="p-5 rounded-2xl text-sm max-w-[80%] ' + (role==="user" ? 'bg-charcoal border border-white/10' : 'ai-bubble border border-white/5') + '">' + content + '</div>';
+  chat.appendChild(wrap);
+  chat.scrollTop = chat.scrollHeight;
+  return id;
 }
 
 function showThinkingAnimation() {
-    const chat = document.getElementById("chatContainer");
-    const wrap = document.createElement("div");
-    wrap.className = "flex justify-start";
-    const id = "think-" + Date.now();
-    wrap.id = id;
-    wrap.innerHTML = `<div class="p-5 rounded-2xl text-sm max-w-[80%] ai-bubble border border-white/5"><div class="thinking-dots"><div class="thinking-dot"></div><div class="thinking-dot"></div><div class="thinking-dot"></div></div></div>`;
-    chat.appendChild(wrap);
-    chat.scrollTop = chat.scrollHeight;
-    return id;
+  const chat = document.getElementById("chatContainer");
+  const wrap = document.createElement("div");
+  wrap.className = "flex justify-start";
+  const id = "t" + Date.now();
+  wrap.id = id;
+  wrap.innerHTML = '<div class="p-5 rounded-2xl text-sm max-w-[80%] ai-bubble border border-white/5"><div class="thinking-dots"><div class="thinking-dot"></div><div class="thinking-dot"></div><div class="thinking-dot"></div></div></div>';
+  chat.appendChild(wrap);
+  chat.scrollTop = chat.scrollHeight;
+  return id;
 }
 
 function updateBubble(id, text) {
-    const wrap = document.getElementById(id);
-    if (!wrap) return;
-    const inner = wrap.querySelector("div");
-    if (inner) { inner.innerHTML = renderMarkdown(text); document.getElementById("chatContainer").scrollTop = document.getElementById("chatContainer").scrollHeight; }
+  const wrap = document.getElementById(id);
+  if (!wrap) return;
+  const inner = wrap.querySelector("div");
+  if (inner) { inner.innerHTML = renderMarkdown(text); document.getElementById("chatContainer").scrollTop = document.getElementById("chatContainer").scrollHeight; }
 }
 
-function finalizeBubble(id, text, pageNumbers = [], tokenUsage = {}, traceId = null) {
-    const wrap = document.getElementById(id);
-    if (!wrap) return;
-    const inner = wrap.querySelector("div");
-    if (!inner) return;
-    inner.innerHTML = renderMarkdown(text);
-    if (pageNumbers.length > 0 || (tokenUsage.total_tokens > 0) || traceId) {
-        const meta = document.createElement("div");
-        meta.className = "mt-3 pt-3 border-t border-white/10 text-[10px] text-slate-500 flex items-center justify-between gap-4 flex-wrap";
-        let left = "";
-        if (pageNumbers.length > 0) left += `<span class="flex items-center gap-1"><span class="material-symbols-outlined text-xs">description</span>${pageNumbers.length === 1 ? "Page " + pageNumbers[0] : "Pages " + pageNumbers.join(", ")}</span>`;
-        if (tokenUsage.total_tokens > 0) left += `<span class="flex items-center gap-1"><span class="material-symbols-outlined text-xs">memory</span>${tokenUsage.total_tokens.toLocaleString()} tokens</span>`;
-        const fb = traceId ? `<span class="flex items-center gap-2 ml-auto"><button onclick="sendFeedback('${traceId}','up',this)" class="hover:text-green-400 transition-colors" title="Good"><span class="material-symbols-outlined text-sm">thumb_up</span></button><button onclick="sendFeedback('${traceId}','down',this)" class="hover:text-red-400 transition-colors" title="Bad"><span class="material-symbols-outlined text-sm">thumb_down</span></button></span>` : "";
-        meta.innerHTML = `<span class="flex items-center gap-4">${left}</span>${fb}`;
-        inner.appendChild(meta);
-    }
+function finalizeBubble(id, text, pageNumbers, tokenUsage, traceId) {
+  const wrap = document.getElementById(id);
+  if (!wrap) return;
+  const inner = wrap.querySelector("div");
+  if (!inner) return;
+  inner.innerHTML = renderMarkdown(text);
+  if ((pageNumbers && pageNumbers.length) || (tokenUsage && tokenUsage.total_tokens > 0) || traceId) {
+    const meta = document.createElement("div");
+    meta.style.cssText = "margin-top:10px;padding-top:10px;border-top:1px solid rgba(255,255,255,.07);font-size:.65rem;color:#475569;display:flex;align-items:center;flex-wrap:wrap;gap:10px;";
+    let left = "";
+    if (pageNumbers && pageNumbers.length) left += '<span style="display:flex;align-items:center;gap:3px;"><span class="material-symbols-outlined" style="font-size:11px;">description</span>' + (pageNumbers.length===1?"Page "+pageNumbers[0]:"Pages "+pageNumbers.join(", ")) + '</span>';
+    if (tokenUsage && tokenUsage.total_tokens > 0) left += '<span style="display:flex;align-items:center;gap:3px;"><span class="material-symbols-outlined" style="font-size:11px;">memory</span>' + tokenUsage.total_tokens.toLocaleString() + ' tokens</span>';
+    const fb = traceId ? '<span style="display:flex;align-items:center;gap:6px;margin-left:auto;"><button onclick="sendFeedback(\'' + traceId + '\',\'up\',this)" style="background:none;border:none;cursor:pointer;color:#475569;transition:color .15s;" onmouseover="this.style.color=\'#10b981\'" onmouseout="this.style.color=\'#475569\'" title="Good"><span class="material-symbols-outlined" style="font-size:14px;">thumb_up</span></button><button onclick="sendFeedback(\'' + traceId + '\',\'down\',this)" style="background:none;border:none;cursor:pointer;color:#475569;transition:color .15s;" onmouseover="this.style.color=\'#ef4444\'" onmouseout="this.style.color=\'#475569\'" title="Bad"><span class="material-symbols-outlined" style="font-size:14px;">thumb_down</span></button></span>' : "";
+    meta.innerHTML = '<span style="display:flex;align-items:center;gap:10px;">' + left + '</span>' + fb;
+    inner.appendChild(meta);
+  }
 }
 
 async function sendFeedback(traceId, feedback, btn) {
-    try {
-        await fetch(`${API_BASE}/feedback`, { method: "POST", headers: {"Content-Type":"application/json"}, credentials: "include", body: JSON.stringify({ trace_id: traceId, feedback }) });
-        btn.closest("span").innerHTML = feedback === "up" ? '<span class="text-green-400 text-xs">👍 Thanks!</span>' : '<span class="text-red-400 text-xs">👎 Noted</span>';
-    } catch {}
+  try {
+    await fetch("/feedback", {method:"POST",headers:{"Content-Type":"application/json"},credentials:"include",body:JSON.stringify({trace_id:traceId,feedback})});
+    btn.closest("span").innerHTML = feedback==="up" ? '<span style="font-size:.7rem;color:#10b981;">👍 Thanks!</span>' : '<span style="font-size:.7rem;color:#ef4444;">👎 Noted</span>';
+  } catch {}
 }
 
 // ── Profile ───────────────────────────────────────────────────
 function showProfile() {
-    if (!currentUser) { loadUserInfo().then(_renderProfileModal); } else { _renderProfileModal(); }
+  if (!currentUser) { loadUserInfo().then(_renderProfileModal); } else { _renderProfileModal(); }
 }
 function _renderProfileModal() {
-    const u = currentUser || {}, info = u.user_info || {};
-    document.getElementById("profileModal").classList.remove("hidden");
-    document.getElementById("profileUsername").textContent = u.username || "—";
-    document.getElementById("profileEmail").textContent = info.email || "Not set";
-    document.getElementById("profileCreated").textContent = info.created_at ? new Date(info.created_at).toLocaleDateString() : "Unknown";
-    document.getElementById("profileLastLogin").textContent = info.last_login ? new Date(info.last_login).toLocaleString() : "Unknown";
+  const u = currentUser || {}, info = u.user_info || {};
+  document.getElementById("profileUsername").textContent = u.username || "—";
+  document.getElementById("profileEmail").textContent = info.email || "Not set";
+  document.getElementById("profileCreated").textContent = info.created_at ? new Date(info.created_at).toLocaleDateString() : "Unknown";
+  document.getElementById("profileLastLogin").textContent = info.last_login ? new Date(info.last_login).toLocaleString() : "Unknown";
+  openModal("profileModal");
 }
 function closeProfileModal() {
-    document.getElementById("profileModal").classList.add("hidden");
-    document.getElementById("pwChangeSection").classList.add("hidden");
-    document.getElementById("pwError").classList.add("hidden");
-    document.getElementById("pwSuccess").classList.add("hidden");
-    document.getElementById("oldPassword").value = "";
-    document.getElementById("newPassword").value = "";
+  closeModal("profileModal");
+  document.getElementById("pwChangeSection").classList.add("hidden");
+  document.getElementById("pwError").classList.add("hidden");
+  document.getElementById("pwSuccess").classList.add("hidden");
+  document.getElementById("oldPassword").value = "";
+  document.getElementById("newPassword").value = "";
 }
 async function changePassword() {
-    const oldPw = document.getElementById("oldPassword").value;
-    const newPw = document.getElementById("newPassword").value;
-    const errEl = document.getElementById("pwError");
-    const okEl = document.getElementById("pwSuccess");
-    errEl.classList.add("hidden"); okEl.classList.add("hidden");
-    if (!oldPw || !newPw) { errEl.textContent = "Fill in both fields."; errEl.classList.remove("hidden"); return; }
-    if (newPw.length < 6) { errEl.textContent = "Min 6 characters."; errEl.classList.remove("hidden"); return; }
-    try {
-        const res = await fetch(`${API_BASE}/auth/change-password`, { method: "POST", headers: {"Content-Type":"application/json"}, credentials: "include", body: JSON.stringify({ old_password: oldPw, new_password: newPw }) });
-        const data = await res.json();
-        if (!res.ok) { errEl.textContent = data.detail || "Failed."; errEl.classList.remove("hidden"); return; }
-        okEl.classList.remove("hidden");
-        document.getElementById("oldPassword").value = "";
-        document.getElementById("newPassword").value = "";
-    } catch (e) { errEl.textContent = "Error: " + e.message; errEl.classList.remove("hidden"); }
+  const oldPw = document.getElementById("oldPassword").value;
+  const newPw = document.getElementById("newPassword").value;
+  const errEl = document.getElementById("pwError"), okEl = document.getElementById("pwSuccess");
+  errEl.classList.add("hidden"); okEl.classList.add("hidden");
+  if (!oldPw || !newPw) { errEl.textContent = "Fill in both fields."; errEl.classList.remove("hidden"); return; }
+  if (newPw.length < 6) { errEl.textContent = "Min 6 characters."; errEl.classList.remove("hidden"); return; }
+  try {
+    const r = await fetch("/auth/change-password", {method:"POST",headers:{"Content-Type":"application/json"},credentials:"include",body:JSON.stringify({old_password:oldPw,new_password:newPw})});
+    const d = await r.json();
+    if (!r.ok) { errEl.textContent = d.detail||"Failed."; errEl.classList.remove("hidden"); return; }
+    okEl.classList.remove("hidden");
+    document.getElementById("oldPassword").value = "";
+    document.getElementById("newPassword").value = "";
+  } catch(e) { errEl.textContent = "Error: "+e.message; errEl.classList.remove("hidden"); }
 }
 
 // ── Modals ────────────────────────────────────────────────────
-function showHelpModal() { document.getElementById("helpModal").classList.remove("hidden"); }
-function closeHelpModal() { document.getElementById("helpModal").classList.add("hidden"); }
+function openModal(id) { document.getElementById(id).classList.remove("hidden"); }
+function closeModal(id) { document.getElementById(id).classList.add("hidden"); }
+function showHelpModal() { openModal("helpModal"); }
+function closeHelpModal() { closeModal("helpModal"); localStorage.setItem("ragcore_help_seen","1"); }
 
-// ── Utilities ─────────────────────────────────────────────────
-function escapeHtml(text) { const d = document.createElement("div"); d.textContent = text; return d.innerHTML; }
-function renderMarkdown(text) { try { return marked.parse(text, { breaks: true, gfm: true }); } catch { return escapeHtml(text); } }
+// ── Utils ─────────────────────────────────────────────────────
+function esc(s) { const d = document.createElement("div"); d.textContent = String(s||""); return d.innerHTML; }
+const escapeHtml = esc;
+function renderMarkdown(t) { try { return marked.parse(t,{breaks:true,gfm:true}); } catch { return esc(t); } }
 </script>
 </body>
 </html>

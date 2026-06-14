@@ -6,7 +6,7 @@ import re
 import json
 from typing import Optional, List
 from fastapi import Request, HTTPException
-from backend.auth import get_current_user, verify_session
+from backend.auth import get_current_user
 
 UPLOAD_ROOT = "uploads"
 os.makedirs(UPLOAD_ROOT, exist_ok=True)
@@ -20,11 +20,6 @@ async def get_token(request: Request) -> Optional[str]:
     if auth and auth.startswith("Bearer "):
         return auth.split(" ")[1]
     return None
-
-
-async def require_auth(token: Optional[str] = None) -> str:
-    from fastapi import Depends
-    return get_current_user(token)
 
 
 def get_safe_name(name: str) -> str:
