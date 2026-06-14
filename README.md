@@ -390,6 +390,14 @@ Default credentials: `admin` / `admin123` (override with `ADMIN_PASSWORD` env va
 
 ---
 
+## Author
+
+**Sujit Sadalage**
+
+---
+
 ## License
 
-MIT
+© 2025 Sujit Sadalage. All rights reserved.
+
+This project is proprietary. No part of this codebase may be reproduced, distributed, or used without explicit written permission from the author.
