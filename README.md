@@ -4,6 +4,53 @@ A production-ready, full-stack Retrieval-Augmented Generation (RAG) system. Uplo
 
 ---
 
+## What's New (Latest)
+
+### Production & Deployment
+- **Render-ready** — `render.yaml` added for one-command deploy to Render (recommended host)
+- **Supabase-first storage** — ChromaDB and local disk are now fallbacks only; all critical data lives in Supabase
+- **BM25 indexes in Supabase Storage** — pickle files stored in `bm25-indexes` bucket; rebuilt from `embeddings` table on startup if missing
+- **Ephemeral-disk-safe** — workspaces, chats, sessions, and embeddings all survive Render deploys/restarts
+- **Secure cookies** — `SECURE_COOKIES=true` env var enables `HttpOnly; Secure` on production HTTPS
+- **JWT verification** — Supabase JWTs verified with `PyJWT` + `SUPABASE_JWT_SECRET`; no more unsigned decode
+- **Stdout-only logging in production** — file handler only added when `ENVIRONMENT=development`
+
+### Auth & Sessions
+- Sessions stored in Supabase `sessions` table — survive server restarts
+- Users stored in Supabase `users` table — local `users.json` / `sessions.json` are dev fallbacks only
+- Default admin creation skipped if `ADMIN_PASSWORD` not set (safe in production)
+
+### Workspace Management
+- **Workspace persistence** — all workspaces, chats, and docs reload from Supabase on page refresh and new sessions
+- **"Already exists" recovery** — creating a duplicate workspace shows an "Open it →" link instead of a dead-end error
+- **Batch workspace list** — `/workspace/list` now uses 2 Supabase queries total (was N×2); shows last message and message count
+- **Search by name or slug** — workspace search matches both display name and slug
+- **`workspace_exists` vs `workspace_accessible`** — creation uses strict check; chat/file endpoints use broader check that also finds legacy workspaces without a `workspaces` table row
+- **Auto-repair** — `chat/create` automatically inserts a missing `workspaces` row for legacy workspaces
+
+### Document RAG
+- **Send button and Enter key fixed** — replaced `disabled` attribute with `readonly` so keyboard events always fire
+- **No infinite loading** — `loadChats` → `_createChatSilent` removes the recursive loop that caused infinite requests
+- **`Promise.allSettled`** — `switchWorkspace` always hides the overlay even if `loadChats` or `refreshLibrary` throws
+- **State persists across navigation** — `sessionStorage` saves active workspace + chat; restored on every page load
+
+### Streaming & Typing
+- **ChatGPT-style smooth typing** — all chat interfaces (RAG, AI Chat, Playground, Pipeline) use a `requestAnimationFrame` queue that drains 4 chars/frame; markdown rendered once on finalize
+- **Pipeline answer displayed** — `populateStage("llm")` no longer overwrites the streamed content; `finalizeLLM` renders markdown and hides raw stream
+
+### Pipeline & Playground
+- **Ask again without re-uploading** — both Pipeline and Playground show a sticky "Ask another question" bar after a run completes
+- **Back button on Playground** — overlay now has a `← Back` link to `/app`
+- **Pipeline result rendered** — answer now shows as formatted markdown after streaming ends
+
+### Sidebar
+- Simplified flat layout — no collapsible sections
+- Workspace list with inline chats + docs when a workspace is selected
+- "Open" button visible on hover for each workspace row
+- Slug shown as subtitle when no last message exists
+
+---
+
 ## Features
 
 | Feature | Description |
@@ -12,11 +59,11 @@ A production-ready, full-stack Retrieval-Augmented Generation (RAG) system. Uplo
 | **Hybrid Retrieval** | Vector search (pgvector / ChromaDB) + BM25 keyword search, fused with Reciprocal Rank Fusion. |
 | **Cohere Reranking** | Optional cross-encoder reranking for higher precision. Falls back to RRF order if key not set. |
 | **General AI Chatbot** | Separate chat interface backed by Groq — no documents needed. Sessions persisted to Supabase. |
-| **RAG Playground** | Visual animated flow graph. Upload a document, ask a question, watch every pipeline stage execute in real time with particle animations and expandable node details. |
-| **Pipeline Explorer** | Step-by-step educational walkthrough of the RAG pipeline with embedding bar charts, score bars, RRF tables, and streamed LLM output. Completely isolated — no production data touched. |
-| **Monitoring Dashboard** | SSE-powered live trace viewer. See every RAG query and file upload as it happens, with latency, chunk counts, and per-stage metadata. |
-| **Multi-workspace** | Isolated workspaces per user. Each workspace has its own documents, chat history, and vector index. |
-| **Auth** | Supabase Auth (JWT) with local JSON fallback. bcrypt password hashing with legacy SHA-256 migration. |
+| **RAG Playground** | Visual animated flow graph. Upload a document, ask a question, watch every pipeline stage execute in real time. Ask again without re-uploading. |
+| **Pipeline Explorer** | Step-by-step educational walkthrough with embedding bars, score bars, RRF tables, and streamed LLM output. Ask multiple questions on the same file. |
+| **Monitoring Dashboard** | SSE-powered live trace viewer. See every RAG query and file upload as it happens. |
+| **Multi-workspace** | Isolated workspaces per user. Each workspace has its own documents, chat history, and vector index. All data persists across restarts. |
+| **Auth** | Supabase Auth (JWT verified with PyJWT) with local JSON fallback. bcrypt password hashing. |
 
 ---
 
@@ -25,139 +72,89 @@ A production-ready, full-stack Retrieval-Augmented Generation (RAG) system. Uplo
 **Backend**
 - FastAPI + Uvicorn (async, production-ready)
 - `BAAI/bge-small-en-v1.5` via SentenceTransformers — 384-dim dense embeddings
-- ChromaDB — local vector store (automatic fallback)
-- Supabase pgvector — cloud vector store (primary, with HNSW index)
-- BM25 — pure-Python keyword index, persisted as pickle files on disk
-- Cohere Rerank API (optional, free tier: 1000 calls/month)
-- Groq API — LLM inference (fast, free tier available)
+- ChromaDB — local vector store (fallback only in production)
+- Supabase pgvector — cloud vector store (primary, HNSW index)
+- BM25 — pure-Python keyword index, persisted to Supabase Storage
+- Cohere Rerank API (optional)
+- Groq API — LLM inference
 - PyMuPDF, python-docx, pandas, Tesseract OCR — document extraction
 - SlowAPI — rate limiting
+- PyJWT — JWT verification
 
 **Frontend**
-- Vanilla HTML/CSS/JS — no build step required
+- Vanilla HTML/CSS/JS — no build step
 - Tailwind CSS (CDN), Space Grotesk font, Material Symbols icons
-- Server-Sent Events (SSE) for real-time streaming across all features
-- marked.js — markdown rendering for AI responses
+- Server-Sent Events (SSE) for streaming across all features
+- marked.js — markdown rendering
+- `requestAnimationFrame` smooth typing engine
 
 ---
 
 ## How RAG Works in This Project
 
-### The two-phase architecture
-
-RAG has two separate phases. Understanding the difference is key.
-
-#### Phase 1 — Ingestion (happens when you upload a file)
+### Phase 1 — Ingestion (on file upload)
 
 ```
-You upload a PDF / DOCX / Excel / Image
+Upload PDF / DOCX / Excel / Image
         │
         ▼
 1. TEXT EXTRACTION
-   PDF   → PyMuPDF   — extracts text page-by-page, tracks char offsets per page
+   PDF   → PyMuPDF   (page-by-page, char offset tracking)
    DOCX  → python-docx
-   Excel → pandas    — converts rows to readable text: "Name: John | Age: 25"
+   Excel → pandas    ("Col: value | Col: value" per row)
    Image → Tesseract OCR
-
         │
         ▼
-2. CHUNKING  (split into overlapping windows)
-   chunk_size = 1000 chars, overlap = 300 chars
-   PDFs: page-aware — each chunk knows which page it came from
-   Excel: sheet-aware — 20 data rows per chunk, header repeated each time
-
+2. CHUNKING  (1000 chars, 300 overlap)
+   PDFs: page-aware chunks
+   Excel: sheet-aware, 20 rows per chunk, headers repeated
         │
         ▼
-3. EMBEDDING  (each chunk → 384 numbers)
-   Model: BAAI/bge-small-en-v1.5 (sentence-transformer)
-   Similar meanings → similar vectors
-   Asymmetric: documents use no prefix; queries use a prefix
-
+3. EMBEDDING  (BAAI/bge-small-en-v1.5 → 384 floats per chunk)
         │
         ▼
-4. STORING  (written to 3 places simultaneously)
-   ├── Supabase pgvector  ← primary (cloud, persistent across deploys)
+4. STORING  (3 parallel destinations)
+   ├── Supabase pgvector  ← primary (cloud, always persistent)
    ├── ChromaDB           ← local fallback (./chroma_db/)
-   └── BM25 pickle        ← keyword index (./bm25_index/*.pkl)
+   └── BM25 index         ← Supabase Storage (./bm25_index/ fallback)
 ```
 
-#### Phase 2 — Retrieval & Generation (happens when you ask a question)
+### Phase 2 — Retrieval & Generation (on question)
 
 ```
-You type a question
+Question
         │
         ▼
-1. QUERY EMBEDDING
-   Same BAAI/bge-small-en-v1.5 model
-   Query prefix: "Represent this sentence for searching relevant passages: "
-   → 384-float vector
-
+1. QUERY EMBEDDING  (same model + query prefix)
         │
         ▼
-2. HYBRID SEARCH  (finds 30 candidates from each source)
-   ├── Vector search  → cosine similarity between query vector and chunk vectors
-   │     Primary:  Supabase pgvector  (SQL RPC call, HNSW index)
-   │     Fallback: ChromaDB           (if Supabase unavailable)
-   │
-   └── BM25 search    → TF-IDF keyword scoring
-         (catches exact term matches that vector search misses)
-
+2. HYBRID SEARCH  (30 candidates each)
+   ├── Vector: Supabase pgvector → ChromaDB fallback
+   └── BM25: keyword scoring (exact matches)
         │
         ▼
-3. RRF MERGE  (Reciprocal Rank Fusion)
-   score = Σ 1/(60 + rank)
-   Chunks appearing in BOTH lists score higher.
-   A chunk ranked #1 in both gets ≈ 0.033.
-
+3. RRF MERGE  score = Σ 1/(60 + rank)
         │
         ▼
-4. RERANKING  (optional, Cohere API)
-   Cross-encoder reads full (query, chunk) pair together.
-   More accurate than bi-encoders.
-   Only runs on top-30 candidates to keep it fast.
-   Falls back to RRF order if COHERE_API_KEY not set.
-
+4. RERANKING  (Cohere cross-encoder, optional)
         │
         ▼
-5. ADAPTIVE-K  (how many chunks to send to the LLM)
-   Broad query (list, all, summarize, who) → k = 15
-   Simple factual (what is, when, where)   → k = 4
-   Default                                  → k = 8
-
+5. ADAPTIVE-K
+   Broad query  (list, all, summarize) → k = 15
+   Factual      (what is, when, where) → k = 4
+   Default                              → k = 8
         │
         ▼
 6. LLM GENERATION  (Groq, streamed SSE)
-   System prompt enforces "answer only from context"
-   Includes last 8 conversation messages for follow-ups
-   Context trimmed to 5000 chars to stay within token budget
-   Model: openai/gpt-oss-120b
-
+   System: "answer only from context"
+   Last 8 conversation messages included
+   Context trimmed to 5000 chars
         │
         ▼
 7. SAVE & SYNC
-   ├── Local JSON  →  uploads/{workspace}/chat_{id}.json  (always)
-   └── Supabase    →  messages + chats tables              (if configured)
+   ├── Local JSON  →  uploads/{workspace}/chat_{id}.json
+   └── Supabase    →  messages + chats tables
 ```
-
-### Why 3 storage layers for embeddings?
-
-```
-Supabase pgvector   ← source of truth
-      │
-      │ fails? (no key, offline, rate limited)
-      ▼
-ChromaDB (local)    ← automatic silent fallback
-      │
-      │ both always run in parallel
-      ▼
-BM25 keyword index  ← complementary retrieval, never replaced
-```
-
-On every server startup, BM25 indexes are rebuilt from ChromaDB if pickle files are missing.
-
-### About the Playground trimming (does it affect accuracy?)
-
-**No.** The Playground (`/playground`) is a completely isolated educational tool. It runs its own in-memory pipeline in a temp directory. The trimming (shorter previews, fewer displayed results) only affects what is **shown in the UI**. The actual RAG chatbot (`/app`) is entirely unaffected — it uses the full pipeline with no data limits.
 
 ---
 
@@ -165,51 +162,49 @@ On every server startup, BM25 indexes are rebuilt from ChromaDB if pickle files 
 
 ```
 app.py                        ← FastAPI entry point, CORS, startup, routes
+render.yaml                   ← Render deployment config
 requirements.txt
 
 routers/
-  auth.py                     ← /auth/login, /register, /logout, /refresh
+  auth.py                     ← /auth/* (login, register, logout, refresh)
   workspace.py                ← /workspace/* CRUD + /chat/* endpoints
   files.py                    ← /upload (background indexing), /delete-file
   chat.py                     ← /chat/stream  (streaming RAG answer, SSE)
-  general_chat.py             ← /general/*    (general AI chatbot + sessions)
-  playground.py               ← /playground/stream, /traces, /stats  (monitor SSE)
+  general_chat.py             ← /general/*    (general AI chatbot)
+  playground.py               ← /playground/stream, /traces, /stats
   pipeline_explorer.py        ← /pipeline/run  (isolated RAG walkthrough, SSE)
 
 backend/
-  auth.py                     ← Login/register, JWT verify, bcrypt, session tokens
-  deps.py                     ← Shared FastAPI deps, path helpers, JSON file I/O
-  ingestion.py                ← PDF / DOCX / Excel / image text extraction
-  chunking.py                 ← RecursiveCharacterTextSplitter (fixed + page-aware + Excel)
-  embeddings.py               ← SentenceTransformer lazy-loader, embed_text / embed_texts
-  retriever.py                ← Hybrid search, RRF merge, add_documents, delete
-  bm25_index.py               ← Pure-Python BM25, in-memory cache, disk persistence
-  cohere_reranker.py          ← Cohere Rerank API wrapper with graceful fallback
-  llm.py                      ← Groq API: RAG answers + General AI (streaming + batch)
-  persistence.py              ← Fire-and-forget Supabase sync (workspaces, chats, messages)
-  analytics.py                ← QueryTrace context manager, feedback, analytics endpoint
-  playground.py               ← In-memory SSE event bus (ring buffer, 200 traces)
-  supabase_config.py          ← Supabase client (lazy init, service key)
-  supabase_db.py              ← CRUD: workspaces, chats, messages, documents, general sessions
-  supabase_storage.py         ← File upload/delete in Supabase Storage bucket
+  auth.py                     ← Login/register, JWT verify (PyJWT), sessions → Supabase
+  deps.py                     ← Shared deps, workspace_exists, workspace_accessible
+  ingestion.py                ← PDF / DOCX / Excel / image extraction
+  chunking.py                 ← RecursiveCharacterTextSplitter (page-aware + Excel)
+  embeddings.py               ← SentenceTransformer lazy-loader
+  retriever.py                ← Hybrid search, RRF, add_documents (Supabase + ChromaDB)
+  bm25_index.py               ← Pure-Python BM25, Supabase Storage persistence
+  cohere_reranker.py          ← Cohere Rerank wrapper
+  llm.py                      ← Groq API (streaming + batch)
+  persistence.py              ← Fire-and-forget Supabase sync
+  analytics.py                ← QueryTrace, feedback, analytics
+  playground.py               ← In-memory SSE event bus
+  supabase_config.py          ← Supabase client
+  supabase_db.py              ← CRUD helpers
+  supabase_storage.py         ← File upload/delete in Supabase Storage
 
 frontend/
-  index.html                  ← Main RAG chat app (sidebar: workspaces/chats/docs)
-  chat.html                   ← General AI chatbot (Supabase-persisted sessions)
-  playground.html             ← Visual animated flow graph (Playground)
-  pipeline.html               ← Step-by-step pipeline explorer
+  index.html                  ← Main RAG chat (flat sidebar, persistent state)
+  chat.html                   ← General AI chatbot
+  playground.html             ← Visual pipeline graph (ask-again bar)
+  pipeline.html               ← Step-by-step pipeline explorer (ask-again bar)
   landing.html                ← Public marketing page
-  login.html                  ← Login with loading + success animation
-  register.html               ← Registration with validation
+  login.html / register.html  ← Auth pages
 
 database/
-  schema.sql                  ← All Supabase table definitions (idempotent, run once)
-  pgvector_migration.sql      ← pgvector extension + match_embeddings RPC
-  query_logs_only.sql         ← Just the analytics table
-
-uploads/                      ← User files (git-ignored)
-bm25_index/                   ← BM25 pickle files (git-ignored)
-chroma_db/                    ← ChromaDB local store (git-ignored)
+  schema.sql                        ← All Supabase tables (idempotent)
+  pgvector_migration.sql            ← pgvector extension + match_embeddings RPC
+  sessions_and_workspace_meta.sql   ← sessions table + workspaces.display_name column
+  create_bm25_bucket.sql            ← bm25-indexes Storage bucket
+  query_logs_only.sql               ← Analytics table only
 ```
 
 ---
@@ -221,70 +216,73 @@ chroma_db/                    ← ChromaDB local store (git-ignored)
 ```bash
 git clone https://github.com/your-username/ragcore.git
 cd ragcore
-
 python -m venv venv
-# Windows
-venv\Scripts\activate
-# macOS/Linux
-source venv/bin/activate
-
+venv\Scripts\activate        # Windows
+source venv/bin/activate     # macOS/Linux
 pip install -r requirements.txt
 ```
 
 ### 2. Configure environment
 
-Create a `.env` file in the project root:
-
 ```env
 # ── Required ──────────────────────────────────────
 GROQ_API_KEY=gsk_...
 
-# ── Supabase (optional — app works fully locally) ─
+# ── Supabase ──────────────────────────────────────
 SUPABASE_URL=https://your-project.supabase.co
 SUPABASE_SERVICE_KEY=eyJ...
+SUPABASE_JWT_SECRET=your-jwt-secret      # Settings → API → JWT Secret
 STORAGE_BUCKET=documents
 
-# ── Reranking (optional) ──────────────────────────
-COHERE_API_KEY=...
+# ── Production ────────────────────────────────────
+ENVIRONMENT=production                   # or development
+SECURE_COOKIES=true                      # true on HTTPS
 
-# ── Auth / CORS ───────────────────────────────────
-ADMIN_PASSWORD=admin123
-ALLOWED_ORIGINS=http://localhost:8000
+# ── Optional ──────────────────────────────────────
+COHERE_API_KEY=...
+ADMIN_PASSWORD=changeme                  # leave unset in prod to skip default user
+ALLOWED_ORIGINS=https://yourdomain.com
 ```
 
-Without Supabase keys the app runs **fully locally**: ChromaDB + BM25 + JSON flat files. No features are lost — Supabase is a sync/backup layer.
+Without Supabase keys the app runs **fully locally** using ChromaDB + BM25 + JSON files. No features are lost.
 
-### 3. Supabase setup (optional)
+### 3. Supabase setup
 
-Run `database/schema.sql` in your Supabase SQL Editor.  
-All statements use `IF NOT EXISTS` / `OR REPLACE` — safe to re-run on an existing database.
+Run these SQL files in your Supabase SQL Editor **in order**:
 
-You need to enable the **pgvector** extension first:  
-Supabase Dashboard → Database → Extensions → search "vector" → Enable.
+1. `database/schema.sql` — all tables (pgvector must be enabled first)
+2. `database/sessions_and_workspace_meta.sql` — sessions table + display_name column
+3. `database/create_bm25_bucket.sql` — storage bucket for BM25 indexes
 
-### 4. Tesseract OCR (for image uploads)
+Enable pgvector: Dashboard → Database → Extensions → "vector" → Enable.
 
-Only needed if you want to upload image files (PNG/JPG).
+### 4. Tesseract OCR (image uploads only)
 
 - Windows: [download installer](https://github.com/UB-Mannheim/tesseract/wiki)
 - macOS: `brew install tesseract`
 - Ubuntu: `sudo apt install tesseract-ocr`
 
-### 5. Run
+### 5. Run locally
 
 ```bash
 python app.py
-```
-
-Or with auto-reload:
-
-```bash
-python -m uvicorn app:app --host 0.0.0.0 --port 8000 --reload
+# or
+uvicorn app:app --host 0.0.0.0 --port 8000 --reload
 ```
 
 Open **http://localhost:8000**
 
-Default credentials: `admin` / `admin123` (override with `ADMIN_PASSWORD` env var)
+---
+
+## Deploy to Render
+
+1. Push to GitHub
+2. Connect repo in Render dashboard
+3. Render detects `render.yaml` automatically
+4. Set all environment variables in Render dashboard (marked `sync: false` in `render.yaml`)
+5. Deploy — `render.yaml` sets the build and start commands
+
+Minimum plan: **Starter ($7/mo)** — the embedding model needs ~512MB RAM.
 
 ---
 
@@ -293,10 +291,10 @@ Default credentials: `admin` / `admin123` (override with `ADMIN_PASSWORD` env va
 | URL | Description |
 |---|---|
 | `/` | Landing page |
-| `/app` | Main RAG chat (workspaces + documents + streaming answers) |
+| `/app` | Main RAG chat — workspaces, documents, streaming answers |
 | `/ai-chat` | General AI chatbot (no documents needed) |
-| `/playground` | Visual pipeline flow graph — watch RAG animate in real time |
-| `/pipeline` | Step-by-step pipeline explorer with metadata at every stage |
+| `/playground` | Visual pipeline animation — watch RAG run step by step |
+| `/pipeline` | Educational pipeline explorer with full metadata per stage |
 | `/login` | Login |
 | `/register` | Create account |
 
@@ -306,65 +304,64 @@ Default credentials: `admin` / `admin123` (override with `ADMIN_PASSWORD` env va
 
 | Method | Path | Auth | Description |
 |---|---|---|---|
-| `POST` | `/auth/login` | — | Login (Supabase JWT or local fallback) |
-| `POST` | `/auth/register` | — | Create account |
-| `POST` | `/auth/logout` | ✓ | Logout + clear session |
-| `GET`  | `/auth/check` | — | Check if authenticated |
-| `POST` | `/auth/refresh` | — | Refresh Supabase JWT |
-| `GET`  | `/workspace/list` | ✓ | List owned workspaces |
-| `POST` | `/workspace/create` | ✓ | Create workspace |
+| `POST` | `/auth/login` | — | Login |
+| `POST` | `/auth/register` | — | Register |
+| `POST` | `/auth/logout` | ✓ | Logout |
+| `GET`  | `/auth/check` | — | Auth status |
+| `POST` | `/auth/refresh` | — | Refresh JWT |
+| `GET`  | `/workspace/list` | ✓ | List workspaces (batch-enriched) |
+| `POST` | `/workspace/create` | ✓ | Create workspace (returns slug on 400 if exists) |
 | `POST` | `/workspace/delete` | ✓ | Delete workspace + all data |
 | `POST` | `/workspace/rename` | ✓ | Rename workspace |
-| `GET`  | `/workspace/{slug}/files` | ✓ | List documents |
+| `GET`  | `/workspace/{slug}/files` | ✓ | List documents (Supabase → disk fallback) |
 | `GET`  | `/workspace/{slug}/chats` | ✓ | List chats |
 | `GET`  | `/workspace/{slug}/history` | ✓ | Chat message history |
-| `POST` | `/chat/create` | ✓ | Create new chat |
+| `POST` | `/chat/create` | ✓ | Create chat (auto-repairs missing workspace row) |
 | `POST` | `/chat/delete` | ✓ | Delete chat |
 | `POST` | `/chat/stream` | ✓ | **Streaming RAG answer (SSE)** |
 | `POST` | `/upload` | ✓ | Upload + background index document |
 | `POST` | `/delete-file` | ✓ | Delete document + embeddings |
 | `GET`  | `/general/sessions` | ✓ | List AI chat sessions |
-| `POST` | `/general/sessions` | ✓ | Create AI chat session |
+| `POST` | `/general/sessions` | ✓ | Create session |
 | `DELETE` | `/general/sessions/{id}` | ✓ | Delete session |
-| `GET`  | `/general/sessions/{id}/messages` | ✓ | Session message history |
 | `POST` | `/general/chat/stream` | ✓ | **Streaming general AI answer (SSE)** |
 | `GET`  | `/playground/stream` | ✓ | Live pipeline monitor (SSE) |
-| `GET`  | `/playground/traces` | ✓ | Recent traces snapshot |
-| `POST` | `/pipeline/run` | ✓ | **Run isolated pipeline walkthrough (SSE)** |
-| `POST` | `/feedback` | ✓ | Thumbs up/down on an answer |
-| `GET`  | `/analytics` | ✓ | Query analytics summary |
+| `POST` | `/pipeline/run` | ✓ | **Run pipeline walkthrough (SSE)** |
+| `POST` | `/feedback` | ✓ | Thumbs up/down on answer |
+| `GET`  | `/analytics` | ✓ | Analytics summary |
 | `GET`  | `/health` | — | Health check |
 
 ---
 
 ## What Gets Stored Where
 
-### Local filesystem (always, no config needed)
+### Supabase (primary — survives deploys)
 
-| Data | Path |
+| Table / Bucket | What's stored |
 |---|---|
-| Uploaded files | `uploads/{workspace_slug}/` |
-| Chat history | `uploads/{workspace_slug}/chat_{id}.json` |
-| Chat metadata | `uploads/{workspace_slug}/chats.json` |
-| Workspace owner | `uploads/{workspace_slug}/.owner` |
-| BM25 indexes | `bm25_index/{user}__{workspace}.pkl` |
-| ChromaDB vectors | `chroma_db/` |
-| Users (fallback) | `users.json` |
-| Sessions (fallback) | `sessions.json` |
-
-### Supabase (when configured)
-
-| Table | What's stored |
-|---|---|
-| `users` | username, email, created_at |
-| `workspaces` | slug, name, owner_id |
+| `users` | username, email, last_login |
+| `sessions` | session tokens with expiry |
+| `workspaces` | slug, name, display_name, owner_id |
 | `chats` | id, workspace_slug, title, owner_id |
 | `messages` | chat_id, role, content |
-| `embeddings` | chunk_text, embedding vector (384 dims), filename, page_num |
+| `embeddings` | chunk_text, vector (384 dims), filename, page_num |
 | `documents` | workspace_slug, filename, file_path, file_size |
 | `general_chat_sessions` | username, title |
 | `general_chat_messages` | session_id, role, content |
 | `query_logs` | trace_id, latency_ms, chunks_retrieved, feedback |
+| Storage: `documents` | raw uploaded files |
+| Storage: `bm25-indexes` | BM25 pickle indexes per workspace |
+
+### Local filesystem (dev fallback / temp)
+
+| Data | Path |
+|---|---|
+| Uploaded files (temp during indexing) | `uploads/{slug}/` |
+| Chat history fallback | `uploads/{slug}/chat_{id}.json` |
+| BM25 indexes fallback | `bm25_index/{user}__{workspace}.pkl` |
+| ChromaDB vectors fallback | `chroma_db/` |
+| Users fallback | `users.json` |
+| Sessions fallback | `sessions.json` |
 
 ---
 
@@ -372,12 +369,15 @@ Default credentials: `admin` / `admin123` (override with `ADMIN_PASSWORD` env va
 
 | Variable | Required | Description |
 |---|---|---|
-| `GROQ_API_KEY` | **Yes** | Groq API key for LLM inference |
+| `GROQ_API_KEY` | **Yes** | Groq API key |
 | `SUPABASE_URL` | No | Supabase project URL |
-| `SUPABASE_SERVICE_KEY` | No | Supabase service role key (bypasses RLS) |
-| `STORAGE_BUCKET` | No | Supabase Storage bucket name (default: `documents`) |
+| `SUPABASE_SERVICE_KEY` | No | Supabase service role key |
+| `SUPABASE_JWT_SECRET` | No | JWT secret for token verification (Settings → API) |
+| `STORAGE_BUCKET` | No | Storage bucket name (default: `documents`) |
+| `ENVIRONMENT` | No | `production` or `development` (default: `development`) |
+| `SECURE_COOKIES` | No | `true` to set Secure flag on cookies (required on HTTPS) |
 | `COHERE_API_KEY` | No | Enables Cohere cross-encoder reranking |
-| `ADMIN_PASSWORD` | No | Default admin password (default: `admin123`) |
+| `ADMIN_PASSWORD` | No | Default admin password — leave unset in production |
 | `ALLOWED_ORIGINS` | No | CORS origins (default: `http://localhost:8000`) |
 
 ---
@@ -385,7 +385,7 @@ Default credentials: `admin` / `admin123` (override with `ADMIN_PASSWORD` env va
 ## Requirements
 
 - Python 3.11+
-- Tesseract OCR — only for image file uploads ([install](https://github.com/tesseract-ocr/tesseract))
+- Tesseract OCR — only for image uploads
 - No Node.js — frontend is pure HTML/JS served by FastAPI
 
 ---
