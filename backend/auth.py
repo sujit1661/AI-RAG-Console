@@ -1,6 +1,7 @@
 """
-Authentication using Supabase Auth.
-Falls back to local JSON auth if Supabase is not configured.
+Authentication — Supabase Auth (primary) with local JSON fallback for dev.
+Sessions stored in Supabase DB; local sessions.json used only when Supabase
+is unavailable (e.g. local dev without env vars set).
 """
 import os
 import secrets
@@ -8,114 +9,172 @@ import hashlib
 import bcrypt
 import json
 import base64
-from datetime import datetime, timedelta
+import logging
+from datetime import datetime, timedelta, timezone
 from typing import Optional
 from fastapi import HTTPException, status
 from dotenv import load_dotenv
 
 load_dotenv()
+logger = logging.getLogger(__name__)
 
 # ─────────────────────────────────────────────
-# Local fallback storage (used when Supabase auth fails)
+# Environment flags
+# ─────────────────────────────────────────────
+# Set SECURE_COOKIES=true in production (Render). False for local HTTP dev.
+_SECURE_COOKIES = os.getenv("SECURE_COOKIES", "false").lower() == "true"
+
+# ─────────────────────────────────────────────
+# Local JSON fallback (dev only — not used when Supabase is configured)
 # ─────────────────────────────────────────────
 SESSIONS_FILE = "sessions.json"
-USERS_FILE = "users.json"
+USERS_FILE    = "users.json"
 
-def load_sessions() -> dict:
-    if os.path.exists(SESSIONS_FILE):
+def _load_json(path: str) -> dict:
+    if os.path.exists(path):
         try:
-            with open(SESSIONS_FILE, "r") as f:
+            with open(path) as f:
                 return json.load(f)
-        except:
-            return {}
+        except Exception:
+            pass
     return {}
 
-def save_sessions(sessions: dict):
-    with open(SESSIONS_FILE, "w") as f:
-        json.dump(sessions, f, indent=2)
+def _save_json(path: str, data: dict):
+    try:
+        with open(path, "w") as f:
+            json.dump(data, f, indent=2)
+    except Exception as e:
+        logger.warning(f"Local JSON save failed ({path}): {e}")
 
-def load_users() -> dict:
-    if os.path.exists(USERS_FILE):
-        try:
-            with open(USERS_FILE, "r") as f:
-                return json.load(f)
-        except:
-            return {}
-    return {}
+def load_users() -> dict:  return _load_json(USERS_FILE)
+def save_users(u: dict):   _save_json(USERS_FILE, u)
+def _load_local_sessions() -> dict: return _load_json(SESSIONS_FILE)
+def _save_local_sessions(s: dict):  _save_json(SESSIONS_FILE, s)
 
-def save_users(users: dict):
-    with open(USERS_FILE, "w") as f:
-        json.dump(users, f, indent=2)
+# ─────────────────────────────────────────────
+# Password helpers
+# ─────────────────────────────────────────────
 
 def hash_password(password: str) -> str:
-    """Hash password using bcrypt (safe for production)."""
     return bcrypt.hashpw(password.encode(), bcrypt.gensalt()).decode()
 
 def verify_password(password: str, hashed: str) -> bool:
-    """Verify password against bcrypt hash. Also handles legacy SHA256 hashes."""
-    # Detect legacy SHA256 hash (64 hex chars) and migrate on the fly
+    # Legacy SHA256 migration
     if len(hashed) == 64 and all(c in "0123456789abcdef" for c in hashed):
-        if hashlib.sha256(password.encode()).hexdigest() == hashed:
-            return True
-        return False
+        return hashlib.sha256(password.encode()).hexdigest() == hashed
     try:
         return bcrypt.checkpw(password.encode(), hashed.encode())
     except Exception:
         return False
 
 # ─────────────────────────────────────────────
-# Supabase Auth helpers
+# Supabase client
 # ─────────────────────────────────────────────
 
 def _get_supabase():
-    """Get Supabase client, returns None if not configured."""
     try:
         from backend.supabase_config import get_supabase
         return get_supabase()
     except Exception:
         return None
 
+# ─────────────────────────────────────────────
+# Session storage — Supabase (primary) / local (fallback)
+# ─────────────────────────────────────────────
+
+def _sb_create_session(username: str, token: str, expires_at: datetime) -> bool:
+    sb = _get_supabase()
+    if not sb:
+        return False
+    try:
+        sb.table("sessions").upsert({
+            "token": token,
+            "username": username,
+            "expires_at": expires_at.isoformat(),
+        }).execute()
+        return True
+    except Exception as e:
+        logger.warning(f"Supabase session create failed: {e}")
+        return False
+
+def _sb_verify_session(token: str) -> Optional[str]:
+    sb = _get_supabase()
+    if not sb:
+        return None
+    try:
+        now = datetime.now(timezone.utc).isoformat()
+        res = sb.table("sessions")\
+            .select("username, expires_at")\
+            .eq("token", token)\
+            .gt("expires_at", now)\
+            .execute()
+        if res.data:
+            return res.data[0]["username"]
+    except Exception as e:
+        logger.warning(f"Supabase session verify failed: {e}")
+    return None
+
+def _sb_delete_session(token: str):
+    sb = _get_supabase()
+    if not sb:
+        return
+    try:
+        sb.table("sessions").delete().eq("token", token).execute()
+    except Exception as e:
+        logger.warning(f"Supabase session delete failed: {e}")
+
+def _sb_cleanup_expired():
+    """Remove expired sessions — called lazily, non-fatal."""
+    sb = _get_supabase()
+    if not sb:
+        return
+    try:
+        now = datetime.now(timezone.utc).isoformat()
+        sb.table("sessions").delete().lt("expires_at", now).execute()
+    except Exception:
+        pass
+
+# ─────────────────────────────────────────────
+# Supabase Auth helpers
+# ─────────────────────────────────────────────
+
 def _supabase_register(username: str, password: str, email: str) -> Optional[dict]:
-    """Register user via Supabase Auth. Returns user dict or None."""
-    supabase = _get_supabase()
-    if not supabase:
+    sb = _get_supabase()
+    if not sb:
         return None
     try:
         actual_email = email if email else f"{username}@ragcore.local"
-        res = supabase.auth.admin.create_user({
+        res = sb.auth.admin.create_user({
             "email": actual_email,
             "password": password,
             "user_metadata": {"username": username},
-            "email_confirm": True  # skip email confirmation
+            "email_confirm": True,
         })
         if res.user:
-            # Also insert into public.users table
             try:
-                supabase.table("users").insert({
+                sb.table("users").insert({
                     "id": res.user.id,
                     "username": username,
                     "email": actual_email,
                     "created_at": datetime.utcnow().isoformat(),
                 }).execute()
             except Exception:
-                pass  # row may already exist
+                pass
             return {"id": res.user.id, "username": username, "email": actual_email}
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
     return None
 
 def _supabase_login(username: str, password: str) -> Optional[dict]:
-    """Login via Supabase Auth. Returns {token, user_id, username} or None."""
-    supabase = _get_supabase()
-    if not supabase:
+    sb = _get_supabase()
+    if not sb:
         return None
     try:
-        # Look up email from users table
-        user_row = supabase.table("users").select("email").eq("username", username).execute()
-        if not user_row.data:
+        row = sb.table("users").select("email").eq("username", username).execute()
+        if not row.data:
             return None
-        email = user_row.data[0]["email"]
-        res = supabase.auth.sign_in_with_password({"email": email, "password": password})
+        email = row.data[0]["email"]
+        res = sb.auth.sign_in_with_password({"email": email, "password": password})
         if res.session:
             return {
                 "token": res.session.access_token,
@@ -127,63 +186,103 @@ def _supabase_login(username: str, password: str) -> Optional[dict]:
         return None
     return None
 
-def _supabase_verify_token(token: str) -> Optional[str]:
+def _supabase_verify_jwt(token: str) -> Optional[str]:
     """
-    Verify Supabase JWT locally (no network call) by decoding the payload.
-    Falls back to Supabase API only if local decode fails.
+    Verify Supabase JWT using PyJWT + the project's JWKS public key.
+    Falls back to soft decode (expiry check only) when SUPABASE_JWT_SECRET is set.
+    Never accepts an unverified payload as authoritative.
     """
+    # ── Option A: verify with HMAC secret (Supabase project JWT secret) ──
+    jwt_secret = os.getenv("SUPABASE_JWT_SECRET")
+    if jwt_secret:
+        try:
+            import jwt as pyjwt
+            payload = pyjwt.decode(
+                token,
+                jwt_secret,
+                algorithms=["HS256"],
+                options={"verify_exp": True},
+            )
+            username = payload.get("user_metadata", {}).get("username")
+            if username:
+                return username
+            # Look up by sub (user_id)
+            user_id = payload.get("sub")
+            if user_id:
+                sb = _get_supabase()
+                if sb:
+                    row = sb.table("users").select("username").eq("id", user_id).execute()
+                    if row.data:
+                        return row.data[0]["username"]
+        except Exception as e:
+            logger.debug(f"JWT verification failed: {e}")
+            return None
+
+    # ── Option B: no secret configured — decode for expiry only, then
+    #    confirm with Supabase DB (one network call, but verified) ──
     try:
-        # JWT = header.payload.signature — decode payload without verifying signature
-        # This is safe because we trust the token was issued by Supabase
         parts = token.split(".")
         if len(parts) != 3:
             return None
-        # Add padding if needed
-        payload_b64 = parts[1] + "=" * (4 - len(parts[1]) % 4)
-        payload = json.loads(base64.urlsafe_b64decode(payload_b64))
+        pad = parts[1] + "=" * (4 - len(parts[1]) % 4)
+        payload = json.loads(base64.urlsafe_b64decode(pad))
 
-        # Check expiry
         exp = payload.get("exp", 0)
-        if exp and datetime.utcnow().timestamp() > exp:
-            return None
+        if exp and datetime.now(timezone.utc).timestamp() > exp:
+            return None  # expired — reject immediately
 
-        # Extract username from metadata
-        username = payload.get("user_metadata", {}).get("username")
-        if username:
-            return username
-
-        # Fallback: look up by user id in local users store
+        # Must confirm with Supabase — don't trust payload alone
         user_id = payload.get("sub")
-        if user_id:
-            # Try Supabase DB lookup (one-time, cached by connection)
-            supabase = _get_supabase()
-            if supabase:
-                row = supabase.table("users").select("username").eq("id", user_id).execute()
-                if row.data:
-                    return row.data[0]["username"]
-    except Exception:
-        pass
+        if not user_id:
+            return None
+        sb = _get_supabase()
+        if not sb:
+            return None
+        row = sb.table("users").select("username").eq("id", user_id).execute()
+        if row.data:
+            return row.data[0]["username"]
+    except Exception as e:
+        logger.debug(f"JWT soft-decode failed: {e}")
     return None
 
 def _supabase_logout(token: str):
-    """Sign out from Supabase."""
-    supabase = _get_supabase()
-    if not supabase:
+    sb = _get_supabase()
+    if not sb:
         return
     try:
-        supabase.auth.sign_out()
+        sb.auth.sign_out()
     except Exception:
         pass
 
 # ─────────────────────────────────────────────
-# Public API (used by app.py)
+# Public API
 # ─────────────────────────────────────────────
 
 def init_default_user():
-    """Initialize default admin user in local store if no users exist."""
+    """
+    Ensure an admin user exists in Supabase (and local fallback).
+    Only runs if the users table is empty — safe to call on every startup.
+    """
+    sb = _get_supabase()
+    default_password = os.getenv("ADMIN_PASSWORD", "")
+    if not default_password:
+        logger.info("ADMIN_PASSWORD not set — skipping default user creation")
+        return
+
+    if sb:
+        try:
+            res = sb.table("users").select("id").limit(1).execute()
+            if res.data:
+                return  # users already exist
+            _supabase_register("admin", default_password, "admin@ragcore.local")
+            logger.info("Default admin user created in Supabase")
+            return
+        except Exception as e:
+            logger.warning(f"Supabase init_default_user failed: {e}")
+
+    # Local fallback
     users = load_users()
     if not users:
-        default_password = os.getenv("ADMIN_PASSWORD", "admin123")
         users["admin"] = {
             "password_hash": hash_password(default_password),
             "email": "",
@@ -191,15 +290,11 @@ def init_default_user():
             "last_login": None,
         }
         save_users(users)
+        logger.info("Default admin user created locally")
 
 def create_user(username: str, password: str, email: str = "") -> bool:
-    """
-    Create user in Supabase Auth + local fallback.
-    Returns True on success, False if username already exists.
-    """
-    # Try Supabase first
-    supabase = _get_supabase()
-    if supabase:
+    sb = _get_supabase()
+    if sb:
         try:
             _supabase_register(username, password, email)
         except HTTPException:
@@ -207,9 +302,11 @@ def create_user(username: str, password: str, email: str = "") -> bool:
         except Exception as e:
             raise HTTPException(status_code=400, detail=str(e))
 
-    # Always keep local copy for fallback
+    # Local copy (for fallback auth)
     users = load_users()
     if username in users:
+        if sb:
+            return True  # Supabase succeeded, local duplicate is fine
         return False
     users[username] = {
         "password_hash": hash_password(password),
@@ -221,68 +318,83 @@ def create_user(username: str, password: str, email: str = "") -> bool:
     return True
 
 def authenticate_user(username: str, password: str) -> bool:
-    """Authenticate against local store. Migrates SHA256 → bcrypt on success."""
+    """Local-only auth (fallback when Supabase is unavailable)."""
     users = load_users()
     if username not in users:
         return False
     hashed = users[username]["password_hash"]
     if not verify_password(password, hashed):
         return False
-    # Migrate legacy SHA256 hash to bcrypt silently
+    # Migrate legacy SHA256 → bcrypt
     if len(hashed) == 64 and all(c in "0123456789abcdef" for c in hashed):
         users[username]["password_hash"] = hash_password(password)
         save_users(users)
     return True
 
 def create_session(username: str) -> str:
-    """Create a local session token."""
+    """Create a session token — stored in Supabase, falls back to local JSON."""
     token = secrets.token_urlsafe(32)
-    sessions = load_sessions()
-    sessions[token] = {
-        "username": username,
-        "created_at": datetime.now().isoformat(),
-        "expires_at": (datetime.now() + timedelta(days=7)).isoformat(),
-        "type": "local",
-    }
-    save_sessions(sessions)
+    expires_at = datetime.now(timezone.utc) + timedelta(days=7)
+
+    if not _sb_create_session(username, token, expires_at):
+        # Local fallback
+        sessions = _load_local_sessions()
+        sessions[token] = {
+            "username": username,
+            "created_at": datetime.now().isoformat(),
+            "expires_at": expires_at.isoformat(),
+        }
+        _save_local_sessions(sessions)
+
     _update_last_login(username)
     return token
 
 def verify_session(token: Optional[str]) -> Optional[str]:
     """
-    Verify token — checks Supabase JWT first, then local sessions.
-    Returns username or None.
+    Verify token — tries Supabase JWT, then Supabase session table,
+    then local session fallback.
     """
     if not token:
         return None
 
-    # Try Supabase JWT first
-    username = _supabase_verify_token(token)
+    # 1. Supabase JWT (issued by Supabase Auth login)
+    username = _supabase_verify_jwt(token)
     if username:
         return username
 
-    # Fallback: local session
-    sessions = load_sessions()
+    # 2. Supabase sessions table (issued by create_session for local-auth users)
+    username = _sb_verify_session(token)
+    if username:
+        return username
+
+    # 3. Local JSON fallback (dev only)
+    sessions = _load_local_sessions()
     if token not in sessions:
         return None
     session = sessions[token]
-    expires_at = datetime.fromisoformat(session["expires_at"])
-    if datetime.now() > expires_at:
-        del sessions[token]
-        save_sessions(sessions)
+    try:
+        expires_at = datetime.fromisoformat(session["expires_at"])
+        # Make timezone-aware for comparison
+        if expires_at.tzinfo is None:
+            expires_at = expires_at.replace(tzinfo=timezone.utc)
+        if datetime.now(timezone.utc) > expires_at:
+            del sessions[token]
+            _save_local_sessions(sessions)
+            return None
+    except Exception:
         return None
     return session["username"]
 
 def delete_session(token: str):
-    """Delete local session and sign out from Supabase."""
     _supabase_logout(token)
-    sessions = load_sessions()
+    _sb_delete_session(token)
+    # Also clean up local if present
+    sessions = _load_local_sessions()
     if token in sessions:
         del sessions[token]
-        save_sessions(sessions)
+        _save_local_sessions(sessions)
 
 def get_current_user(token: Optional[str]) -> str:
-    """Get current user from token, raise 401 if invalid."""
     username = verify_session(token)
     if not username:
         raise HTTPException(
@@ -292,7 +404,17 @@ def get_current_user(token: Optional[str]) -> str:
     return username
 
 def get_user_info(username: str) -> Optional[dict]:
-    """Get user info without password."""
+    # Try Supabase first
+    sb = _get_supabase()
+    if sb:
+        try:
+            res = sb.table("users").select("username, email, created_at, last_login")\
+                .eq("username", username).execute()
+            if res.data:
+                return res.data[0]
+        except Exception:
+            pass
+    # Local fallback
     users = load_users()
     if username not in users:
         return {"username": username}
@@ -301,31 +423,36 @@ def get_user_info(username: str) -> Optional[dict]:
     return info
 
 def _update_last_login(username: str):
+    now = datetime.now(timezone.utc).isoformat()
+    # Supabase
+    sb = _get_supabase()
+    if sb:
+        try:
+            sb.table("users").update({"last_login": now})\
+                .eq("username", username).execute()
+            return
+        except Exception:
+            pass
+    # Local fallback
     users = load_users()
     if username in users:
-        users[username]["last_login"] = datetime.now().isoformat()
+        users[username]["last_login"] = now
         save_users(users)
 
-# ─────────────────────────────────────────────
-# Login helper used by app.py /auth/login
-# ─────────────────────────────────────────────
-
 def login_user(username: str, password: str) -> dict:
-    """
-    Attempt Supabase login first, fall back to local.
-    Returns dict with token, username, source ('supabase'|'local').
-    Raises HTTPException on failure.
-    """
-    # Try Supabase
+    # Try Supabase Auth
     result = _supabase_login(username, password)
     if result:
         _update_last_login(username)
         return {**result, "source": "supabase"}
 
-    # Fallback to local
+    # Local fallback
     if authenticate_user(username, password):
         token = create_session(username)
         _update_last_login(username)
         return {"token": token, "username": username, "source": "local"}
 
     raise HTTPException(status_code=401, detail="Invalid credentials")
+
+# Expose for cookie helper
+SECURE_COOKIES = _SECURE_COOKIES

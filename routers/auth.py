@@ -7,7 +7,8 @@ import logging
 from backend.auth import (
     verify_session, delete_session, create_session,
     get_current_user, create_user, get_user_info, login_user,
-    load_users, save_users, hash_password, verify_password
+    load_users, save_users, hash_password, verify_password,
+    SECURE_COOKIES,
 )
 from backend.deps import get_token
 
@@ -32,8 +33,10 @@ class ChangePasswordRequest(BaseModel):
 def _set_session_cookie(response: Response, token: str):
     response.set_cookie(
         key="session_token", value=token,
-        httponly=True, secure=False, samesite="lax",
-        max_age=7 * 24 * 60 * 60
+        httponly=True,
+        secure=SECURE_COOKIES,   # True in production (HTTPS), False in local dev
+        samesite="lax",
+        max_age=7 * 24 * 60 * 60,
     )
 
 

@@ -1,23 +1,32 @@
 """
-Retriever: Supabase pgvector (primary) + ChromaDB (local fallback).
+Retriever: Supabase pgvector (primary) + ChromaDB (local fallback, optional).
 Hybrid search: vector + BM25 with Reciprocal Rank Fusion.
 Reranking: cross-encoder after retrieval.
 """
 import re
 import logging
-import chromadb
-from chromadb.utils import embedding_functions
 from typing import List, Tuple, Dict
 
 logger = logging.getLogger(__name__)
 
 # ─────────────────────────────────────────────
-# ChromaDB (local fallback)
+# ChromaDB (optional local fallback)
 # ─────────────────────────────────────────────
-_chroma_client = chromadb.PersistentClient(path="./chroma_db")
-_chroma_ef = embedding_functions.SentenceTransformerEmbeddingFunction(
-    model_name="BAAI/bge-small-en-v1.5"
-)
+_chroma_client = None
+_chroma_ef = None
+_chroma_available = False
+
+try:
+    import chromadb
+    from chromadb.utils import embedding_functions as chroma_ef_module
+    _chroma_client = chromadb.PersistentClient(path="./chroma_db")
+    _chroma_ef = chroma_ef_module.SentenceTransformerEmbeddingFunction(
+        model_name="BAAI/bge-small-en-v1.5"
+    )
+    _chroma_available = True
+    logger.info("ChromaDB available (local fallback enabled)")
+except Exception as _e:
+    logger.info(f"ChromaDB not available, running Supabase-only mode: {_e}")
 
 def _normalize(name: str) -> str:
     n = re.sub(r'[^a-zA-Z0-9._-]', '', name)
@@ -30,6 +39,8 @@ def _col_name(username: str, workspace_slug: str) -> str:
     return _normalize(f"{username}__{workspace_slug}")
 
 def _get_chroma_collection(workspace_slug: str, username: str):
+    if not _chroma_available:
+        return None
     return _chroma_client.get_or_create_collection(
         name=_col_name(username, workspace_slug),
         embedding_function=_chroma_ef
@@ -161,14 +172,14 @@ def add_documents(workspace_slug: str, chunks, filename: str,
     except Exception as e:
         logger.warning(f"Supabase write failed (non-fatal): {e}")
 
-    # ChromaDB (local backup)
-    try:
-        col = _get_chroma_collection(workspace_slug, username)
-        col.add(documents=chunk_texts, metadatas=metadatas, ids=ids)
-        logger.info(f"Stored {len(chunk_texts)} chunks in ChromaDB [{username}/{workspace_slug}]")
-    except Exception as e:
-        logger.error(f"ChromaDB write failed [{username}/{workspace_slug}]: {e}")
-        raise
+    # ChromaDB (local backup — skipped if not available)
+    if _chroma_available:
+        try:
+            col = _get_chroma_collection(workspace_slug, username)
+            col.add(documents=chunk_texts, metadatas=metadatas, ids=ids)
+            logger.info(f"Stored {len(chunk_texts)} chunks in ChromaDB [{username}/{workspace_slug}]")
+        except Exception as e:
+            logger.warning(f"ChromaDB write failed (non-fatal) [{username}/{workspace_slug}]: {e}")
 
     # BM25
     try:
@@ -201,16 +212,19 @@ def retrieve(workspace_slug: str, query: str, username: str = "",
         else:
             raise Exception("Supabase unavailable")
     except Exception:
-        # ChromaDB fallback
-        try:
-            col = _get_chroma_collection(workspace_slug, username)
-            results = col.query(query_texts=[q_str], n_results=CANDIDATE_K)
-            if results and results.get("documents") and results["documents"]:
-                docs  = results["documents"][0]
-                metas = results.get("metadatas", [[]])[0] or [{}] * len(docs)
-                all_vector = list(zip(docs, metas))
-        except Exception as e:
-            logger.warning(f"ChromaDB search error: {e}")
+        # ChromaDB fallback (only if available)
+        if _chroma_available:
+            try:
+                col = _get_chroma_collection(workspace_slug, username)
+                results = col.query(query_texts=[q_str], n_results=CANDIDATE_K)
+                if results and results.get("documents") and results["documents"]:
+                    docs  = results["documents"][0]
+                    metas = results.get("metadatas", [[]])[0] or [{}] * len(docs)
+                    all_vector = list(zip(docs, metas))
+            except Exception as e:
+                logger.warning(f"ChromaDB search error: {e}")
+        else:
+            logger.warning("Supabase vector search failed and ChromaDB is not available")
 
     # ── BM25 search ───────────────────────────────────────────
     all_bm25: List[Tuple[str, dict]] = []
@@ -250,10 +264,13 @@ def retrieve(workspace_slug: str, query: str, username: str = "",
 
 def delete_from_collection(workspace_slug: str, filename: str, username: str = ""):
     _supabase_delete_file(workspace_slug, username, filename)
-    try:
-        _get_chroma_collection(workspace_slug, username).delete(where={"source": filename})
-    except Exception as e:
-        logger.warning(f"ChromaDB file delete failed: {e}")
+    if _chroma_available:
+        try:
+            col = _get_chroma_collection(workspace_slug, username)
+            if col:
+                col.delete(where={"source": filename})
+        except Exception as e:
+            logger.warning(f"ChromaDB file delete failed (non-fatal): {e}")
     try:
         from backend.bm25_index import delete_file_from_index
         delete_file_from_index(workspace_slug, username, filename)
@@ -263,10 +280,11 @@ def delete_from_collection(workspace_slug: str, filename: str, username: str = "
 
 def delete_workspace(workspace_slug: str, username: str = ""):
     _supabase_delete_workspace(workspace_slug, username)
-    try:
-        _chroma_client.delete_collection(_col_name(username, workspace_slug))
-    except Exception as e:
-        logger.warning(f"ChromaDB workspace delete failed: {e}")
+    if _chroma_available:
+        try:
+            _chroma_client.delete_collection(_col_name(username, workspace_slug))
+        except Exception as e:
+            logger.warning(f"ChromaDB workspace delete failed (non-fatal): {e}")
     try:
         from backend.bm25_index import delete_workspace_index
         delete_workspace_index(workspace_slug, username)

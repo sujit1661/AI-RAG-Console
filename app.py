@@ -19,10 +19,18 @@ _stdout = logging.StreamHandler(sys.stdout)
 if hasattr(_stdout.stream, "reconfigure"):
     _stdout.stream.reconfigure(encoding="utf-8")
 
+# Use file logging in local dev, stdout-only in production (Render)
+_handlers = [_stdout]
+if os.getenv("ENVIRONMENT", "development") == "development":
+    try:
+        _handlers.append(logging.FileHandler("app.log", encoding="utf-8"))
+    except Exception:
+        pass  # skip if not writable
+
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
-    handlers=[logging.FileHandler("app.log", encoding="utf-8"), _stdout],
+    handlers=_handlers,
 )
 logger = logging.getLogger(__name__)
 

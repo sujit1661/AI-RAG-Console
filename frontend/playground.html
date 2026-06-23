@@ -127,10 +127,10 @@ body{background:#030303;color:#f1f5f9;font-family:'Space Grotesk',sans-serif;hei
       <span class="text-base font-bold tracking-tighter uppercase">RAG<span class="text-primary font-black">CORE</span></span>
     </a>
     <div class="flex items-center bg-white/5 border border-white/10 rounded-xl p-1 gap-0.5">
-      <a href="/app"      class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold text-slate-400 hover:text-white transition-all"><span class="material-symbols-outlined text-sm">folder_open</span><span>Document RAG</span></a>
-      <a href="/ai-chat"  class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold text-slate-400 hover:text-white transition-all"><span class="material-symbols-outlined text-sm">smart_toy</span><span>AI Chat</span></a>
-      <div class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold bg-primary/20 text-primary border border-primary/30"><span class="material-symbols-outlined text-sm">biotech</span><span>Playground</span></div>
-      <a href="/pipeline" class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold text-slate-400 hover:text-white transition-all"><span class="material-symbols-outlined text-sm">account_tree</span><span>Pipeline</span></a>
+      <a href="/app"      class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold text-slate-400 hover:text-white transition-all"><span class="material-symbols-outlined text-sm">folder_open</span><span class="hidden sm:inline">Document RAG</span></a>
+      <a href="/ai-chat"  class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold text-slate-400 hover:text-white transition-all"><span class="material-symbols-outlined text-sm">smart_toy</span><span class="hidden sm:inline">AI Chat</span></a>
+      <div class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold bg-primary/20 text-primary border border-primary/30"><span class="material-symbols-outlined text-sm">biotech</span><span class="hidden sm:inline">Playground</span></div>
+      <a href="/pipeline" class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold text-slate-400 hover:text-white transition-all"><span class="material-symbols-outlined text-sm">account_tree</span><span class="hidden sm:inline">Pipeline</span></a>
     </div>
   </div>
   <div class="flex items-center gap-2">
@@ -175,12 +175,34 @@ body{background:#030303;color:#f1f5f9;font-family:'Space Grotesk',sans-serif;hei
   <div id="answerText" class="answer-md" style="line-height:1.7;"></div>
 </div>
 
-<button id="resetBtn" onclick="resetAll()">↺ Run Again</button>
+<button id="resetBtn" onclick="resetAll()">↺ New File</button>
+
+<!-- ── Ask again bar (shown after run completes) ────────────── -->
+<div id="askAgainBar" style="display:none;position:fixed;bottom:0;left:0;right:0;z-index:160;
+  background:#0a0a0a;border-top:1px solid rgba(255,255,255,.08);padding:10px 16px;
+  display:none;align-items:center;gap:8px;">
+  <span class="material-symbols-outlined" style="color:#ff2e62;font-size:18px;flex-shrink:0;">chat</span>
+  <input id="askAgainInput" placeholder="Ask another question about the same file…"
+    style="flex:1;background:#000;border:1px solid rgba(255,255,255,.1);border-radius:8px;
+      padding:8px 12px;font-size:.8rem;color:#f1f5f9;outline:none;font-family:'Space Grotesk',sans-serif;"
+    onfocus="this.style.borderColor='rgba(255,46,98,.5)'"
+    onblur="this.style.borderColor='rgba(255,255,255,.1)'"
+    onkeydown="if(event.key==='Enter')askAgain()"/>
+  <button onclick="askAgain()"
+    style="background:#ff2e62;color:#fff;border:none;border-radius:8px;padding:8px 16px;
+      font-size:.78rem;font-weight:700;cursor:pointer;font-family:'Space Grotesk',sans-serif;
+      display:flex;align-items:center;gap:5px;flex-shrink:0;">
+    <span class="material-symbols-outlined" style="font-size:16px;">send</span>Ask
+  </button>
+</div>
 
 <!-- ── Input overlay ────────────────────────────────────────── -->
 <div id="overlay">
   <div style="background:#0a0a0a;border:1px solid rgba(255,255,255,.1);border-radius:18px;width:100%;max-width:500px;overflow:hidden;">
     <div style="padding:20px 22px 14px;border-bottom:1px solid rgba(255,255,255,.06);display:flex;align-items:center;gap:10px;">
+      <a href="/app" style="display:flex;align-items:center;gap:5px;color:#475569;font-size:.72rem;font-weight:600;text-decoration:none;padding:4px 8px;border-radius:7px;border:1px solid rgba(255,255,255,.08);transition:all .15s;margin-right:4px;" onmouseover="this.style.color='#f1f5f9'" onmouseout="this.style.color='#475569'">
+        <span class="material-symbols-outlined" style="font-size:15px;">arrow_back</span>Back
+      </a>
       <span class="material-symbols-outlined" style="color:#ff2e62;font-size:20px;">biotech</span>
       <div>
         <h2 style="font-size:.9rem;font-weight:700;">RAG Playground</h2>
@@ -350,6 +372,8 @@ async function startFlow() {
 
   document.getElementById("inputErr").classList.add("hidden");
   document.getElementById("overlay").classList.add("hidden");
+  document.getElementById("askAgainBar").style.display = "none";
+  document.getElementById("resultBar").style.bottom = "0";
   document.getElementById("resetBtn").style.display = "block";
   document.getElementById("runBtn").disabled = true;
   setStatus("Running\u2026", "#f59e0b");
@@ -410,6 +434,41 @@ async function startFlow() {
 
   document.getElementById("runBtn").disabled = false;
   setStatus(succeeded ? "Done \u2713" : "Done", "#10b981");
+  // Show ask-again bar so user can ask another question with same file
+  const bar = document.getElementById("askAgainBar");
+  bar.style.display = "flex";
+  document.getElementById("askAgainInput").focus();
+  // Shift resultBar up to not overlap ask-again bar
+  document.getElementById("resultBar").style.bottom = "56px";
+}
+
+// ─── Ask again with same file ─────────────────────────────────
+function askAgain() {
+  const q = document.getElementById("askAgainInput").value.trim();
+  if (!q) { document.getElementById("askAgainInput").focus(); return; }
+  if (!activeFile) { showErr("File was cleared. Please run again."); return; }
+  // Put the question into the main input and re-run
+  document.getElementById("questionIn").value = q;
+  document.getElementById("askAgainInput").value = "";
+  document.getElementById("askAgainBar").style.display = "none";
+  document.getElementById("resultBar").style.bottom = "0";
+  // Reset graph state but keep file
+  _llmBuf = "";
+  _stageData = {};
+  const body = document.getElementById("drawerBody");
+  if (body) {
+    if (body._drawerRAF) cancelAnimationFrame(body._drawerRAF);
+    body._drawerRAF = null; body._drawerTextNode = null;
+    body._drawerQueue = ""; body._drawerWrap = null;
+  }
+  closeDrawer(); closeResult();
+  setStatus("Running\u2026", "#f59e0b");
+  document.getElementById("resetBtn").style.display = "block";
+  document.getElementById("runBtn").disabled = true;
+  // Rebuild graph
+  buildGraph();
+  // Run
+  startFlow();
 }
 
 // ─── Event handler ────────────────────────────────────────────
@@ -447,10 +506,9 @@ function handleEvent(ev, q) {
   if (e === "llm_chunk") {
     _llmBuf += (ev.delta || "");
     setNode("llm","active");
-    // If drawer open for LLM, stream into it
+    // If drawer open for LLM, stream into it via text node (no innerHTML thrash)
     if (_drawerNodeId === "llm") {
-      const body = document.getElementById("drawerBody");
-      body.innerHTML = liveStreamHTML(_llmBuf);
+      _streamIntoDrawer(_llmBuf);
     }
     return;
   }
@@ -468,7 +526,8 @@ function handleEvent(ev, q) {
     lightEdge("llm","answer");
     animParticle("llm","answer");
     _stageData["answer"] = ev;
-    if (_drawerNodeId === "llm") renderDrawer("llm");
+    // Replace raw stream in drawer with rendered markdown
+    if (_drawerNodeId === "llm") _finalizeDrawerStream(ev.answer || _llmBuf);
     showResult(ev, q);
   }
 }
@@ -507,9 +566,14 @@ function renderDrawer(nodeId) {
 
   // Special: LLM streaming
   if (nodeId === "llm") {
-    body.innerHTML = _llmBuf
-      ? liveStreamHTML(_llmBuf)
-      : '<p style="font-size:.72rem;color:#334155;padding:4px 0;">Waiting for LLM\u2026</p>';
+    if (_stageData["answer"]) {
+      // Stream is done — show rendered markdown
+      _finalizeDrawerStream(_stageData["answer"].answer || _llmBuf);
+    } else if (_llmBuf) {
+      _streamIntoDrawer(_llmBuf);
+    } else {
+      body.innerHTML = '<p style="font-size:.72rem;color:#334155;padding:4px 0;">Waiting for LLM\u2026</p>';
+    }
     return;
   }
 
@@ -632,11 +696,59 @@ function renderDrawer(nodeId) {
   body.innerHTML = html || '<p style="font-size:.7rem;color:#334155;">Stage complete.</p>';
 }
 
-function liveStreamHTML(buf) {
-  return '<span class="sec-lbl">Streaming\u2026</span>' +
-    '<div style="font-size:.72rem;color:#e2e8f0;line-height:1.65;white-space:pre-wrap;max-height:300px;overflow-y:auto;">' +
-      buf.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;") +
-      '<span class="lcursor"></span>' +
+function _streamIntoDrawer(buf) {
+  const body = document.getElementById("drawerBody");
+  // Init persistent elements once
+  let textEl = body._drawerTextNode;
+  if (!textEl) {
+    body.innerHTML = '';
+    const label = document.createElement("span");
+    label.className = "sec-lbl";
+    label.textContent = "Streaming\u2026";
+    const wrap = document.createElement("div");
+    wrap.style.cssText = "font-size:.72rem;color:#e2e8f0;line-height:1.65;white-space:pre-wrap;" +
+      "max-height:300px;overflow-y:auto;margin-top:4px;";
+    const tn = document.createTextNode("");
+    const cur = document.createElement("span");
+    cur.className = "lcursor";
+    wrap.appendChild(tn);
+    wrap.appendChild(cur);
+    body.appendChild(label);
+    body.appendChild(wrap);
+    body._drawerTextNode = tn;
+    body._drawerWrap     = wrap;
+    body._drawerCursor   = cur;
+    body._drawerQueue    = "";
+    body._drawerRAF      = null;
+  }
+  // Queue only new delta
+  const already = body._drawerTextNode.nodeValue.length + (body._drawerQueue || "").length;
+  const delta = buf.slice(already);
+  if (!delta) return;
+  body._drawerQueue = (body._drawerQueue || "") + delta;
+  if (body._drawerRAF) return;
+  function tick() {
+    if (!body._drawerQueue) { body._drawerRAF = null; return; }
+    body._drawerTextNode.nodeValue += body._drawerQueue.slice(0, 4);
+    body._drawerQueue = body._drawerQueue.slice(4);
+    if (body._drawerWrap) body._drawerWrap.scrollTop = body._drawerWrap.scrollHeight;
+    body._drawerRAF = requestAnimationFrame(tick);
+  }
+  body._drawerRAF = requestAnimationFrame(tick);
+}
+
+function _finalizeDrawerStream(answer) {
+  const body = document.getElementById("drawerBody");
+  // Cancel typer
+  if (body._drawerRAF) { cancelAnimationFrame(body._drawerRAF); body._drawerRAF = null; }
+  // Replace with rendered markdown
+  body._drawerTextNode = null;
+  body._drawerQueue    = "";
+  body.innerHTML = '<span class="sec-lbl">Answer</span>' +
+    '<div class="answer-md" style="font-size:.72rem;line-height:1.7;margin-top:4px;">' +
+      (typeof marked !== "undefined"
+        ? marked.parse(answer || "", {breaks:true, gfm:true})
+        : answer || "") +
     '</div>';
 }
 
@@ -732,12 +844,22 @@ function showErr(msg) {
 
 function resetAll() {
   _llmBuf = ""; _stageData = {}; activeFile = null;
+  // Reset drawer stream state
+  const body = document.getElementById("drawerBody");
+  if (body) {
+    if (body._drawerRAF) { cancelAnimationFrame(body._drawerRAF); }
+    body._drawerRAF = null; body._drawerTextNode = null;
+    body._drawerQueue = ""; body._drawerWrap = null;
+  }
   document.getElementById("dropIcon").textContent = "upload_file";
   document.getElementById("dropLabel").textContent = "Drop file or click to browse";
   document.getElementById("fileIn").value = "";
   document.getElementById("questionIn").value = "";
   document.getElementById("inputErr").classList.add("hidden");
   document.getElementById("resetBtn").style.display = "none";
+  document.getElementById("askAgainBar").style.display = "none";
+  document.getElementById("resultBar").style.bottom = "0";
+  document.getElementById("askAgainInput").value = "";
   closeDrawer(); closeResult();
   setStatus("Ready","#64748b");
   document.getElementById("overlay").classList.remove("hidden");

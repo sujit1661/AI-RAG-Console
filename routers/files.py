@@ -7,7 +7,7 @@ from pydantic import BaseModel
 from backend.deps import get_token, get_safe_name, get_workspace_path
 from backend.auth import get_current_user
 from backend.ingestion import extract_pdf_text, extract_excel_text, extract_docx_text, extract_image_text
-from backend.retriever import add_documents, delete_from_collection
+from backend.retriever import add_documents, delete_from_collection, _chroma_available
 from backend.supabase_storage import upload_file_to_supabase, delete_file_from_supabase
 from backend.supabase_db import add_document_metadata
 
@@ -162,8 +162,8 @@ def _process_and_index(slug: str, filename: str, file_path: str, username: str,
         _pg("embedding", "done", f"BAAI/bge-small-en-v1.5 (384 dims)",
             {"model": "BAAI/bge-small-en-v1.5", "dims": 384, "chunks": len(chunks)})
         _pg("vector_store", "done",
-            f"{len(chunks)} chunks → Supabase + ChromaDB + BM25",
-            {"supabase": True, "chromadb": True, "bm25": True, "chunks": len(chunks)})
+            f"{len(chunks)} chunks → Supabase pgvector + BM25",
+            {"supabase": True, "chromadb": _chroma_available, "bm25": True, "chunks": len(chunks)})
 
         try:
             from backend.playground import finish_trace

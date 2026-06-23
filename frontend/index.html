@@ -77,6 +77,8 @@ body{background:#000;color:#f1f5f9;font-family:'Space Grotesk',sans-serif;}
 /* Misc */
 .neon-border{border:1px solid rgba(255,46,98,.3);box-shadow:0 0 15px rgba(255,46,98,.1);}
 .locked-section{opacity:.3;filter:grayscale(1);pointer-events:none;}
+/* Input wrapper uses a softer lock — dims visually but input still captures events */
+#inputWrapper.locked-section{opacity:.3;filter:grayscale(1);}
 .spinner{border:2px solid rgba(255,255,255,.1);border-top-color:#ff2e62;border-radius:50%;animation:spin .8s linear infinite;}
 @keyframes spin{to{transform:rotate(360deg);}}
 .thinking-dots{display:inline-flex;gap:4px;align-items:center;}
@@ -84,6 +86,7 @@ body{background:#000;color:#f1f5f9;font-family:'Space Grotesk',sans-serif;}
 .thinking-dot:nth-child(1){animation-delay:-.32s;}
 .thinking-dot:nth-child(2){animation-delay:-.16s;}
 @keyframes tb{0%,80%,100%{transform:scale(.8);opacity:.5;}40%{transform:scale(1.2);opacity:1;}}
+@keyframes blink{0%,100%{opacity:1;}50%{opacity:0;}}
 #wsSwitchOverlay{position:absolute;inset:0;z-index:50;background:rgba(0,0,0,.65);backdrop-filter:blur(3px);display:flex;align-items:center;justify-content:center;}
 #wsSwitchOverlay.hidden{display:none;}
 .badge-count{display:inline-flex;align-items:center;justify-content:center;min-width:18px;height:18px;padding:0 5px;background:rgba(255,46,98,.15);border:1px solid rgba(255,46,98,.25);border-radius:20px;font-size:.6rem;font-weight:800;color:#ff2e62;}
@@ -102,16 +105,16 @@ body{background:#000;color:#f1f5f9;font-family:'Space Grotesk',sans-serif;}
     </a>
     <div class="flex items-center bg-white/5 border border-white/10 rounded-xl p-1 gap-0.5">
       <div class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold bg-primary/20 text-primary border border-primary/30">
-        <span class="material-symbols-outlined text-sm">folder_open</span><span>Document RAG</span>
+        <span class="material-symbols-outlined text-sm">folder_open</span><span class="hidden sm:inline">Document RAG</span>
       </div>
       <a href="/ai-chat" class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold text-slate-400 hover:text-white transition-all">
-        <span class="material-symbols-outlined text-sm">smart_toy</span><span>AI Chat</span>
+        <span class="material-symbols-outlined text-sm">smart_toy</span><span class="hidden sm:inline">AI Chat</span>
       </a>
       <a href="/playground" class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold text-slate-400 hover:text-white transition-all">
-        <span class="material-symbols-outlined text-sm">biotech</span><span>Playground</span>
+        <span class="material-symbols-outlined text-sm">biotech</span><span class="hidden sm:inline">Playground</span>
       </a>
       <a href="/pipeline" class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold text-slate-400 hover:text-white transition-all">
-        <span class="material-symbols-outlined text-sm">account_tree</span><span>Pipeline</span>
+        <span class="material-symbols-outlined text-sm">account_tree</span><span class="hidden sm:inline">Pipeline</span>
       </a>
     </div>
   </div>
@@ -134,86 +137,67 @@ body{background:#000;color:#f1f5f9;font-family:'Space Grotesk',sans-serif;}
 <div class="flex flex-1 overflow-hidden">
 
 <!-- ── Sidebar ──────────────────────────────────────────────── -->
-<aside class="w-80 flex-shrink-0 flex flex-col overflow-hidden" style="background:#0a0a0a;border-right:1px solid rgba(255,255,255,.05);">
+<aside class="w-72 flex-shrink-0 flex flex-col overflow-hidden" style="background:#0a0a0a;border-right:1px solid rgba(255,255,255,.05);">
 
-  <!-- New Workspace button -->
-  <div class="p-3 border-b" style="border-color:rgba(255,255,255,.05);">
-    <button onclick="openCreateWsModal()" class="w-full flex items-center justify-center gap-2 rounded-xl py-2.5 px-4 text-sm font-bold transition-all" style="background:rgba(255,46,98,.1);border:1px solid rgba(255,46,98,.25);color:#ff2e62;" onmouseover="this.style.background='rgba(255,46,98,.18)'" onmouseout="this.style.background='rgba(255,46,98,.1)'">
-      <span class="material-symbols-outlined text-lg">add</span><span>New Workspace</span>
+  <!-- New Workspace -->
+  <div class="p-3 flex-shrink-0">
+    <button onclick="openCreateWsModal()" class="w-full flex items-center justify-center gap-2 rounded-xl py-2.5 px-4 text-sm font-bold transition-all" style="background:rgba(255,46,98,.1);border:1px solid rgba(255,46,98,.2);color:#ff2e62;" onmouseover="this.style.background='rgba(255,46,98,.18)'" onmouseout="this.style.background='rgba(255,46,98,.1)'">
+      <span class="material-symbols-outlined text-base">add</span>New Workspace
     </button>
   </div>
 
-  <!-- ── WORKSPACES section ── -->
-  <div style="border-bottom:1px solid rgba(255,255,255,.05);">
-    <div class="sec-header" onclick="toggleSec('secWs')">
-      <div class="flex items-center gap-2">
-        <span class="material-symbols-outlined text-sm" style="color:#ff2e62">workspaces</span>
-        <span class="sec-label">Workspaces</span>
-        <span class="badge-count" id="wsCnt">0</span>
-      </div>
-      <span class="material-symbols-outlined text-sm chev open" id="chevWs">expand_more</span>
+  <!-- Workspace list -->
+  <div class="px-3 pb-1 flex-shrink-0">
+    <div class="relative">
+      <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-600" style="font-size:14px;">search</span>
+      <input id="wsSearch" placeholder="Search workspaces…" oninput="filterWorkspaces(this.value)"
+        style="width:100%;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.07);border-radius:8px;
+          padding:6px 10px 6px 28px;font-size:.73rem;color:#f1f5f9;outline:none;font-family:'Space Grotesk',sans-serif;"
+        onfocus="this.style.borderColor='rgba(255,46,98,.35)'" onblur="this.style.borderColor='rgba(255,255,255,.07)'"/>
     </div>
-    <div class="sec-body" id="secWs" style="max-height:500px;">
-      <!-- Search -->
-      <div class="px-3 pb-2 relative">
-        <span class="material-symbols-outlined absolute left-6 top-1/2 -translate-y-1/2 text-slate-600" style="font-size:15px">search</span>
-        <input id="wsSearch" class="search-input" placeholder="Filter workspaces…" oninput="filterWorkspaces(this.value)"/>
-      </div>
-      <div id="workspaceList" class="overflow-y-auto pb-2" style="max-height:260px;"></div>
+  </div>
+  <div id="workspaceList" class="overflow-y-auto flex-shrink-0" style="max-height:220px;"></div>
+
+  <!-- Divider shown when workspace active -->
+  <div id="wsActivePanel" class="flex flex-col flex-1 overflow-hidden min-h-0" style="display:none!important;">
+
+    <!-- Chats header + list -->
+    <div class="px-3 pt-3 pb-1 flex items-center justify-between flex-shrink-0">
+      <span style="font-size:.6rem;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:#475569;">
+        Chats <span id="chatCount" class="badge-count ml-1">0</span>
+      </span>
+      <button onclick="openNewChatModal()" style="background:none;border:none;cursor:pointer;color:#475569;padding:2px;transition:color .15s;" onmouseover="this.style.color='#ff2e62'" onmouseout="this.style.color='#475569'" title="New chat">
+        <span class="material-symbols-outlined" style="font-size:16px;">add</span>
+      </button>
     </div>
+    <div id="chatList" class="overflow-y-auto px-2 flex-shrink-0" style="max-height:170px;"></div>
+
+    <!-- Docs header + upload + list -->
+    <div class="px-3 pt-2 pb-1 flex items-center justify-between flex-shrink-0" style="border-top:1px solid rgba(255,255,255,.05);margin-top:4px;">
+      <span style="font-size:.6rem;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:#475569;">
+        Documents <span id="fileCount" class="badge-count ml-1">0</span>
+      </span>
+    </div>
+    <div class="px-3 pb-2 flex-shrink-0">
+      <button id="uploadBtn" onclick="document.getElementById('fileInput').click()"
+        class="w-full flex items-center justify-center gap-2 rounded-xl py-2 px-3 text-xs font-bold transition-all"
+        style="background:rgba(6,182,212,.07);border:1px solid rgba(6,182,212,.18);color:#06b6d4;"
+        onmouseover="this.style.background='rgba(6,182,212,.14)'" onmouseout="this.style.background='rgba(6,182,212,.07)'">
+        <span class="material-symbols-outlined text-sm">upload_file</span>Upload Document
+      </button>
+      <input type="file" id="fileInput" hidden accept=".pdf,.docx,.xlsx,.xls,.png,.jpg,.jpeg"/>
+      <div id="uploadStatus" class="hidden mt-1.5 text-center py-1 px-2 rounded-lg" style="font-size:.65rem;"></div>
+    </div>
+    <div id="libraryContainer" class="overflow-y-auto px-2 pb-3 flex-1 min-h-0"></div>
+
   </div>
 
-  <!-- ── CHATS section ── -->
-  <div id="chatSection" class="locked-section" style="border-bottom:1px solid rgba(255,255,255,.05);">
-    <div class="sec-header" onclick="toggleSec('secChats')">
-      <div class="flex items-center gap-2">
-        <span class="material-symbols-outlined text-sm" style="color:#818cf8">chat_bubble</span>
-        <span class="sec-label">Chats</span>
-        <span class="badge-count" id="chatCount">0</span>
-      </div>
-      <div class="flex items-center gap-1">
-        <button onclick="event.stopPropagation();openNewChatModal()" class="p-1 rounded-lg transition-colors hover:text-primary text-slate-600" title="New chat">
-          <span class="material-symbols-outlined text-sm">add</span>
-        </button>
-        <span class="material-symbols-outlined text-sm chev open" id="chevChats">expand_more</span>
-      </div>
-    </div>
-    <div class="sec-body" id="secChats" style="max-height:240px;">
-      <div id="chatList" class="overflow-y-auto px-2 pb-2" style="max-height:220px;"></div>
-    </div>
+  <!-- Empty state when no workspace selected -->
+  <div id="noWsHint" class="flex-1 flex flex-col items-center justify-center gap-2 px-4" style="color:#1e293b;">
+    <span class="material-symbols-outlined" style="font-size:2rem;opacity:.3;">workspaces</span>
+    <p style="font-size:.7rem;text-align:center;line-height:1.6;">Create a workspace, upload documents, then start chatting.</p>
   </div>
 
-  <!-- ── DOCUMENTS section ── -->
-  <div id="librarySection" class="locked-section flex flex-col" style="flex:1;overflow:hidden;min-height:0;">
-    <div class="sec-header flex-shrink-0" onclick="toggleSec('secDocs')">
-      <div class="flex items-center gap-2">
-        <span class="material-symbols-outlined text-sm" style="color:#06b6d4">description</span>
-        <span class="sec-label">Documents</span>
-        <span class="badge-count" id="fileCount">0</span>
-      </div>
-      <div class="flex items-center gap-1">
-        <span class="material-symbols-outlined text-sm chev open" id="chevDocs">expand_more</span>
-      </div>
-    </div>
-    <div class="sec-body flex flex-col" id="secDocs" style="max-height:none;flex:1;overflow:hidden;min-height:0;">
-      <div class="px-3 pb-2 flex-shrink-0">
-        <button id="uploadBtn" class="w-full flex items-center justify-center gap-2 rounded-xl py-2.5 px-4 text-sm font-bold transition-all" style="background:rgba(6,182,212,.08);border:1px solid rgba(6,182,212,.2);color:#06b6d4;" onmouseover="this.style.background='rgba(6,182,212,.15)'" onmouseout="this.style.background='rgba(6,182,212,.08)'">
-          <span class="material-symbols-outlined text-base">upload_file</span><span>Upload Document</span>
-        </button>
-        <input type="file" id="fileInput" hidden accept=".pdf,.docx,.xlsx,.xls,.png,.jpg,.jpeg"/>
-        <p class="text-center mt-1.5" style="font-size:.62rem;color:#334155;">PDF · DOCX · Excel · Images (max 50MB)</p>
-        <div id="uploadStatus" class="hidden mt-2 text-center py-1.5 px-3 rounded-lg" style="font-size:.7rem;"></div>
-      </div>
-      <div id="libraryContainer" class="overflow-y-auto px-2 pb-3" style="flex:1;min-height:0;"></div>
-    </div>
-  </div>
-
-  <!-- Workflow hint -->
-  <div class="flex-shrink-0 px-4 py-2.5 border-t" style="border-color:rgba(255,255,255,.04);">
-    <p style="font-size:.62rem;color:#1e293b;text-align:center;line-height:1.6;">
-      ① Create workspace &nbsp;→&nbsp; ② Upload docs &nbsp;→&nbsp; ③ Chat
-    </p>
-  </div>
 </aside>
 
 <!-- ── Main chat area ──────────────────────────────────────── -->
@@ -231,7 +215,7 @@ body{background:#000;color:#f1f5f9;font-family:'Space Grotesk',sans-serif;}
   </div>
   <div class="absolute bottom-0 left-0 right-0 p-5" style="background:linear-gradient(to top, #050505 60%, transparent);">
     <div id="inputWrapper" class="locked-section max-w-4xl mx-auto flex items-center rounded-2xl p-2 gap-2 neon-border" style="background:#0a0a0a;">
-      <input id="chatInput" disabled type="text" placeholder="Ask a question about your documents…"
+      <input id="chatInput" type="text" placeholder="Ask a question about your documents…"
         class="flex-1 bg-transparent border-none text-white outline-none px-4 py-3 text-sm placeholder-slate-600"/>
       <button id="sendBtn" class="flex-shrink-0 bg-primary text-white p-3 rounded-xl hover:scale-105 transition-all">
         <span class="material-symbols-outlined">send</span>
@@ -490,6 +474,23 @@ window.onload = async () => {
   const rt = sessionStorage.getItem("refresh_token");
   if (rt) { _refreshToken = rt; scheduleTokenRefresh(3600); }
   await refreshWorkspaces();
+
+  // Restore last active workspace + chat across page navigations
+  const savedWS   = sessionStorage.getItem("ragcore_activeWS");
+  const savedChat = sessionStorage.getItem("ragcore_activeChatId");
+  if (savedWS && _allWorkspaces.find(w => (w.slug||w) === savedWS)) {
+    // switchWorkspace already loads chats (which loads history for chats[0])
+    // If we have a specific saved chat, pre-set it so loadChats picks it up
+    if (savedChat) activeChatId = savedChat;
+    await switchWorkspace(savedWS);
+    // If switchWorkspace selected a different chat, restore the saved one
+    if (savedChat && activeChatId !== savedChat) {
+      activeChatId = savedChat;
+      sessionStorage.setItem("ragcore_activeChatId", savedChat);
+      await loadChatHistory();
+    }
+  }
+
   if (!localStorage.getItem("ragcore_help_seen")) setTimeout(showHelpModal, 600);
   document.addEventListener("keydown", e => {
     if (e.key === "Escape") {
@@ -544,14 +545,18 @@ async function refreshWorkspaces() {
     const r = await fetch("/workspace/list", {credentials:"include"});
     const d = await r.json();
     _allWorkspaces = d.workspaces || [];
-    document.getElementById("wsCnt").textContent = _allWorkspaces.length;
     renderWorkspaceList(_allWorkspaces);
   } catch {}
 }
 
 function filterWorkspaces(q) {
-  const filtered = q.trim()
-    ? _allWorkspaces.filter(ws => (ws.name||ws).toLowerCase().includes(q.toLowerCase()))
+  const term = q.trim().toLowerCase();
+  const filtered = term
+    ? _allWorkspaces.filter(ws => {
+        const name = (ws.name || ws).toLowerCase();
+        const slug = (ws.slug || ws).toLowerCase();
+        return name.includes(term) || slug.includes(term);
+      })
     : _allWorkspaces;
   renderWorkspaceList(filtered);
 }
@@ -559,35 +564,52 @@ function filterWorkspaces(q) {
 function renderWorkspaceList(list) {
   const container = document.getElementById("workspaceList");
   if (!list.length) {
-    container.innerHTML = '<div style="text-align:center;padding:28px 16px;color:#334155;font-size:.78rem;">' +
-      '<span class="material-symbols-outlined" style="font-size:2.5rem;display:block;margin-bottom:8px;opacity:.3;">folder_off</span>' +
-      '<p>No workspaces yet</p><p style="font-size:.68rem;margin-top:4px;color:#1e293b;">Create one to get started</p></div>';
+    container.innerHTML =
+      '<div style="text-align:center;padding:28px 16px;color:#334155;font-size:.78rem;">' +
+        '<span class="material-symbols-outlined" style="font-size:2.5rem;display:block;margin-bottom:8px;opacity:.3;">folder_off</span>' +
+        '<p>No workspaces yet</p>' +
+        '<p style="font-size:.68rem;margin-top:4px;color:#1e293b;">Create one to get started</p>' +
+      '</div>';
     return;
   }
   container.innerHTML = "";
   list.forEach(ws => {
-    const slug = typeof ws === "string" ? ws : ws.slug;
-    const name = typeof ws === "string" ? ws : ws.name;
+    const slug    = typeof ws === "string" ? ws : ws.slug;
+    const name    = typeof ws === "string" ? ws : ws.name;
     const lastMsg = ws.last_message || null;
     const msgCount = ws.message_count || 0;
     const isActive = slug === activeWS;
+
     const div = document.createElement("div");
     div.className = "ws-item" + (isActive ? " active" : "");
-    div.style.cssText = "cursor:pointer;padding:10px 14px;margin-bottom:1px;display:flex;align-items:flex-start;justify-content:space-between;gap:8px;";
+    div.title = "Open workspace: " + name;
+    div.style.cssText = "cursor:pointer;padding:9px 12px;margin-bottom:1px;display:flex;align-items:center;justify-content:space-between;gap:6px;border-radius:8px;";
     div.addEventListener("click", () => switchWorkspace(slug));
+
+    const icon = isActive ? "folder_open" : "folder";
+    const iconColor = isActive ? "#ff2e62" : "#475569";
+    const nameColor = isActive ? "#f1f5f9" : "#cbd5e1";
+
     div.innerHTML =
-      '<div style="flex:1;min-width:0;">' +
-        '<div style="display:flex;align-items:center;gap:6px;margin-bottom:3px;">' +
-          '<span class="material-symbols-outlined" style="font-size:14px;color:' + (isActive?"#ff2e62":"#475569") + '">folder' + (isActive?"_open":"") + '</span>' +
-          '<span style="font-size:.8rem;font-weight:600;color:' + (isActive?"#f1f5f9":"#cbd5e1") + ';overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">' + esc(name) + '</span>' +
-          (msgCount > 0 ? '<span style="font-size:.58rem;font-weight:800;color:#ff2e62;background:rgba(255,46,98,.12);border:1px solid rgba(255,46,98,.2);border-radius:20px;padding:0 5px;white-space:nowrap;">' + msgCount + ' msg' + (msgCount!==1?"s":"") + '</span>' : '') +
+      '<div style="flex:1;min-width:0;display:flex;align-items:center;gap:8px;">' +
+        '<span class="material-symbols-outlined" style="font-size:16px;color:' + iconColor + ';flex-shrink:0;">' + icon + '</span>' +
+        '<div style="flex:1;min-width:0;">' +
+          '<div style="display:flex;align-items:center;gap:5px;">' +
+            '<span style="font-size:.78rem;font-weight:600;color:' + nameColor + ';overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">' + esc(name) + '</span>' +
+            (msgCount > 0 ? '<span style="font-size:.55rem;font-weight:800;color:#ff2e62;background:rgba(255,46,98,.12);border:1px solid rgba(255,46,98,.2);border-radius:20px;padding:0 5px;flex-shrink:0;">' + msgCount + '</span>' : '') +
+          '</div>' +
+          '<div style="font-size:.6rem;color:#334155;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">' +
+            (lastMsg ? esc(lastMsg) : '<span style="color:#1e293b;">' + esc(slug) + '</span>') +
+          '</div>' +
         '</div>' +
-        (lastMsg ? '<p style="font-size:.68rem;color:#334155;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;padding-left:20px;">' + esc(lastMsg) + '</p>' : '') +
       '</div>' +
-      '<div class="ws-actions" style="display:flex;gap:2px;opacity:0;transition:opacity .15s;flex-shrink:0;">' +
-        '<button onclick="event.stopPropagation();openRenameWsModal(\'' + slug + '\',\'' + esc(name).replace(/'/g,"\\'") + '\')" style="padding:3px;border-radius:6px;color:#475569;background:transparent;border:none;cursor:pointer;transition:color .15s;" title="Rename" onmouseover="this.style.color=\'#ff2e62\'" onmouseout="this.style.color=\'#475569\'"><span class="material-symbols-outlined" style="font-size:14px;">edit</span></button>' +
-        '<button onclick="event.stopPropagation();openDeleteWsModal(\'' + slug + '\',\'' + esc(name).replace(/'/g,"\\'") + '\')" style="padding:3px;border-radius:6px;color:#475569;background:transparent;border:none;cursor:pointer;transition:color .15s;" title="Delete" onmouseover="this.style.color=\'#ef4444\'" onmouseout="this.style.color=\'#475569\'"><span class="material-symbols-outlined" style="font-size:14px;">delete</span></button>' +
+      '<div class="ws-actions" style="display:flex;gap:1px;opacity:0;transition:opacity .15s;flex-shrink:0;">' +
+        (isActive ? '' :
+          '<button onclick="event.stopPropagation();switchWorkspace(\'' + slug + '\')" style="padding:3px 6px;border-radius:5px;color:#ff2e62;background:rgba(255,46,98,.08);border:1px solid rgba(255,46,98,.2);cursor:pointer;font-size:.6rem;font-weight:700;font-family:\'Space Grotesk\',sans-serif;white-space:nowrap;" title="Open">Open</button>') +
+        '<button onclick="event.stopPropagation();openRenameWsModal(\'' + slug + '\',\'' + esc(name).replace(/'/g,"\\'") + '\')" style="padding:3px;border-radius:5px;color:#475569;background:transparent;border:none;cursor:pointer;" title="Rename" onmouseover="this.style.color=\'#ff2e62\'" onmouseout="this.style.color=\'#475569\'"><span class="material-symbols-outlined" style="font-size:13px;">edit</span></button>' +
+        '<button onclick="event.stopPropagation();openDeleteWsModal(\'' + slug + '\',\'' + esc(name).replace(/'/g,"\\'") + '\')" style="padding:3px;border-radius:5px;color:#475569;background:transparent;border:none;cursor:pointer;" title="Delete" onmouseover="this.style.color=\'#ef4444\'" onmouseout="this.style.color=\'#475569\'"><span class="material-symbols-outlined" style="font-size:13px;">delete</span></button>' +
       '</div>';
+
     div.addEventListener("mouseenter", () => div.querySelector(".ws-actions").style.opacity = "1");
     div.addEventListener("mouseleave", () => div.querySelector(".ws-actions").style.opacity = "0");
     container.appendChild(div);
@@ -596,12 +618,14 @@ function renderWorkspaceList(list) {
 
 function resetWorkspaceUI() {
   activeWS = null; activeChatId = null;
+  sessionStorage.removeItem("ragcore_activeWS");
+  sessionStorage.removeItem("ragcore_activeChatId");
   document.getElementById("wsBadge").classList.add("hidden");
   document.getElementById("chatContainer").innerHTML = '<div class="ai-bubble p-5 rounded-xl max-w-xl" style="border:1px solid rgba(255,255,255,.05);"><p style="font-size:.82rem;color:#94a3b8;">Select a workspace to start.</p></div>';
-  document.getElementById("chatSection").classList.add("locked-section");
-  document.getElementById("librarySection").classList.add("locked-section");
+  document.getElementById("wsActivePanel").style.cssText = "display:none!important;";
+  document.getElementById("noWsHint").style.cssText = "display:flex!important;flex:1;flex-direction:column;align-items:center;justify-content:center;gap:8px;padding:0 16px;color:#1e293b;";
   document.getElementById("inputWrapper").classList.add("locked-section");
-  document.getElementById("chatInput").disabled = true;
+  document.getElementById("chatInput").setAttribute("readonly","true");
   document.getElementById("chatList").innerHTML = "";
   document.getElementById("libraryContainer").innerHTML = "";
   document.getElementById("chatCount").textContent = "0";
@@ -613,19 +637,28 @@ async function switchWorkspace(slug) {
   _isSwitching = true;
   document.getElementById("wsSwitchOverlay").classList.remove("hidden");
   activeWS = slug; activeChatId = null;
+  sessionStorage.setItem("ragcore_activeWS", slug);
+  sessionStorage.removeItem("ragcore_activeChatId");
   const wsObj = _allWorkspaces.find(w => (w.slug||w) === slug);
   const name = wsObj ? (wsObj.name||slug) : slug;
-  const badge = document.getElementById("wsBadge");
-  badge.classList.remove("hidden");
+  document.getElementById("wsBadge").classList.remove("hidden");
   document.getElementById("wsBadgeText").textContent = name.toUpperCase();
-  document.getElementById("chatSection").classList.remove("locked-section");
-  document.getElementById("librarySection").classList.remove("locked-section");
+  // Always set via cssText to respect !important on wsActivePanel
+  document.getElementById("wsActivePanel").style.cssText =
+    "display:flex!important;flex-direction:column;flex:1;overflow:hidden;min-height:0;";
+  document.getElementById("noWsHint").style.cssText = "display:none!important;";
   document.getElementById("inputWrapper").classList.remove("locked-section");
-  document.getElementById("chatInput").disabled = false;
+  document.getElementById("chatInput").removeAttribute("readonly");
   document.getElementById("chatContainer").innerHTML = "";
-  refreshWorkspaces();
-  try { await loadChats(); refreshLibrary(); }
-  finally { document.getElementById("wsSwitchOverlay").classList.add("hidden"); _isSwitching = false; document.getElementById("chatInput").focus(); }
+  try {
+    await Promise.allSettled([loadChats(), refreshLibrary()]);
+    // Refresh workspace list to update message counts after loading
+    refreshWorkspaces();
+  } finally {
+    document.getElementById("wsSwitchOverlay").classList.add("hidden");
+    _isSwitching = false;
+    document.getElementById("chatInput").focus();
+  }
 }
 
 // ── Create Workspace Modal ────────────────────────────────────
@@ -656,11 +689,31 @@ async function submitCreateWs() {
   try {
     const r = await fetch("/workspace/create", {method:"POST",headers:{"Content-Type":"application/json"},credentials:"include",body:JSON.stringify({workspace_name:name})});
     const d = await r.json();
-    if (!r.ok) { document.getElementById("cwErr").textContent = d.detail || "Failed"; document.getElementById("cwErr").classList.remove("hidden"); btn.disabled = false; btn.innerHTML = '<span class="material-symbols-outlined text-sm mr-1">add</span>Create'; return; }
+    if (!r.ok) {
+      // If workspace already exists, offer to open it
+      if (r.status === 400 && d.detail && d.detail.toLowerCase().includes("already exists")) {
+        const slug = d.slug || "";
+        document.getElementById("cwErr").innerHTML =
+          'Workspace already exists. ' + (slug ?
+            '<button onclick="closeModal(\'modalCreateWs\');refreshWorkspaces().then(()=>switchWorkspace(\'' + slug + '\'))" ' +
+            'style="color:#ff2e62;text-decoration:underline;background:none;border:none;cursor:pointer;font-size:inherit;padding:0;">Open it →</button>'
+            : '');
+        document.getElementById("cwErr").classList.remove("hidden");
+      } else {
+        document.getElementById("cwErr").textContent = d.detail || "Failed";
+        document.getElementById("cwErr").classList.remove("hidden");
+      }
+      btn.disabled = false; btn.innerHTML = '<span class="material-symbols-outlined text-sm mr-1">add</span>Create';
+      return;
+    }
     closeModal("modalCreateWs");
     await refreshWorkspaces();
-    switchWorkspace(d.slug);
-  } catch(e) { document.getElementById("cwErr").textContent = e.message; document.getElementById("cwErr").classList.remove("hidden"); btn.disabled = false; btn.innerHTML = '<span class="material-symbols-outlined text-sm mr-1">add</span>Create'; }
+    await switchWorkspace(d.slug);
+  } catch(e) {
+    document.getElementById("cwErr").textContent = e.message;
+    document.getElementById("cwErr").classList.remove("hidden");
+    btn.disabled = false; btn.innerHTML = '<span class="material-symbols-outlined text-sm mr-1">add</span>Create';
+  }
 }
 
 document.getElementById("cwName").addEventListener("keydown", e => { if (e.key === "Enter") submitCreateWs(); });
@@ -725,8 +778,21 @@ async function loadChats() {
     const d = await r.json();
     const chats = d.chats || [];
     document.getElementById("chatCount").textContent = chats.length;
-    if (!chats.length) { await _createNewChatDirect(); return; }
-    if (!activeChatId) activeChatId = chats[0].id;
+    if (!chats.length) {
+      // No chats yet — create one silently, then render
+      const newChat = await _createChatSilent();
+      if (newChat) {
+        activeChatId = newChat.id;
+        sessionStorage.setItem("ragcore_activeChatId", activeChatId);
+        renderChatList([newChat]);
+      }
+      addBubble("Chat ready. Upload documents and ask questions.", "assistant");
+      return;
+    }
+    if (!activeChatId) {
+      activeChatId = chats[0].id;
+      sessionStorage.setItem("ragcore_activeChatId", activeChatId);
+    }
     renderChatList(chats);
     await loadChatHistory();
   } catch(e) { addBubble("Error loading chats.", "assistant"); }
@@ -766,7 +832,11 @@ async function refreshChatList() {
   } catch {}
 }
 
-async function selectChat(id) { activeChatId = id; await loadChatHistory(); await refreshChatList(); }
+async function selectChat(id) {
+  activeChatId = id;
+  sessionStorage.setItem("ragcore_activeChatId", id);
+  await loadChatHistory(); await refreshChatList();
+}
 
 async function loadChatHistory() {
   const box = document.getElementById("chatContainer");
@@ -795,13 +865,35 @@ async function submitNewChat() {
 
 async function _createNewChatDirect(title) {
   if (!activeWS) return;
+  const chat = await _createChatSilent(title);
+  if (chat) {
+    activeChatId = chat.id;
+    sessionStorage.setItem("ragcore_activeChatId", activeChatId);
+    await refreshChatList();
+    addBubble("Chat ready. Upload documents and ask questions.", "assistant");
+  }
+}
+
+// Creates a chat and returns {id, title} without re-calling loadChats
+async function _createChatSilent(title) {
+  if (!activeWS) return null;
   try {
-    const r = await fetch("/chat/create", {method:"POST",headers:{"Content-Type":"application/json"},credentials:"include",body:JSON.stringify({workspace_name:activeWS,chat_title:title||""})});
+    const r = await fetch("/chat/create", {
+      method: "POST",
+      headers: {"Content-Type": "application/json"},
+      credentials: "include",
+      body: JSON.stringify({workspace_name: activeWS, chat_title: title || ""})
+    });
     const d = await r.json();
-    if (!r.ok) return;
-    activeChatId = d.chat?.id;
-    await loadChats();
-  } catch {}
+    if (!r.ok) {
+      addBubble("Could not create chat: " + (d.detail || "server error " + r.status), "assistant");
+      return null;
+    }
+    return d.chat;
+  } catch(e) {
+    addBubble("Could not create chat: " + e.message, "assistant");
+    return null;
+  }
 }
 
 function openDeleteChatModal(chatId, title) {
@@ -821,8 +913,6 @@ async function submitDeleteChat() {
 }
 
 // ── Files ─────────────────────────────────────────────────────
-document.getElementById("uploadBtn").addEventListener("click", () => document.getElementById("fileInput").click());
-
 document.getElementById("fileInput").addEventListener("change", async () => {
   const file = document.getElementById("fileInput").files[0];
   if (!file) return;
@@ -962,11 +1052,14 @@ function closePreviewModal() { closeModal("previewModal"); }
 async function sendMessage() {
   const input = document.getElementById("chatInput");
   const val = input.value.trim();
-  if (!val || !activeWS) return;
+  if (!val) return;
+  if (!activeWS) { input.value = ""; return; }
   if (val.length > 2000) { addBubble("Question too long (" + val.length + " chars). Max 2000.", "assistant"); return; }
   if (!activeChatId) { await _createNewChatDirect(); if (!activeChatId) return; }
   addBubble(val, "user");
-  input.value = ""; input.disabled = true; document.getElementById("sendBtn").disabled = true;
+  input.value = "";
+  input.setAttribute("readonly", "true");
+  document.getElementById("sendBtn").disabled = true;
   const thinkId = showThinkingAnimation();
   try {
     const r = await fetch("/chat/stream", {method:"POST",headers:{"Content-Type":"application/json"},credentials:"include",body:JSON.stringify({workspace_name:activeWS,question:val,chat_id:activeChatId})});
@@ -991,11 +1084,13 @@ async function sendMessage() {
     }
     if (fullAnswer) finalizeBubble(thinkId, fullAnswer, pageNumbers, tokenUsage, traceId);
   } catch(e) { updateBubble(thinkId, "Error: " + e.message); }
-  finally { input.disabled = false; document.getElementById("sendBtn").disabled = false; input.focus(); }
+  finally { input.removeAttribute("readonly"); document.getElementById("sendBtn").disabled = false; input.focus(); }
 }
 
 document.getElementById("sendBtn").addEventListener("click", sendMessage);
-document.getElementById("chatInput").addEventListener("keydown", e => { if (e.key==="Enter" && !e.shiftKey) { e.preventDefault(); sendMessage(); } });
+document.getElementById("chatInput").addEventListener("keydown", e => {
+  if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendMessage(); }
+});
 
 function addBubble(text, role) {
   const chat = document.getElementById("chatContainer");
@@ -1022,11 +1117,50 @@ function showThinkingAnimation() {
   return id;
 }
 
-function updateBubble(id, text) {
+// ── Smooth typing engine (ChatGPT-style) ─────────────────────
+const _typers = {}; // id → { queue, raf, textNode }
+
+function _ensureTyper(id) {
+  if (_typers[id]) return _typers[id];
   const wrap = document.getElementById(id);
-  if (!wrap) return;
+  if (!wrap) return null;
   const inner = wrap.querySelector("div");
-  if (inner) { inner.innerHTML = renderMarkdown(text); document.getElementById("chatContainer").scrollTop = document.getElementById("chatContainer").scrollHeight; }
+  if (!inner) return null;
+  inner.innerHTML = '';
+  const textNode = document.createTextNode("");
+  const cursor   = document.createElement("span");
+  cursor.style.cssText = "display:inline-block;width:2px;height:.9em;background:#ff2e62;" +
+    "margin-left:1px;vertical-align:middle;animation:blink .65s step-end infinite;";
+  const block = document.createElement("span");
+  block.style.cssText = "display:block;white-space:pre-wrap;line-height:1.7;font-size:.85rem;";
+  block.appendChild(textNode);
+  block.appendChild(cursor);
+  inner.appendChild(block);
+  const state = { queue: "", raf: null, textNode };
+  _typers[id] = state;
+  return state;
+}
+
+function _driveTyper(id) {
+  const state = _typers[id];
+  if (!state || state.raf) return;
+  const container = document.getElementById("chatContainer");
+  function tick() {
+    if (!state.queue) { state.raf = null; return; }
+    state.textNode.nodeValue += state.queue.slice(0, 4);
+    state.queue = state.queue.slice(4);
+    if (container) container.scrollTop = container.scrollHeight;
+    state.raf = requestAnimationFrame(tick);
+  }
+  state.raf = requestAnimationFrame(tick);
+}
+
+function updateBubble(id, text) {
+  const state = _ensureTyper(id);
+  if (!state) return;
+  const rendered = state.textNode.nodeValue.length + state.queue.length;
+  const delta = text.slice(rendered);
+  if (delta) { state.queue += delta; _driveTyper(id); }
 }
 
 function finalizeBubble(id, text, pageNumbers, tokenUsage, traceId) {
@@ -1034,6 +1168,12 @@ function finalizeBubble(id, text, pageNumbers, tokenUsage, traceId) {
   if (!wrap) return;
   const inner = wrap.querySelector("div");
   if (!inner) return;
+  const state = _typers[id];
+  if (state) {
+    if (state.raf) { cancelAnimationFrame(state.raf); state.raf = null; }
+    delete _typers[id];
+  }
+  // Single markdown render, remove streaming elements
   inner.innerHTML = renderMarkdown(text);
   if ((pageNumbers && pageNumbers.length) || (tokenUsage && tokenUsage.total_tokens > 0) || traceId) {
     const meta = document.createElement("div");

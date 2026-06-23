@@ -1,0 +1,31 @@
+services:
+  - type: web
+    name: ragcore
+    runtime: python
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn app:app --host 0.0.0.0 --port $PORT
+    plan: starter
+    healthCheckPath: /health
+    envVars:
+      - key: ENVIRONMENT
+        value: production
+      - key: SECURE_COOKIES
+        value: "true"
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_SERVICE_KEY
+        sync: false
+      - key: SUPABASE_JWT_SECRET
+        sync: false        # from Supabase dashboard → Settings → API → JWT Secret
+      - key: STORAGE_BUCKET
+        value: documents
+      - key: GROQ_API_KEY
+        sync: false
+      - key: COHERE_API_KEY
+        sync: false
+      - key: SECRET_KEY
+        sync: false
+      - key: ADMIN_PASSWORD
+        sync: false        # leave unset to skip default admin creation in prod
+      - key: ALLOWED_ORIGINS
+        sync: false        # e.g. https://yourdomain.com

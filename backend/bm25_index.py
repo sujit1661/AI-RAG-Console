@@ -1,5 +1,5 @@
 """
-BM25 keyword search index — persisted to disk, rebuilt from ChromaDB on startup.
+BM25 keyword search index — persisted to Supabase Storage (primary) or disk (fallback).
 Combined with vector search for hybrid retrieval (RRF fusion).
 """
 import logging
@@ -14,6 +14,9 @@ logger = logging.getLogger(__name__)
 
 BM25_PERSIST_DIR = "./bm25_index"
 os.makedirs(BM25_PERSIST_DIR, exist_ok=True)
+
+# Supabase Storage bucket for BM25 indexes
+BM25_STORAGE_BUCKET = "bm25-indexes"
 
 # In-memory cache: {username__workspace_slug: BM25Index}
 _indexes: Dict[str, "BM25Index"] = {}
@@ -96,14 +99,71 @@ def _persist_path(key: str) -> str:
     safe = re.sub(r'[^a-zA-Z0-9_-]', '_', key)
     return os.path.join(BM25_PERSIST_DIR, f"{safe}.pkl")
 
-def _save(key: str, index: BM25Index):
+def _storage_path(key: str) -> str:
+    safe = re.sub(r'[^a-zA-Z0-9_-]', '_', key)
+    return f"indexes/{safe}.pkl"
+
+def _save_to_supabase(key: str, data: bytes) -> bool:
+    """Upload pickled BM25 index to Supabase Storage."""
     try:
-        with open(_persist_path(key), "wb") as f:
-            pickle.dump(index, f, protocol=pickle.HIGHEST_PROTOCOL)
+        from backend.supabase_config import get_supabase
+        sb = get_supabase()
+        path = _storage_path(key)
+        sb.storage.from_(BM25_STORAGE_BUCKET).upload(
+            path=path,
+            file=data,
+            file_options={"content-type": "application/octet-stream", "upsert": "true"}
+        )
+        return True
     except Exception as e:
-        logger.warning(f"BM25 save failed for {key}: {e}")
+        logger.warning(f"BM25 Supabase save failed for {key}: {e}")
+        return False
+
+def _load_from_supabase(key: str) -> "BM25Index | None":
+    """Download and unpickle BM25 index from Supabase Storage."""
+    try:
+        from backend.supabase_config import get_supabase
+        sb = get_supabase()
+        path = _storage_path(key)
+        data = sb.storage.from_(BM25_STORAGE_BUCKET).download(path)
+        if data:
+            return pickle.loads(data)
+    except Exception as e:
+        err = str(e).lower()
+        # 400/404 = bucket doesn't exist or object not found — not an error worth warning about
+        if any(x in err for x in ("400", "404", "not found", "does not exist", "no such")):
+            logger.debug(f"BM25 not in Supabase Storage for {key} (will use local/rebuild)")
+        else:
+            logger.warning(f"BM25 Supabase load failed for {key}: {e}")
+    return None
+
+def _delete_from_supabase(key: str):
+    """Remove BM25 index from Supabase Storage."""
+    try:
+        from backend.supabase_config import get_supabase
+        sb = get_supabase()
+        path = _storage_path(key)
+        sb.storage.from_(BM25_STORAGE_BUCKET).remove([path])
+    except Exception as e:
+        logger.debug(f"BM25 Supabase delete failed for {key}: {e}")
+
+def _save(key: str, index: BM25Index):
+    """Save to Supabase Storage (primary) with local disk as fallback."""
+    data = pickle.dumps(index, protocol=pickle.HIGHEST_PROTOCOL)
+    if not _save_to_supabase(key, data):
+        # fallback: local disk
+        try:
+            with open(_persist_path(key), "wb") as f:
+                f.write(data)
+        except Exception as e:
+            logger.warning(f"BM25 local save also failed for {key}: {e}")
 
 def _load(key: str) -> "BM25Index | None":
+    """Load from Supabase Storage first, then fall back to local disk."""
+    idx = _load_from_supabase(key)
+    if idx is not None:
+        return idx
+    # fallback: local disk
     path = _persist_path(key)
     if not os.path.exists(path):
         return None
@@ -111,19 +171,19 @@ def _load(key: str) -> "BM25Index | None":
         with open(path, "rb") as f:
             return pickle.load(f)
     except Exception as e:
-        logger.warning(f"BM25 load failed for {key}: {e}")
+        logger.warning(f"BM25 local load failed for {key}: {e}")
         return None
 
 def _key(username: str, workspace_slug: str) -> str:
     return f"{username}__{workspace_slug}"
 
 def _get_or_load(key: str) -> BM25Index:
-    """Get from memory cache, or load from disk, or create new."""
+    """Get from memory cache, or load from Supabase/disk, or create new."""
     if key not in _indexes:
         loaded = _load(key)
         _indexes[key] = loaded if loaded is not None else BM25Index()
         if loaded:
-            logger.info(f"BM25 loaded from disk: {key} ({len(loaded.docs)} docs)")
+            logger.info(f"BM25 loaded: {key} ({len(loaded.docs)} docs)")
     return _indexes[key]
 
 # ─────────────────────────────────────────────
@@ -157,21 +217,112 @@ def delete_file_from_index(workspace_slug: str, username: str, filename: str):
 def delete_workspace_index(workspace_slug: str, username: str):
     key = _key(username, workspace_slug)
     _indexes.pop(key, None)
+    _delete_from_supabase(key)
+    # also clean up local disk if present
     path = _persist_path(key)
     if os.path.exists(path):
         os.remove(path)
 
 
 # ─────────────────────────────────────────────
-# Startup rebuild from ChromaDB
+# Startup rebuild from Supabase embeddings table
 # ─────────────────────────────────────────────
 
 def rebuild_from_chromadb():
     """
-    On server startup, rebuild any BM25 indexes that don't have a persisted file.
-    Reads from ChromaDB so hybrid search works immediately after restart
-    even if the pickle files were lost.
+    On startup, rebuild BM25 indexes that aren't already in Supabase Storage
+    or local disk. Reads chunk text from the Supabase embeddings table.
+    Falls back to ChromaDB if Supabase is unavailable.
     """
+    _rebuild_from_supabase()
+
+
+def _rebuild_from_supabase():
+    """Rebuild missing BM25 indexes from the Supabase embeddings table."""
+    try:
+        from backend.supabase_config import get_supabase
+        sb = get_supabase()
+
+        # Fetch distinct (username, workspace_slug) pairs in pages to avoid row limits
+        pairs = set()
+        page_size = 1000
+        offset = 0
+        while True:
+            res = sb.table("embeddings")\
+                .select("username, workspace_slug")\
+                .range(offset, offset + page_size - 1)\
+                .execute()
+            batch = res.data or []
+            for r in batch:
+                if r.get("username") and r.get("workspace_slug"):
+                    pairs.add((r["username"], r["workspace_slug"]))
+            if len(batch) < page_size:
+                break
+            offset += page_size
+
+        if not pairs:
+            logger.info("BM25 startup: no embeddings found in Supabase")
+            return
+
+        rebuilt = 0
+        for username, workspace_slug in pairs:
+            key = _key(username, workspace_slug)
+
+            # Skip if already in memory or already persisted
+            if key in _indexes:
+                continue
+            existing = _load(key)
+            if existing is not None:
+                _indexes[key] = existing
+                continue
+
+            # Fetch all chunks for this workspace in pages
+            try:
+                texts, metas = [], []
+                chunk_offset = 0
+                while True:
+                    chunks_res = sb.table("embeddings")\
+                        .select("chunk_text, filename, page_num")\
+                        .eq("username", username)\
+                        .eq("workspace_slug", workspace_slug)\
+                        .range(chunk_offset, chunk_offset + page_size - 1)\
+                        .execute()
+                    rows = chunks_res.data or []
+                    for r in rows:
+                        if r.get("chunk_text"):
+                            texts.append(r["chunk_text"])
+                            metas.append({
+                                "source": r.get("filename", ""),
+                                **({"page": r["page_num"]} if r.get("page_num") is not None else {})
+                            })
+                    if len(rows) < page_size:
+                        break
+                    chunk_offset += page_size
+
+                if not texts:
+                    continue
+
+                idx = BM25Index()
+                idx.add(texts, metas)
+                _indexes[key] = idx
+                _save(key, idx)
+                rebuilt += 1
+                logger.info(f"BM25 rebuilt from Supabase: {key} ({len(texts)} chunks)")
+            except Exception as e:
+                logger.warning(f"BM25 rebuild failed for {key}: {e}")
+
+        if rebuilt:
+            logger.info(f"BM25 startup rebuild complete: {rebuilt} indexes rebuilt")
+        else:
+            logger.info("BM25 startup: all indexes already up to date")
+
+    except Exception as e:
+        logger.warning(f"BM25 Supabase rebuild failed, trying ChromaDB fallback: {e}")
+        _rebuild_from_chromadb_fallback()
+
+
+def _rebuild_from_chromadb_fallback():
+    """Fallback: rebuild BM25 from local ChromaDB if Supabase is unavailable."""
     try:
         import chromadb
         client = chromadb.PersistentClient(path="./chroma_db")
@@ -179,22 +330,20 @@ def rebuild_from_chromadb():
 
         rebuilt = 0
         for col in collections:
-            key = col.name  # format: username__workspace_slug
-            persist_file = _persist_path(key)
-
-            # Skip if already persisted
-            if os.path.exists(persist_file):
+            key = col.name
+            if key in _indexes:
                 continue
-
+            existing = _load(key)
+            if existing is not None:
+                _indexes[key] = existing
+                continue
             try:
                 collection = client.get_collection(col.name)
                 result = collection.get(include=["documents", "metadatas"])
                 docs = result.get("documents") or []
                 metas = result.get("metadatas") or [{}] * len(docs)
-
                 if not docs:
                     continue
-
                 idx = BM25Index()
                 idx.add(docs, metas)
                 _indexes[key] = idx
@@ -202,12 +351,9 @@ def rebuild_from_chromadb():
                 rebuilt += 1
                 logger.info(f"BM25 rebuilt from ChromaDB: {key} ({len(docs)} docs)")
             except Exception as e:
-                logger.warning(f"BM25 rebuild failed for {col.name}: {e}")
+                logger.warning(f"BM25 ChromaDB rebuild failed for {col.name}: {e}")
 
         if rebuilt:
-            logger.info(f"BM25 startup rebuild complete: {rebuilt} indexes rebuilt")
-        else:
-            logger.info("BM25 startup: all indexes already persisted")
-
+            logger.info(f"BM25 ChromaDB fallback rebuild: {rebuilt} indexes")
     except Exception as e:
-        logger.warning(f"BM25 startup rebuild failed (non-fatal): {e}")
+        logger.warning(f"BM25 ChromaDB fallback also failed (non-fatal): {e}")

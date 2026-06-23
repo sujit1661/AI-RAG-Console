@@ -12,7 +12,7 @@ from pydantic import BaseModel
 from backend.deps import (
     get_token, get_safe_name, get_workspace_path,
     load_chats_metadata, save_chats_metadata,
-    load_history, save_history,
+    load_history, save_history, workspace_accessible, _ensure_local_dir,
 )
 from backend.auth import get_current_user
 from backend.retriever import retrieve
@@ -99,8 +99,9 @@ async def chat(data: ChatRequest, username: str = Depends(_require_auth)):
         raise HTTPException(status_code=400, detail="Workspace name cannot be empty")
 
     slug = get_safe_name(data.workspace_name)
-    if not os.path.exists(get_workspace_path(slug)):
+    if not workspace_accessible(slug):
         raise HTTPException(status_code=404, detail="Workspace not found")
+    _ensure_local_dir(slug)  # ensure dir exists for history saves
 
     k = _adaptive_k(data.question)
     try:
@@ -135,8 +136,9 @@ async def chat_stream(data: ChatRequest, username: str = Depends(_require_auth))
         raise HTTPException(status_code=400, detail="Workspace name cannot be empty")
 
     slug = get_safe_name(data.workspace_name)
-    if not os.path.exists(get_workspace_path(slug)):
+    if not workspace_accessible(slug):
         raise HTTPException(status_code=404, detail="Workspace not found")
+    _ensure_local_dir(slug)  # ensure dir exists for history saves
 
     async def generate():
         trace = QueryTrace(username, slug, data.question)
