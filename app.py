@@ -78,6 +78,9 @@ app.include_router(playground_router)
 from routers.pipeline_explorer import router as pipeline_explorer_router
 app.include_router(pipeline_explorer_router)
 
+from routers.dashboard import router as dashboard_router
+app.include_router(dashboard_router)
+
 # ── Analytics ─────────────────────────────────────────────────
 from backend.deps import get_token, get_safe_name
 from backend.auth import get_current_user
@@ -148,6 +151,26 @@ async def serve_playground():
 @app.get("/pipeline", response_class=HTMLResponse)
 async def serve_pipeline():
     return FileResponse("frontend/pipeline.html", headers=_NC)
+
+
+@app.get("/dashboard", response_class=HTMLResponse)
+async def serve_dashboard():
+    return FileResponse("frontend/dashboard.html", headers=_NC)
+
+
+@app.get("/monitoring", response_class=HTMLResponse)
+async def serve_monitoring():
+    return FileResponse("frontend/monitoring.html", headers=_NC)
+
+
+@app.get("/profile", response_class=HTMLResponse)
+async def serve_profile():
+    return FileResponse("frontend/profile.html", headers=_NC)
+
+
+@app.get("/settings", response_class=HTMLResponse)
+async def serve_settings():
+    return FileResponse("frontend/settings.html", headers=_NC)
 
 
 if __name__ == "__main__":
