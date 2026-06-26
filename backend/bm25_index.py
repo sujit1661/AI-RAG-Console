@@ -264,19 +264,46 @@ def _rebuild_from_supabase():
             logger.info("BM25 startup: no embeddings found in Supabase")
             return
 
+        # Check which keys actually exist in Supabase Storage in one batch
+        # by listing the bucket — avoids 400 per missing file
+        existing_in_storage = set()
+        try:
+            files = sb.storage.from_(BM25_STORAGE_BUCKET).list("indexes")
+            for f in (files or []):
+                name = f.get("name", "")
+                if name.endswith(".pkl"):
+                    existing_in_storage.add(name[:-4])  # strip .pkl → key safe name
+        except Exception as e:
+            logger.debug(f"BM25 bucket list failed (non-fatal): {e}")
+
         rebuilt = 0
         for username, workspace_slug in pairs:
             key = _key(username, workspace_slug)
+            safe_key = re.sub(r'[^a-zA-Z0-9_-]', '_', key)
 
-            # Skip if already in memory or already persisted
+            # Already in memory cache — skip
             if key in _indexes:
                 continue
-            existing = _load(key)
-            if existing is not None:
-                _indexes[key] = existing
+
+            # Check if pickle exists in Supabase Storage (no HTTP request needed)
+            if safe_key in existing_in_storage:
+                # Lazy-load on first search rather than at startup
+                logger.debug(f"BM25 exists in Storage for {key} — will load on demand")
                 continue
 
-            # Fetch all chunks for this workspace in pages
+            # Check local disk fallback
+            local_path = _persist_path(key)
+            if os.path.exists(local_path):
+                try:
+                    with open(local_path, "rb") as f:
+                        idx = pickle.load(f)
+                    _indexes[key] = idx
+                    logger.info(f"BM25 loaded from local disk: {key} ({len(idx.docs)} docs)")
+                    continue
+                except Exception:
+                    pass
+
+            # Not in storage or disk — rebuild from embeddings table
             try:
                 texts, metas = [], []
                 chunk_offset = 0
@@ -307,14 +334,14 @@ def _rebuild_from_supabase():
                 _indexes[key] = idx
                 _save(key, idx)
                 rebuilt += 1
-                logger.info(f"BM25 rebuilt from Supabase: {key} ({len(texts)} chunks)")
+                logger.info(f"BM25 rebuilt from Supabase embeddings: {key} ({len(texts)} chunks)")
             except Exception as e:
                 logger.warning(f"BM25 rebuild failed for {key}: {e}")
 
         if rebuilt:
             logger.info(f"BM25 startup rebuild complete: {rebuilt} indexes rebuilt")
         else:
-            logger.info("BM25 startup: all indexes already up to date")
+            logger.info("BM25 startup: all indexes up to date")
 
     except Exception as e:
         logger.warning(f"BM25 Supabase rebuild failed, trying ChromaDB fallback: {e}")
