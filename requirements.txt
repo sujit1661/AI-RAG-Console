@@ -22,3 +22,4 @@ cohere>=5.0.0
 httpx>=0.24,<0.26
 pytest>=8.0.0
 PyJWT>=2.8.0
+langfuse>=2.0.0
