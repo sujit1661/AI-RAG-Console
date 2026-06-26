@@ -1,8 +1,11 @@
 import fitz
 import pandas as pd
-from PIL import Image
-import pytesseract
 from docx import Document
+import os
+import base64
+import logging
+
+logger = logging.getLogger(__name__)
 
 def extract_pdf_text(path):
     """
@@ -20,14 +23,71 @@ def extract_pdf_text(path):
         start_pos = current_pos
         end_pos = current_pos + len(page_text)
         text += page_text
-        page_info.append((start_pos, end_pos, page_num + 1))  # 1-indexed page numbers
+        page_info.append((start_pos, end_pos, page_num + 1))
         current_pos = end_pos
     
     return text, page_info
 
-def extract_image_text(path):
-    image = Image.open(path)
-    return pytesseract.image_to_string(image)
+def extract_image_text(path: str) -> str:
+    """
+    Extract text from an image using Groq's vision model.
+    Falls back to a placeholder if the API is unavailable.
+    Supports PNG, JPG, JPEG.
+    """
+    try:
+        from groq import Groq
+        from dotenv import load_dotenv
+        load_dotenv()
+
+        api_key = os.getenv("GROQ_API_KEY")
+        if not api_key:
+            logger.warning("GROQ_API_KEY not set — cannot extract text from image")
+            return ""
+
+        # Read and base64-encode the image
+        with open(path, "rb") as f:
+            image_bytes = f.read()
+        b64_image = base64.b64encode(image_bytes).decode("utf-8")
+
+        # Determine MIME type from extension
+        ext = path.rsplit(".", 1)[-1].lower()
+        mime = {"png": "image/png", "jpg": "image/jpeg", "jpeg": "image/jpeg"}.get(ext, "image/jpeg")
+
+        client = Groq(api_key=api_key)
+        response = client.chat.completions.create(
+            model="meta-llama/llama-4-scout-17b-16e-instruct",
+            messages=[
+                {
+                    "role": "user",
+                    "content": [
+                        {
+                            "type": "image_url",
+                            "image_url": {
+                                "url": f"data:{mime};base64,{b64_image}"
+                            }
+                        },
+                        {
+                            "type": "text",
+                            "text": (
+                                "Extract ALL text visible in this image. "
+                                "Preserve the structure: headings, paragraphs, lists, tables, labels. "
+                                "If there are numbers or data, include them exactly. "
+                                "Return only the extracted text, no commentary."
+                            )
+                        }
+                    ]
+                }
+            ],
+            temperature=0.0,
+            max_tokens=4096,
+        )
+        extracted = response.choices[0].message.content or ""
+        logger.info(f"Groq vision extracted {len(extracted)} chars from {os.path.basename(path)}")
+        return extracted.strip()
+
+    except Exception as e:
+        logger.warning(f"Groq vision extraction failed for {path}: {e}")
+        return ""
 
 def extract_excel_text(path):
     """
