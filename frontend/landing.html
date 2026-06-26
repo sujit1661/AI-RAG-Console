@@ -141,7 +141,8 @@ html {
             <a href="#features" class="text-sm text-slate-400 hover:text-primary transition-colors">Features</a>
             <a href="#how-it-works" class="text-sm text-slate-400 hover:text-primary transition-colors">How It Works</a>
             <a href="#ai-chat" class="text-sm text-slate-400 hover:text-primary transition-colors">AI Chat</a>
-            <a href="#pricing" class="text-sm text-slate-400 hover:text-primary transition-colors">Pricing</a>
+            <a href="#faq" class="text-sm text-slate-400 hover:text-primary transition-colors">FAQ</a>
+            <a href="#pricing" class="text-sm text-slate-400 hover:text-primary transition-colors">Get Started</a>
             <a href="/login" class="text-sm text-slate-400 hover:text-primary transition-colors">Login</a>
             <a href="/register" class="bg-primary text-white px-6 py-2 rounded-xl font-bold hover:scale-105 transition-all">Get Started</a>
         </div>
@@ -390,26 +391,104 @@ html {
     <div class="max-w-7xl mx-auto">
         <div class="text-center mb-20 fade-in">
             <h2 class="text-5xl font-black mb-4">Built with Cutting-Edge Technology</h2>
-            <p class="text-xl text-slate-400">Powered by the latest AI and vector database technologies</p>
+            <p class="text-xl text-slate-400">Production-grade stack powering every query</p>
         </div>
         
         <div class="grid md:grid-cols-4 gap-6">
             <div class="bg-matte-black neon-border rounded-xl p-6 text-center slide-in-left">
-                <div class="text-3xl font-bold text-primary mb-2">RAG</div>
-                <div class="text-sm text-slate-400">Retrieval Augmented Generation</div>
-            </div>
-            <div class="bg-matte-black neon-border rounded-xl p-6 text-center fade-in">
-                <div class="text-3xl font-bold text-primary mb-2">ChromaDB</div>
-                <div class="text-sm text-slate-400">Vector Database</div>
+                <div class="text-3xl font-bold text-primary mb-2">pgvector</div>
+                <div class="text-sm text-slate-400">Supabase Vector Store</div>
             </div>
             <div class="bg-matte-black neon-border rounded-xl p-6 text-center fade-in">
                 <div class="text-3xl font-bold text-primary mb-2">BGE</div>
-                <div class="text-sm text-slate-400">Embedding Model</div>
+                <div class="text-sm text-slate-400">384-dim Embeddings</div>
+            </div>
+            <div class="bg-matte-black neon-border rounded-xl p-6 text-center fade-in">
+                <div class="text-3xl font-bold text-primary mb-2">BM25</div>
+                <div class="text-sm text-slate-400">Keyword Hybrid Search</div>
             </div>
             <div class="bg-matte-black neon-border rounded-xl p-6 text-center slide-in-right">
                 <div class="text-3xl font-bold text-primary mb-2">Groq</div>
-                <div class="text-sm text-slate-400">LLM Inference</div>
+                <div class="text-sm text-slate-400">LLM + Vision Inference</div>
             </div>
+        </div>
+    </div>
+</section>
+
+<!-- FAQ Section -->
+<section id="faq" class="py-32 relative z-10 px-8 bg-gradient-to-b from-black via-matte-black to-black">
+    <div class="max-w-3xl mx-auto">
+        <div class="text-center mb-16 fade-in">
+            <h2 class="text-5xl font-black mb-4">Frequently Asked Questions</h2>
+            <p class="text-xl text-slate-400">Everything you need to know</p>
+        </div>
+
+        <div class="space-y-4 fade-in">
+            <!-- Q1 -->
+            <details class="bg-matte-black border border-white/10 rounded-2xl overflow-hidden group">
+                <summary class="flex items-center justify-between px-6 py-5 cursor-pointer list-none font-semibold text-sm hover:text-primary transition-colors">
+                    What file formats are supported?
+                    <span class="material-symbols-outlined text-slate-500 group-open:rotate-180 transition-transform text-base">expand_more</span>
+                </summary>
+                <div class="px-6 pb-5 text-slate-400 text-sm leading-relaxed border-t border-white/5 pt-4">
+                    PDF, DOCX (Word), XLSX/XLS (Excel), PNG, JPG, and JPEG. Image files are processed using Groq's vision model to extract text — no Tesseract/OCR installation required. Max file size is 50MB.
+                </div>
+            </details>
+
+            <!-- Q2 -->
+            <details class="bg-matte-black border border-white/10 rounded-2xl overflow-hidden group">
+                <summary class="flex items-center justify-between px-6 py-5 cursor-pointer list-none font-semibold text-sm hover:text-primary transition-colors">
+                    Does it work without Supabase?
+                    <span class="material-symbols-outlined text-slate-500 group-open:rotate-180 transition-transform text-base">expand_more</span>
+                </summary>
+                <div class="px-6 pb-5 text-slate-400 text-sm leading-relaxed border-t border-white/5 pt-4">
+                    Yes — the app runs fully locally without any Supabase configuration. It uses ChromaDB for vector storage, BM25 pickle files on disk, and JSON files for chat/workspace data. Supabase is an optional cloud persistence layer that makes data survive server restarts and deployments.
+                </div>
+            </details>
+
+            <!-- Q3 -->
+            <details class="bg-matte-black border border-white/10 rounded-2xl overflow-hidden group">
+                <summary class="flex items-center justify-between px-6 py-5 cursor-pointer list-none font-semibold text-sm hover:text-primary transition-colors">
+                    How accurate are the answers?
+                    <span class="material-symbols-outlined text-slate-500 group-open:rotate-180 transition-transform text-base">expand_more</span>
+                </summary>
+                <div class="px-6 pb-5 text-slate-400 text-sm leading-relaxed border-t border-white/5 pt-4">
+                    Very accurate for factual queries within your documents. The system uses hybrid retrieval (vector + BM25 keyword search) fused with Reciprocal Rank Fusion, then optionally re-ranked by Cohere. The LLM is instructed to answer only from the provided context — it won't hallucinate from outside knowledge.
+                </div>
+            </details>
+
+            <!-- Q4 -->
+            <details class="bg-matte-black border border-white/10 rounded-2xl overflow-hidden group">
+                <summary class="flex items-center justify-between px-6 py-5 cursor-pointer list-none font-semibold text-sm hover:text-primary transition-colors">
+                    Can I upload multiple documents to one workspace?
+                    <span class="material-symbols-outlined text-slate-500 group-open:rotate-180 transition-transform text-base">expand_more</span>
+                </summary>
+                <div class="px-6 pb-5 text-slate-400 text-sm leading-relaxed border-t border-white/5 pt-4">
+                    Yes. Each workspace supports unlimited documents. When you ask a question, the AI searches across all documents in the workspace simultaneously. You can also create multiple workspaces to keep different projects separate.
+                </div>
+            </details>
+
+            <!-- Q5 -->
+            <details class="bg-matte-black border border-white/10 rounded-2xl overflow-hidden group">
+                <summary class="flex items-center justify-between px-6 py-5 cursor-pointer list-none font-semibold text-sm hover:text-primary transition-colors">
+                    Is my data private?
+                    <span class="material-symbols-outlined text-slate-500 group-open:rotate-180 transition-transform text-base">expand_more</span>
+                </summary>
+                <div class="px-6 pb-5 text-slate-400 text-sm leading-relaxed border-t border-white/5 pt-4">
+                    Your documents are stored in your own Supabase project — we never have access. Document text is sent to Groq for LLM inference (covered by Groq's privacy policy). All sessions use secure HttpOnly cookies and JWT authentication.
+                </div>
+            </details>
+
+            <!-- Q6 -->
+            <details class="bg-matte-black border border-white/10 rounded-2xl overflow-hidden group">
+                <summary class="flex items-center justify-between px-6 py-5 cursor-pointer list-none font-semibold text-sm hover:text-primary transition-colors">
+                    Can I deploy this myself?
+                    <span class="material-symbols-outlined text-slate-500 group-open:rotate-180 transition-transform text-base">expand_more</span>
+                </summary>
+                <div class="px-6 pb-5 text-slate-400 text-sm leading-relaxed border-t border-white/5 pt-4">
+                    Yes — the project includes a <code class="bg-white/10 px-1.5 py-0.5 rounded text-xs font-mono text-primary">render.yaml</code> for one-click Render deployment. You'll need a Groq API key (free), a Supabase project (free tier), and optionally a Cohere API key for reranking. Full setup instructions are in the README.
+                </div>
+            </details>
         </div>
     </div>
 </section>
@@ -417,18 +496,32 @@ html {
 <!-- CTA Section -->
 <section id="pricing" class="py-32 relative z-10 px-8">
     <div class="max-w-4xl mx-auto text-center">
-        <div class="bg-gradient-to-br from-primary/20 to-primary/5 neon-border rounded-3xl p-12 scale-in">
-            <h2 class="text-5xl font-black mb-6">Ready to Get Started?</h2>
-            <p class="text-xl text-slate-400 mb-8">Join thousands of users who are making their documents intelligent</p>
-            <div class="flex flex-col sm:flex-row gap-4 justify-center">
-                <a href="/register" class="bg-primary text-white px-8 py-4 rounded-xl font-bold text-lg hover:scale-105 transition-all neon-glow">
-                    Create Free Account
-                </a>
-                <a href="/login" class="bg-white/5 border border-white/10 text-white px-8 py-4 rounded-xl font-bold text-lg hover:border-primary/50 transition-all">
-                    Sign In
-                </a>
+        <div class="relative overflow-hidden rounded-3xl p-12 scale-in" style="background:linear-gradient(135deg,rgba(255,46,98,.15),rgba(255,46,98,.05));border:1px solid rgba(255,46,98,.25);box-shadow:0 0 60px rgba(255,46,98,.1);">
+            <!-- Background glow -->
+            <div style="position:absolute;top:-40px;left:50%;transform:translateX(-50%);width:300px;height:300px;background:radial-gradient(circle,rgba(255,46,98,.15),transparent 70%);pointer-events:none;"></div>
+            
+            <div class="relative">
+                <div class="inline-flex items-center gap-2 bg-white/5 border border-white/10 rounded-full px-4 py-1.5 mb-6">
+                    <div class="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse"></div>
+                    <span class="text-xs font-bold text-slate-300 uppercase tracking-widest">Free to use</span>
+                </div>
+                <h2 class="text-5xl font-black mb-4">Start for Free Today</h2>
+                <p class="text-lg text-slate-400 mb-10 max-w-xl mx-auto">No credit card. No limits on workspaces. Your data, your AI, your control.</p>
+                <div class="flex flex-col sm:flex-row gap-4 justify-center mb-10">
+                    <a href="/register" class="bg-primary text-white px-8 py-4 rounded-xl font-bold text-lg hover:scale-105 transition-all" style="box-shadow:0 0 30px rgba(255,46,98,.35);">
+                        Create Free Account
+                    </a>
+                    <a href="/login" class="bg-white/5 border border-white/15 text-white px-8 py-4 rounded-xl font-bold text-lg hover:border-primary/50 hover:bg-white/8 transition-all">
+                        Sign In
+                    </a>
+                </div>
+                <div class="flex flex-wrap justify-center gap-8 text-sm text-slate-500">
+                    <span class="flex items-center gap-2"><span class="material-symbols-outlined text-green-400 text-base">check_circle</span>No credit card</span>
+                    <span class="flex items-center gap-2"><span class="material-symbols-outlined text-green-400 text-base">check_circle</span>Unlimited workspaces</span>
+                    <span class="flex items-center gap-2"><span class="material-symbols-outlined text-green-400 text-base">check_circle</span>Setup in 60 seconds</span>
+                    <span class="flex items-center gap-2"><span class="material-symbols-outlined text-green-400 text-base">check_circle</span>Open source</span>
+                </div>
             </div>
-            <p class="text-sm text-slate-500 mt-8">No credit card required • Free forever • Setup in seconds</p>
         </div>
     </div>
 </section>
