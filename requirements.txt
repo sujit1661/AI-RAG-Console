@@ -11,8 +11,6 @@ pymupdf
 pandas
 openpyxl
 python-docx
-pytesseract
-Pillow
 supabase
 postgrest
 storage3
