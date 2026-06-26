@@ -6,7 +6,17 @@ A production-ready, full-stack Retrieval-Augmented Generation (RAG) system. Uplo
 
 ## What's New (Latest)
 
-### Production & Deployment
+### New Pages (Dashboard, Monitoring, Profile, Settings)
+- **`/dashboard`** — Aggregate stats (workspaces, documents, chunks, chats, queries, storage, feedback), recent query log table, workspace list with one-click open
+- **`/monitoring`** — Real-time health status for Supabase, embedding model, BM25 indexes, ChromaDB, Groq API, Cohere; uptime counter; recent error log
+- **`/profile`** — Username/email display, password change, active session list with revoke-all
+- **`/settings`** — Read-only system config: model names, retrieval parameters, storage layers, API key status, Langfuse setup guide
+
+### Langfuse Observability (optional)
+- Every RAG query creates a Langfuse trace with question, latency, chunks retrieved, and token count
+- Thumbs up/down feedback is mirrored as a Langfuse score (`user-feedback: 1 or 0`)
+- Zero-config fallback — if `LANGFUSE_PUBLIC_KEY` / `LANGFUSE_SECRET_KEY` are not set, tracing is silently skipped
+- Set up free at [cloud.langfuse.com](https://cloud.langfuse.com)
 - **Render-ready** — `render.yaml` added for one-command deploy to Render (recommended host)
 - **Supabase-first storage** — ChromaDB and local disk are now fallbacks only; all critical data lives in Supabase
 - **BM25 indexes in Supabase Storage** — pickle files stored in `bm25-indexes` bucket; rebuilt from `embeddings` table on startup if missing
@@ -196,7 +206,11 @@ frontend/
   chat.html                   ← General AI chatbot
   playground.html             ← Visual pipeline graph (ask-again bar)
   pipeline.html               ← Step-by-step pipeline explorer (ask-again bar)
-  landing.html                ← Public marketing page
+  dashboard.html              ← Analytics dashboard (stats, queries, workspaces)
+  monitoring.html             ← System health (Supabase, models, BM25, errors)
+  profile.html                ← User profile, password change, sessions
+  settings.html               ← System config, model info, API key status
+  landing.html                ← Public marketing page (FAQ, CTA sections)
   login.html / register.html  ← Auth pages
 
 database/
@@ -295,6 +309,10 @@ Minimum plan: **Starter ($7/mo)** — the embedding model needs ~512MB RAM.
 | `/ai-chat` | General AI chatbot (no documents needed) |
 | `/playground` | Visual pipeline animation — watch RAG run step by step |
 | `/pipeline` | Educational pipeline explorer with full metadata per stage |
+| `/dashboard` | Analytics dashboard — stats, query log, workspace overview |
+| `/monitoring` | System health — Supabase, models, BM25, error log |
+| `/profile` | User profile, password change, active sessions |
+| `/settings` | System config, model info, API key status, Langfuse setup |
 | `/login` | Login |
 | `/register` | Create account |
 
@@ -313,10 +331,10 @@ Minimum plan: **Starter ($7/mo)** — the embedding model needs ~512MB RAM.
 | `POST` | `/workspace/create` | ✓ | Create workspace (returns slug on 400 if exists) |
 | `POST` | `/workspace/delete` | ✓ | Delete workspace + all data |
 | `POST` | `/workspace/rename` | ✓ | Rename workspace |
-| `GET`  | `/workspace/{slug}/files` | ✓ | List documents (Supabase → disk fallback) |
+| `GET`  | `/workspace/{slug}/files` | ✓ | List documents |
 | `GET`  | `/workspace/{slug}/chats` | ✓ | List chats |
 | `GET`  | `/workspace/{slug}/history` | ✓ | Chat message history |
-| `POST` | `/chat/create` | ✓ | Create chat (auto-repairs missing workspace row) |
+| `POST` | `/chat/create` | ✓ | Create chat |
 | `POST` | `/chat/delete` | ✓ | Delete chat |
 | `POST` | `/chat/stream` | ✓ | **Streaming RAG answer (SSE)** |
 | `POST` | `/upload` | ✓ | Upload + background index document |
@@ -329,6 +347,16 @@ Minimum plan: **Starter ($7/mo)** — the embedding model needs ~512MB RAM.
 | `POST` | `/pipeline/run` | ✓ | **Run pipeline walkthrough (SSE)** |
 | `POST` | `/feedback` | ✓ | Thumbs up/down on answer |
 | `GET`  | `/analytics` | ✓ | Analytics summary |
+| `GET`  | `/dashboard/stats` | ✓ | Aggregate user stats (docs, chunks, queries, storage) |
+| `GET`  | `/dashboard/queries` | ✓ | Recent query log |
+| `GET`  | `/dashboard/workspace-detail/{slug}` | ✓ | Per-workspace detail |
+| `GET`  | `/monitoring/status` | ✓ | System health (Supabase, BM25, models) |
+| `GET`  | `/monitoring/logs` | ✓ | Recent error log |
+| `GET`  | `/profile/me` | ✓ | Current user info |
+| `POST` | `/profile/change-password` | ✓ | Change password |
+| `GET`  | `/profile/sessions` | ✓ | Active sessions |
+| `DELETE` | `/profile/sessions` | ✓ | Revoke all sessions |
+| `GET`  | `/settings/info` | ✓ | System config (models, keys, retrieval params) |
 | `GET`  | `/health` | — | Health check |
 
 ---
@@ -369,7 +397,7 @@ Minimum plan: **Starter ($7/mo)** — the embedding model needs ~512MB RAM.
 
 | Variable | Required | Description |
 |---|---|---|
-| `GROQ_API_KEY` | **Yes** | Groq API key |
+| `GROQ_API_KEY` | **Yes** | Groq API key (LLM + Vision) |
 | `SUPABASE_URL` | No | Supabase project URL |
 | `SUPABASE_SERVICE_KEY` | No | Supabase service role key |
 | `SUPABASE_JWT_SECRET` | No | JWT secret for token verification (Settings → API) |
@@ -379,6 +407,9 @@ Minimum plan: **Starter ($7/mo)** — the embedding model needs ~512MB RAM.
 | `COHERE_API_KEY` | No | Enables Cohere cross-encoder reranking |
 | `ADMIN_PASSWORD` | No | Default admin password — leave unset in production |
 | `ALLOWED_ORIGINS` | No | CORS origins (default: `http://localhost:8000`) |
+| `LANGFUSE_PUBLIC_KEY` | No | Langfuse public key — enables LLM observability tracing |
+| `LANGFUSE_SECRET_KEY` | No | Langfuse secret key |
+| `LANGFUSE_HOST` | No | Langfuse host (default: `https://cloud.langfuse.com`) |
 
 ---
 
