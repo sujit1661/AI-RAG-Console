@@ -1,14 +1,39 @@
 """
 Structured logging, request tracing, and analytics.
-Stores query logs in Supabase for observability.
+Stores query logs in Supabase + optional Langfuse tracing.
 """
 import logging
+import os
 import time
 import uuid
 from datetime import datetime
 from typing import Optional
 
 logger = logging.getLogger(__name__)
+
+# ── Langfuse client (lazy, optional) ─────────────────────────
+_langfuse = None
+
+def _get_langfuse():
+    """Return Langfuse client if keys are configured, else None."""
+    global _langfuse
+    if _langfuse is not None:
+        return _langfuse
+    pk = os.getenv("LANGFUSE_PUBLIC_KEY")
+    sk = os.getenv("LANGFUSE_SECRET_KEY")
+    if not pk or not sk:
+        return None
+    try:
+        from langfuse import Langfuse
+        _langfuse = Langfuse(
+            public_key=pk,
+            secret_key=sk,
+            host=os.getenv("LANGFUSE_HOST", "https://cloud.langfuse.com"),
+        )
+        logger.info("Langfuse tracing enabled")
+    except Exception as e:
+        logger.debug(f"Langfuse init failed (non-fatal): {e}")
+    return _langfuse
 
 
 class QueryTrace:
@@ -37,6 +62,21 @@ class QueryTrace:
             )
         except Exception:
             self._pg_trace_id = None
+
+        # Langfuse trace
+        self._lf_trace = None
+        try:
+            lf = _get_langfuse()
+            if lf:
+                self._lf_trace = lf.trace(
+                    id=self.trace_id,
+                    name="rag-query",
+                    user_id=self.username,
+                    metadata={"workspace": self.workspace_slug},
+                    input={"question": self.question},
+                )
+        except Exception:
+            pass
         return self
 
     def set(self, **kwargs):
@@ -79,6 +119,25 @@ class QueryTrace:
             )
         except Exception:
             pass  # Never let analytics break the main flow
+
+        # Langfuse — update trace with output + scores
+        try:
+            if getattr(self, "_lf_trace", None):
+                self._lf_trace.update(
+                    output={"answer": self.metrics.get("answer", "")[:500]},
+                    metadata={
+                        "latency_ms": elapsed,
+                        "chunks_retrieved": self.metrics.get("chunks_retrieved", 0),
+                        "total_tokens": self.metrics.get("total_tokens", 0),
+                        "status": status,
+                    },
+                    level="ERROR" if exc_type else "DEFAULT",
+                )
+                lf = _get_langfuse()
+                if lf:
+                    lf.flush()
+        except Exception:
+            pass
         # Playground finish
         try:
             if getattr(self, "_pg_trace_id", None):
@@ -124,6 +183,20 @@ def save_feedback(trace_id: str, feedback: str):
         logger.info(f"Feedback saved: {trace_id} → {feedback}")
     except Exception as e:
         logger.warning(f"Feedback save failed: {e}")
+
+    # Mirror to Langfuse
+    try:
+        lf = _get_langfuse()
+        if lf:
+            lf.score(
+                trace_id=trace_id,
+                name="user-feedback",
+                value=1 if feedback == "up" else 0,
+                comment=feedback,
+            )
+            lf.flush()
+    except Exception:
+        pass
 
 
 def get_analytics(username: str, workspace_slug: Optional[str] = None,
