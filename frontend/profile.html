@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html class="dark" lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>RAGCORE — Profile</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms"></script>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&display=swap" rel="stylesheet"/>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined"/>
+<script>tailwind.config={darkMode:"class",theme:{extend:{colors:{primary:"#ff2e62"}}}}</script>
+<style>
+*{box-sizing:border-box;}
+body{background:#000;color:#f1f5f9;font-family:'Space Grotesk',sans-serif;}
+::-webkit-scrollbar{width:4px;} ::-webkit-scrollbar-thumb{background:#1e293b;border-radius:4px;}
+.card{background:#0a0a0a;border:1px solid rgba(255,255,255,.07);border-radius:14px;padding:24px;}
+.field-label{font-size:.62rem;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:#475569;margin-bottom:6px;display:block;}
+.inp{width:100%;background:#000;border:1px solid rgba(255,255,255,.1);border-radius:10px;padding:10px 14px;font-size:.82rem;color:#f1f5f9;outline:none;transition:border-color .15s;font-family:'Space Grotesk',sans-serif;}
+.inp:focus{border-color:rgba(255,46,98,.5);}
+.inp:disabled{opacity:.4;cursor:not-allowed;}
+.btn-primary{background:#ff2e62;color:#fff;border:none;border-radius:10px;padding:10px 20px;font-size:.8rem;font-weight:700;cursor:pointer;transition:all .15s;font-family:'Space Grotesk',sans-serif;}
+.btn-primary:hover{background:#ff1a52;}
+.btn-primary:disabled{opacity:.4;pointer-events:none;}
+.btn-ghost{background:transparent;color:#94a3b8;border:1px solid rgba(255,255,255,.1);border-radius:10px;padding:10px 20px;font-size:.8rem;font-weight:600;cursor:pointer;transition:all .15s;font-family:'Space Grotesk',sans-serif;}
+.btn-ghost:hover{border-color:rgba(255,255,255,.25);color:#fff;}
+.btn-danger{background:rgba(239,68,68,.1);color:#ef4444;border:1px solid rgba(239,68,68,.25);border-radius:10px;padding:10px 20px;font-size:.8rem;font-weight:700;cursor:pointer;transition:all .15s;font-family:'Space Grotesk',sans-serif;}
+.btn-danger:hover{background:rgba(239,68,68,.2);}
+.row{display:flex;justify-content:space-between;align-items:center;padding:12px 0;border-bottom:1px solid rgba(255,255,255,.05);}
+.row:last-child{border-bottom:none;}
+.toast{position:fixed;bottom:24px;right:24px;background:#0f0f0f;border:1px solid rgba(255,255,255,.1);border-radius:12px;padding:12px 18px;font-size:.78rem;font-weight:600;display:flex;align-items:center;gap:8px;z-index:999;transform:translateY(80px);opacity:0;transition:all .3s;}
+.toast.show{transform:translateY(0);opacity:1;}
+.toast.success{border-color:rgba(16,185,129,.3);color:#10b981;}
+.toast.error{border-color:rgba(239,68,68,.3);color:#ef4444;}
+</style>
+</head>
+<body class="min-h-screen">
+
+<header class="h-14 border-b border-white/5 bg-[#0A0A0A] flex items-center justify-between px-6 sticky top-0 z-50">
+  <div class="flex items-center gap-3">
+    <a href="/app" class="flex items-center gap-2">
+      <div class="w-2.5 h-2.5 bg-primary rounded-full animate-pulse"></div>
+      <span class="text-base font-bold tracking-tighter uppercase">RAG<span class="text-primary font-black">CORE</span></span>
+    </a>
+    <div class="flex items-center bg-white/5 border border-white/10 rounded-xl p-1 gap-0.5">
+      <a href="/app"        class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold text-slate-400 hover:text-white transition-all"><span class="material-symbols-outlined text-sm">folder_open</span><span class="hidden sm:inline">RAG</span></a>
+      <a href="/dashboard"  class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold text-slate-400 hover:text-white transition-all"><span class="material-symbols-outlined text-sm">dashboard</span><span class="hidden sm:inline">Dashboard</span></a>
+      <a href="/monitoring" class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold text-slate-400 hover:text-white transition-all"><span class="material-symbols-outlined text-sm">monitor_heart</span><span class="hidden sm:inline">Monitor</span></a>
+    </div>
+  </div>
+  <div class="flex items-center gap-2">
+    <a href="/profile"  class="text-[10px] font-bold bg-primary/10 border border-primary/30 px-3 py-1.5 rounded-full text-primary flex items-center gap-1.5"><span class="material-symbols-outlined text-sm">account_circle</span><span id="usernameDisplay">—</span></a>
+    <a href="/settings" class="text-[10px] font-bold bg-white/5 border border-white/10 px-3 py-1.5 rounded-full text-slate-400 hover:text-primary transition-all flex items-center gap-1.5"><span class="material-symbols-outlined text-sm">settings</span></a>
+    <button onclick="doLogout()" class="text-[10px] font-bold bg-white/5 border border-white/10 px-3 py-1.5 rounded-full text-slate-400 hover:text-primary transition-all flex items-center gap-1.5"><span class="material-symbols-outlined text-sm">logout</span></button>
+  </div>
+</header>
+
+<div class="max-w-2xl mx-auto px-6 py-8 space-y-6">
+
+  <div class="mb-6">
+    <h1 class="text-2xl font-black mb-1">Profile</h1>
+    <p class="text-sm text-slate-500">Manage your account and security settings.</p>
+  </div>
+
+  <!-- Avatar + info -->
+  <div class="card flex items-center gap-6">
+    <div id="avatarCircle" style="width:64px;height:64px;border-radius:18px;background:rgba(255,46,98,.15);border:2px solid rgba(255,46,98,.3);display:flex;align-items:center;justify-content:center;font-size:1.6rem;font-weight:800;color:#ff2e62;flex-shrink:0;">?</div>
+    <div>
+      <h2 id="profileName" class="text-xl font-bold">—</h2>
+      <p id="profileEmail" class="text-sm text-slate-500 mt-0.5">—</p>
+      <div class="flex gap-2 mt-2">
+        <span id="joinedChip" style="font-size:.62rem;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);border-radius:6px;padding:2px 8px;color:#475569;">—</span>
+        <span id="lastLoginChip" style="font-size:.62rem;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);border-radius:6px;padding:2px 8px;color:#475569;">—</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Change password -->
+  <div class="card">
+    <h3 class="text-sm font-bold mb-4 flex items-center gap-2">
+      <span class="material-symbols-outlined text-base text-slate-400">lock</span>Change Password
+    </h3>
+    <div class="space-y-3">
+      <div>
+        <label class="field-label">Current Password</label>
+        <input id="oldPw" type="password" class="inp" placeholder="Current password"/>
+      </div>
+      <div>
+        <label class="field-label">New Password</label>
+        <input id="newPw" type="password" class="inp" placeholder="Min 6 characters"/>
+      </div>
+      <div>
+        <label class="field-label">Confirm New Password</label>
+        <input id="confirmPw" type="password" class="inp" placeholder="Repeat new password"/>
+      </div>
+      <div id="pwErr" class="hidden text-xs text-red-400 bg-red-500/10 border border-red-500/20 rounded-lg px-3 py-2"></div>
+      <div class="flex justify-end">
+        <button onclick="changePassword()" class="btn-primary">Update Password</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Active sessions -->
+  <div class="card">
+    <div class="flex items-center justify-between mb-4">
+      <h3 class="text-sm font-bold flex items-center gap-2">
+        <span class="material-symbols-outlined text-base text-slate-400">devices</span>Active Sessions
+      </h3>
+      <button onclick="revokeAll()" class="btn-danger" style="padding:6px 14px;font-size:.72rem;">Revoke All</button>
+    </div>
+    <div id="sessionList" class="space-y-2">
+      <p class="text-sm text-slate-600 text-center py-4">Loading…</p>
+    </div>
+  </div>
+
+  <!-- Danger zone -->
+  <div class="card" style="border-color:rgba(239,68,68,.15);">
+    <h3 class="text-sm font-bold mb-1 text-red-400 flex items-center gap-2">
+      <span class="material-symbols-outlined text-base">warning</span>Danger Zone
+    </h3>
+    <p class="text-xs text-slate-500 mb-4">These actions are permanent and cannot be undone.</p>
+    <div class="row">
+      <div>
+        <p class="text-sm font-semibold">Sign out everywhere</p>
+        <p class="text-xs text-slate-500">Revoke all active sessions across all devices.</p>
+      </div>
+      <button onclick="revokeAll()" class="btn-danger" style="padding:8px 16px;font-size:.72rem;white-space:nowrap;">Sign Out All</button>
+    </div>
+  </div>
+
+</div>
+
+<div id="toast" class="toast"><span class="material-symbols-outlined text-sm" id="toastIcon">check</span><span id="toastMsg"></span></div>
+
+<script>
+function esc(s){const d=document.createElement("div");d.textContent=String(s||"");return d.innerHTML;}
+async function doLogout(){try{await fetch("/auth/logout",{method:"POST",credentials:"include"});}catch{}location.href="/";}
+
+function showToast(msg, type="success") {
+  const t = document.getElementById("toast");
+  document.getElementById("toastMsg").textContent = msg;
+  document.getElementById("toastIcon").textContent = type === "success" ? "check_circle" : "error";
+  t.className = "toast show " + type;
+  setTimeout(() => t.className = "toast " + type, 3000);
+}
+
+async function loadProfile() {
+  try {
+    const r = await fetch("/profile/me", {credentials:"include"});
+    if (!r.ok) { location.href="/login"; return; }
+    const d = await r.json();
+    const u = d.user || {};
+    const name = u.username || "—";
+    document.getElementById("usernameDisplay").textContent = name;
+    document.getElementById("profileName").textContent = name;
+    document.getElementById("profileEmail").textContent = u.email || "No email set";
+    document.getElementById("avatarCircle").textContent = (name[0]||"?").toUpperCase();
+    document.getElementById("joinedChip").textContent = u.created_at
+      ? "Joined " + new Date(u.created_at).toLocaleDateString()
+      : "—";
+    document.getElementById("lastLoginChip").textContent = u.last_login
+      ? "Last seen " + new Date(u.last_login).toLocaleDateString()
+      : "Never logged in";
+  } catch { location.href = "/login"; }
+}
+
+async function loadSessions() {
+  try {
+    const r = await fetch("/profile/sessions", {credentials:"include"});
+    const d = await r.json();
+    const el = document.getElementById("sessionList");
+    const sessions = d.sessions || [];
+    if (!sessions.length) {
+      el.innerHTML = '<p class="text-sm text-slate-600 text-center py-2">No active sessions found</p>';
+      return;
+    }
+    el.innerHTML = sessions.map(s => `
+      <div style="display:flex;align-items:center;justify-content:space-between;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.06);border-radius:9px;padding:10px 14px;">
+        <div style="display:flex;align-items:center;gap:10px;">
+          <span class="material-symbols-outlined" style="font-size:16px;color:#475569;">key</span>
+          <div>
+            <p style="font-size:.72rem;font-weight:600;color:#cbd5e1;font-family:'JetBrains Mono',monospace;">${esc(s.token_hint)}</p>
+            <p style="font-size:.6rem;color:#334155;margin-top:1px;">Created ${s.created_at ? new Date(s.created_at).toLocaleString() : "—"}</p>
+          </div>
+        </div>
+        <p style="font-size:.6rem;color:#334155;">Expires ${s.expires_at ? new Date(s.expires_at).toLocaleDateString() : "—"}</p>
+      </div>`).join("");
+  } catch {}
+}
+
+async function changePassword() {
+  const old = document.getElementById("oldPw").value;
+  const nw  = document.getElementById("newPw").value;
+  const cnf = document.getElementById("confirmPw").value;
+  const err = document.getElementById("pwErr");
+  err.classList.add("hidden");
+  if (!old || !nw) { err.textContent = "All fields required."; err.classList.remove("hidden"); return; }
+  if (nw !== cnf)  { err.textContent = "Passwords don't match."; err.classList.remove("hidden"); return; }
+  if (nw.length < 6) { err.textContent = "Min 6 characters."; err.classList.remove("hidden"); return; }
+  try {
+    const r = await fetch("/profile/change-password", {
+      method:"POST", headers:{"Content-Type":"application/json"}, credentials:"include",
+      body: JSON.stringify({old_password:old, new_password:nw})
+    });
+    const d = await r.json();
+    if (!r.ok) { err.textContent = d.detail||"Failed"; err.classList.remove("hidden"); return; }
+    document.getElementById("oldPw").value = "";
+    document.getElementById("newPw").value = "";
+    document.getElementById("confirmPw").value = "";
+    showToast("Password updated successfully");
+  } catch(e) { err.textContent = e.message; err.classList.remove("hidden"); }
+}
+
+async function revokeAll() {
+  if (!confirm("Revoke all sessions? You'll be signed out everywhere.")) return;
+  try {
+    await fetch("/profile/sessions", {method:"DELETE", credentials:"include"});
+    showToast("All sessions revoked");
+    await loadSessions();
+    setTimeout(() => { location.href = "/login"; }, 1500);
+  } catch(e) { showToast(e.message, "error"); }
+}
+
+window.onload = async () => {
+  await loadProfile();
+  await loadSessions();
+};
+</script>
+</body>
+</html>

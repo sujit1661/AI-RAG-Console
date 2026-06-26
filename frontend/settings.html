@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html class="dark" lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>RAGCORE — Settings</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms"></script>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined"/>
+<script>tailwind.config={darkMode:"class",theme:{extend:{colors:{primary:"#ff2e62"}}}}</script>
+<style>
+*{box-sizing:border-box;}
+body{background:#000;color:#f1f5f9;font-family:'Space Grotesk',sans-serif;}
+::-webkit-scrollbar{width:4px;} ::-webkit-scrollbar-thumb{background:#1e293b;border-radius:4px;}
+.card{background:#0a0a0a;border:1px solid rgba(255,255,255,.07);border-radius:14px;padding:24px;}
+.section-title{font-size:.6rem;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:#334155;margin-bottom:12px;}
+.row{display:flex;justify-content:space-between;align-items:center;padding:12px 0;border-bottom:1px solid rgba(255,255,255,.05);}
+.row:last-child{border-bottom:none;}
+.mono{font-family:'JetBrains Mono',monospace;font-size:.72rem;}
+.key-badge{display:inline-flex;align-items:center;gap:4px;padding:2px 8px;border-radius:6px;font-size:.62rem;font-weight:700;}
+.key-set{background:rgba(16,185,129,.1);border:1px solid rgba(16,185,129,.2);color:#10b981;}
+.key-missing{background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.2);color:#ef4444;}
+.key-optional{background:rgba(245,158,11,.1);border:1px solid rgba(245,158,11,.2);color:#f59e0b;}
+</style>
+</head>
+<body class="min-h-screen">
+
+<header class="h-14 border-b border-white/5 bg-[#0A0A0A] flex items-center justify-between px-6 sticky top-0 z-50">
+  <div class="flex items-center gap-3">
+    <a href="/app" class="flex items-center gap-2">
+      <div class="w-2.5 h-2.5 bg-primary rounded-full animate-pulse"></div>
+      <span class="text-base font-bold tracking-tighter uppercase">RAG<span class="text-primary font-black">CORE</span></span>
+    </a>
+    <div class="flex items-center bg-white/5 border border-white/10 rounded-xl p-1 gap-0.5">
+      <a href="/app"        class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold text-slate-400 hover:text-white transition-all"><span class="material-symbols-outlined text-sm">folder_open</span><span class="hidden sm:inline">RAG</span></a>
+      <a href="/dashboard"  class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold text-slate-400 hover:text-white transition-all"><span class="material-symbols-outlined text-sm">dashboard</span><span class="hidden sm:inline">Dashboard</span></a>
+      <a href="/monitoring" class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold text-slate-400 hover:text-white transition-all"><span class="material-symbols-outlined text-sm">monitor_heart</span><span class="hidden sm:inline">Monitor</span></a>
+    </div>
+  </div>
+  <div class="flex items-center gap-2">
+    <a href="/profile"  class="text-[10px] font-bold bg-white/5 border border-white/10 px-3 py-1.5 rounded-full text-slate-400 hover:text-primary transition-all flex items-center gap-1.5"><span class="material-symbols-outlined text-sm">account_circle</span><span id="usernameDisplay">—</span></a>
+    <a href="/settings" class="text-[10px] font-bold bg-primary/10 border border-primary/30 px-3 py-1.5 rounded-full text-primary flex items-center gap-1.5"><span class="material-symbols-outlined text-sm">settings</span></a>
+    <button onclick="doLogout()" class="text-[10px] font-bold bg-white/5 border border-white/10 px-3 py-1.5 rounded-full text-slate-400 hover:text-primary transition-all flex items-center gap-1.5"><span class="material-symbols-outlined text-sm">logout</span></button>
+  </div>
+</header>
+
+<div class="max-w-3xl mx-auto px-6 py-8 space-y-6">
+
+  <div class="mb-6">
+    <h1 class="text-2xl font-black mb-1">Settings</h1>
+    <p class="text-sm text-slate-500">System configuration, model info, and API key status.</p>
+  </div>
+
+  <!-- AI Models -->
+  <div class="card">
+    <p class="section-title">AI Models</p>
+    <div id="modelsSection">
+      <div class="flex items-center justify-center py-6 text-slate-600 text-sm">Loading…</div>
+    </div>
+  </div>
+
+  <!-- Retrieval config -->
+  <div class="card">
+    <p class="section-title">Retrieval Configuration</p>
+    <div id="retrievalSection">
+      <div class="flex items-center justify-center py-6 text-slate-600 text-sm">Loading…</div>
+    </div>
+  </div>
+
+  <!-- Storage -->
+  <div class="card">
+    <p class="section-title">Storage Layers</p>
+    <div id="storageSection">
+      <div class="flex items-center justify-center py-6 text-slate-600 text-sm">Loading…</div>
+    </div>
+  </div>
+
+  <!-- API Keys -->
+  <div class="card">
+    <p class="section-title">API Keys</p>
+    <p class="text-xs text-slate-500 mb-4">Keys are set as environment variables. Never exposed through the API.</p>
+    <div id="keysSection">
+      <div class="flex items-center justify-center py-6 text-slate-600 text-sm">Loading…</div>
+    </div>
+  </div>
+
+  <!-- Langfuse -->
+  <div class="card">
+    <div class="flex items-center gap-3 mb-4">
+      <div style="width:36px;height:36px;border-radius:10px;background:rgba(255,46,98,.1);border:1px solid rgba(255,46,98,.2);display:flex;align-items:center;justify-content:center;">
+        <span class="material-symbols-outlined" style="font-size:18px;color:#ff2e62;">analytics</span>
+      </div>
+      <div>
+        <p class="text-sm font-bold">Langfuse Tracing</p>
+        <p class="text-xs text-slate-500">LLM observability — traces every RAG query with latency, retrieved chunks, and user feedback.</p>
+      </div>
+      <span id="langfuseStatus" class="key-optional ml-auto">Not configured</span>
+    </div>
+    <div style="background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.06);border-radius:9px;padding:14px;" class="space-y-2 text-xs text-slate-400">
+      <p>To enable, add these to your <span class="mono text-primary">.env</span> or Render environment variables:</p>
+      <pre style="background:#000;border:1px solid rgba(255,255,255,.08);border-radius:7px;padding:10px;font-size:.7rem;color:#94a3b8;overflow-x:auto;">LANGFUSE_PUBLIC_KEY=pk-lf-...
+LANGFUSE_SECRET_KEY=sk-lf-...
+LANGFUSE_HOST=https://cloud.langfuse.com</pre>
+      <p>Get free keys at <a href="https://cloud.langfuse.com" target="_blank" class="text-primary hover:underline">cloud.langfuse.com</a> — no credit card required.</p>
+    </div>
+  </div>
+
+  <!-- Environment -->
+  <div class="card">
+    <p class="section-title">Environment</p>
+    <div class="row">
+      <span class="text-sm text-slate-400">Mode</span>
+      <span id="envVal" class="key-optional">—</span>
+    </div>
+    <div class="row">
+      <span class="text-sm text-slate-400">Version</span>
+      <span class="mono text-slate-500">1.0.0</span>
+    </div>
+    <div class="row">
+      <span class="text-sm text-slate-400">Health</span>
+      <a href="/health" target="_blank" class="mono text-primary hover:underline text-xs">/health</a>
+    </div>
+  </div>
+
+</div>
+
+<script>
+function esc(s){const d=document.createElement("div");d.textContent=String(s||"");return d.innerHTML;}
+async function doLogout(){try{await fetch("/auth/logout",{method:"POST",credentials:"include"});}catch{}location.href="/";}
+
+function keyBadge(set, label, optional) {
+  if (set)      return `<span class="key-badge key-set"><span class="material-symbols-outlined text-xs">check</span>${label||"Configured"}</span>`;
+  if (optional) return `<span class="key-badge key-optional"><span class="material-symbols-outlined text-xs">info</span>Not set (optional)</span>`;
+  return `<span class="key-badge key-missing"><span class="material-symbols-outlined text-xs">warning</span>Missing</span>`;
+}
+
+function infoRow(label, value) {
+  return `<div class="row"><span style="font-size:.78rem;color:#64748b;">${esc(label)}</span><span class="mono text-slate-300">${esc(value)}</span></div>`;
+}
+
+async function loadSettings() {
+  try {
+    const r = await fetch("/settings/info", {credentials:"include"});
+    if (!r.ok) { location.href="/login"; return; }
+    const d = await r.json();
+
+    // Models
+    document.getElementById("modelsSection").innerHTML =
+      infoRow("LLM",             d.model.llm) +
+      infoRow("Embeddings",      d.model.embedding) +
+      infoRow("Vision / OCR",    d.model.vision) +
+      infoRow("Reranker",        d.model.reranker);
+
+    // Retrieval
+    const ret = d.retrieval;
+    document.getElementById("retrievalSection").innerHTML =
+      infoRow("Chunk size",      ret.chunk_size + " chars") +
+      infoRow("Chunk overlap",   ret.chunk_overlap + " chars") +
+      infoRow("Candidate k",     ret.candidate_k + " per source") +
+      infoRow("RRF k",           ret.rrf_k);
+
+    // Storage
+    const st = d.storage;
+    document.getElementById("storageSection").innerHTML =
+      infoRow("Vector store",    st.vector_store) +
+      infoRow("Keyword index",   st.keyword_index) +
+      infoRow("File storage",    st.file_storage) +
+      infoRow("Fallback",        st.fallback);
+
+    // Keys
+    const k = d.keys;
+    document.getElementById("keysSection").innerHTML = `
+      <div class="row"><span style="font-size:.78rem;color:#64748b;">GROQ_API_KEY</span>${keyBadge(k.groq, "Set", false)}</div>
+      <div class="row"><span style="font-size:.78rem;color:#64748b;">SUPABASE_URL + SERVICE_KEY</span>${keyBadge(k.supabase, "Set", false)}</div>
+      <div class="row"><span style="font-size:.78rem;color:#64748b;">SUPABASE_JWT_SECRET</span>${keyBadge(k.jwt_secret, "Set", true)}</div>
+      <div class="row"><span style="font-size:.78rem;color:#64748b;">COHERE_API_KEY</span>${keyBadge(k.cohere, "Set", true)}</div>`;
+
+    // Langfuse (check via monitoring endpoint)
+    try {
+      const ms = await fetch("/monitoring/status", {credentials:"include"});
+      const md = await ms.json();
+      // If Langfuse not in monitoring, assume based on keys check
+    } catch {}
+    // Simple heuristic — if we got here, Langfuse configured status unknown
+    document.getElementById("langfuseStatus").className = "key-optional ml-auto";
+    document.getElementById("langfuseStatus").textContent = "Optional — see below";
+
+    // Env
+    const envEl = document.getElementById("envVal");
+    envEl.textContent = d.environment;
+    envEl.className = d.environment === "production" ? "key-badge key-set" : "key-badge key-optional";
+  } catch(e) {
+    location.href = "/login";
+  }
+}
+
+async function loadUsername() {
+  try {
+    const r = await fetch("/auth/user", {credentials:"include"});
+    if (r.ok) { const d = await r.json(); document.getElementById("usernameDisplay").textContent = d.username||"—"; }
+    else location.href = "/login";
+  } catch { location.href = "/login"; }
+}
+
+window.onload = async () => {
+  await loadUsername();
+  await loadSettings();
+};
+</script>
+</body>
+</html>
