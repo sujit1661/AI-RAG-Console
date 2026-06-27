@@ -14,7 +14,7 @@ from backend.supabase_db import add_document_metadata
 logger = logging.getLogger(__name__)
 router = APIRouter(tags=["files"])
 
-MAX_UPLOAD_SIZE_MB = 50
+MAX_UPLOAD_SIZE_MB = 200          # covers large PDFs / scanned books (≤ 200 MB)
 MAX_UPLOAD_SIZE_BYTES = MAX_UPLOAD_SIZE_MB * 1024 * 1024
 
 
