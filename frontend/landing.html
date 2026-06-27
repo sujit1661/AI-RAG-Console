@@ -4,11 +4,9 @@
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 <title>RAGCore - AI-Powered Document Intelligence</title>
-
 <script src="https://cdn.tailwindcss.com?plugins=forms"></script>
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&display=swap" rel="stylesheet"/>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined"/>
-
 <script>
 tailwind.config = {
     darkMode: "class",
@@ -20,113 +18,36 @@ tailwind.config = {
     }
 }
 </script>
-
 <style>
 body { background: #000; color: #f1f5f9; font-family: 'Space Grotesk', sans-serif; overflow-x: hidden; }
 .neon-border { border: 1px solid rgba(255,46,98,0.3); box-shadow: 0 0 15px rgba(255,46,98,0.1); }
 .neon-glow { box-shadow: 0 0 30px rgba(255,46,98,0.3); }
-
-/* Scroll animations */
-.fade-in {
-    opacity: 0;
-    transform: translateY(30px);
-    transition: opacity 0.6s ease-out, transform 0.6s ease-out;
-}
-.fade-in.visible {
-    opacity: 1;
-    transform: translateY(0);
-}
-
-.slide-in-left {
-    opacity: 0;
-    transform: translateX(-50px);
-    transition: opacity 0.8s ease-out, transform 0.8s ease-out;
-}
-.slide-in-left.visible {
-    opacity: 1;
-    transform: translateX(0);
-}
-
-.slide-in-right {
-    opacity: 0;
-    transform: translateX(50px);
-    transition: opacity 0.8s ease-out, transform 0.8s ease-out;
-}
-.slide-in-right.visible {
-    opacity: 1;
-    transform: translateX(0);
-}
-
-.scale-in {
-    opacity: 0;
-    transform: scale(0.9);
-    transition: opacity 0.6s ease-out, transform 0.6s ease-out;
-}
-.scale-in.visible {
-    opacity: 1;
-    transform: scale(1);
-}
-
-/* Gradient animations */
-@keyframes gradient-shift {
-    0%, 100% { background-position: 0% 50%; }
-    50% { background-position: 100% 50%; }
-}
-
-.gradient-text {
-    background: linear-gradient(90deg, #ff2e62, #ff6b9d, #ff2e62);
-    background-size: 200% auto;
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
-    animation: gradient-shift 3s ease infinite;
-}
-
-/* Floating animation */
-@keyframes float {
-    0%, 100% { transform: translateY(0px); }
-    50% { transform: translateY(-20px); }
-}
-
-.float-animation {
-    animation: float 6s ease-in-out infinite;
-}
-
-/* Particle background */
-.particles {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    pointer-events: none;
-    z-index: 0;
-}
-
-.particle {
-    position: absolute;
-    width: 2px;
-    height: 2px;
-    background: rgba(255,46,98,0.5);
-    border-radius: 50%;
-    animation: particle-float 20s infinite;
-}
-
-@keyframes particle-float {
-    0% { transform: translateY(100vh) translateX(0); opacity: 0; }
-    10% { opacity: 1; }
-    90% { opacity: 1; }
-    100% { transform: translateY(-100vh) translateX(100px); opacity: 0; }
-}
-
-/* Smooth scroll */
-html {
-    scroll-behavior: smooth;
-}
+.fade-in { opacity: 0; transform: translateY(30px); transition: opacity 0.6s ease-out, transform 0.6s ease-out; }
+.fade-in.visible { opacity: 1; transform: translateY(0); }
+.slide-in-left { opacity: 0; transform: translateX(-50px); transition: opacity 0.8s ease-out, transform 0.8s ease-out; }
+.slide-in-left.visible { opacity: 1; transform: translateX(0); }
+.slide-in-right { opacity: 0; transform: translateX(50px); transition: opacity 0.8s ease-out, transform 0.8s ease-out; }
+.slide-in-right.visible { opacity: 1; transform: translateX(0); }
+.scale-in { opacity: 0; transform: scale(0.9); transition: opacity 0.6s ease-out, transform 0.6s ease-out; }
+.scale-in.visible { opacity: 1; transform: scale(1); }
+@keyframes gradient-shift { 0%, 100% { background-position: 0% 50%; } 50% { background-position: 100% 50%; } }
+.gradient-text { background: linear-gradient(90deg, #ff2e62, #ff6b9d, #ff2e62); background-size: 200% auto; -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; animation: gradient-shift 3s ease infinite; }
+@keyframes float { 0%, 100% { transform: translateY(0px); } 50% { transform: translateY(-20px); } }
+.float-animation { animation: float 6s ease-in-out infinite; }
+.particles { position: fixed; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 0; }
+.particle { position: absolute; width: 2px; height: 2px; background: rgba(255,46,98,0.5); border-radius: 50%; animation: particle-float 20s infinite; }
+@keyframes particle-float { 0% { transform: translateY(100vh) translateX(0); opacity: 0; } 10% { opacity: 1; } 90% { opacity: 1; } 100% { transform: translateY(-100vh) translateX(100px); opacity: 0; } }
+html { scroll-behavior: smooth; }
+.page-card:hover { transform: translateY(-4px); border-color: rgba(255,46,98,0.5); box-shadow: 0 0 25px rgba(255,46,98,0.15); }
+.page-card { transition: transform 0.25s ease, border-color 0.25s ease, box-shadow 0.25s ease; }
+.tech-tile { transition: border-color 0.2s ease, box-shadow 0.2s ease; }
+.tech-tile:hover { border-color: rgba(255,46,98,0.5); box-shadow: 0 0 20px rgba(255,46,98,0.12); }
+.pipeline-step { position: relative; }
+.pipeline-step:not(:last-child)::after { content: ''; position: absolute; top: 50%; right: -16px; width: 32px; height: 2px; background: linear-gradient(90deg, rgba(255,46,98,0.6), rgba(255,46,98,0.2)); transform: translateY(-50%); }
 </style>
 </head>
-
 <body class="relative">
+
 <!-- Particle Background -->
 <div class="particles" id="particles"></div>
 
@@ -137,12 +58,14 @@ html {
             <div class="w-3 h-3 bg-primary rounded-full animate-pulse"></div>
             <h1 class="text-xl font-bold tracking-tighter uppercase">RAG<span class="text-primary font-black">CORE</span></h1>
         </div>
-        <div class="flex items-center gap-4">
+        <div class="flex items-center gap-4 flex-wrap">
             <a href="#features" class="text-sm text-slate-400 hover:text-primary transition-colors">Features</a>
             <a href="#how-it-works" class="text-sm text-slate-400 hover:text-primary transition-colors">How It Works</a>
+            <a href="/dashboard" class="text-sm text-slate-400 hover:text-primary transition-colors">Dashboard</a>
+            <a href="/pipeline" class="text-sm text-slate-400 hover:text-primary transition-colors">Pipeline</a>
+            <a href="/playground" class="text-sm text-slate-400 hover:text-primary transition-colors">Playground</a>
             <a href="#ai-chat" class="text-sm text-slate-400 hover:text-primary transition-colors">AI Chat</a>
             <a href="#faq" class="text-sm text-slate-400 hover:text-primary transition-colors">FAQ</a>
-            <a href="#pricing" class="text-sm text-slate-400 hover:text-primary transition-colors">Get Started</a>
             <a href="/login" class="text-sm text-slate-400 hover:text-primary transition-colors">Login</a>
             <a href="/register" class="bg-primary text-white px-6 py-2 rounded-xl font-bold hover:scale-105 transition-all">Get Started</a>
         </div>
@@ -162,7 +85,7 @@ html {
             Document Intelligence
         </h1>
         <p class="text-xl md:text-2xl text-slate-400 mb-12 max-w-3xl mx-auto">
-            Transform your documents into intelligent knowledge. Ask questions, get instant answers from your PDFs, Excel files, and more.
+            Transform your documents into intelligent knowledge. Hybrid search, visual pipeline explorer, real-time monitoring dashboard — everything in one production-ready RAG system.
         </p>
         <div class="flex flex-col sm:flex-row gap-4 justify-center items-center">
             <a href="/register" class="bg-primary text-white px-8 py-4 rounded-xl font-bold text-lg hover:scale-105 transition-all neon-glow">
@@ -172,31 +95,103 @@ html {
                 Learn More
             </a>
         </div>
-        <div class="mt-16 flex justify-center gap-8 text-sm text-slate-500">
+        <!-- Status bar -->
+        <div class="mt-10 inline-flex items-center gap-4 bg-matte-black border border-white/10 rounded-full px-6 py-3">
+            <span class="flex items-center gap-2 text-sm text-green-400 font-medium">
+                <span class="w-2 h-2 rounded-full bg-green-400 animate-pulse inline-block"></span>
+                All systems operational
+            </span>
+            <span class="text-white/20">|</span>
             <div class="flex items-center gap-2">
-                <span class="material-symbols-outlined text-primary">check_circle</span>
-                <span>No Credit Card</span>
+                <span class="text-xs text-slate-500 bg-white/5 border border-white/10 rounded-full px-3 py-1">pgvector</span>
+                <span class="text-xs text-slate-500 bg-white/5 border border-white/10 rounded-full px-3 py-1">BM25</span>
+                <span class="text-xs text-slate-500 bg-white/5 border border-white/10 rounded-full px-3 py-1">Groq</span>
+                <span class="text-xs text-slate-500 bg-white/5 border border-white/10 rounded-full px-3 py-1">Cohere</span>
             </div>
-            <div class="flex items-center gap-2">
-                <span class="material-symbols-outlined text-primary">check_circle</span>
-                <span>Free Forever</span>
+        </div>
+        <div class="mt-8 flex justify-center gap-8 text-sm text-slate-500">
+            <div class="flex items-center gap-2"><span class="material-symbols-outlined text-primary">check_circle</span><span>No Credit Card</span></div>
+            <div class="flex items-center gap-2"><span class="material-symbols-outlined text-primary">check_circle</span><span>Free Forever</span></div>
+            <div class="flex items-center gap-2"><span class="material-symbols-outlined text-primary">check_circle</span><span>Instant Setup</span></div>
+        </div>
+    </div>
+</section>
+
+<!-- What's Inside Section -->
+<section id="whats-inside" class="py-32 relative z-10 px-8">
+    <div class="max-w-7xl mx-auto">
+        <div class="text-center mb-16 fade-in">
+            <p class="text-xs font-bold text-primary uppercase tracking-widest mb-3">Explore the Platform</p>
+            <h2 class="text-5xl font-black mb-4">What's Inside</h2>
+            <p class="text-xl text-slate-400">Every tool you need, purpose-built and production-ready</p>
+        </div>
+        <div class="grid md:grid-cols-3 gap-6">
+            <!-- Document RAG -->
+            <div class="bg-matte-black neon-border rounded-2xl p-7 page-card fade-in">
+                <div class="w-12 h-12 rounded-xl flex items-center justify-center mb-5" style="background:rgba(255,46,98,0.15);">
+                    <span class="material-symbols-outlined text-2xl" style="color:#ff2e62;">folder_open</span>
+                </div>
+                <h3 class="text-lg font-bold mb-2">Document RAG</h3>
+                <p class="text-slate-400 text-sm">Upload docs, chat with AI, get page citations. Hybrid search finds the right chunk every time.</p>
+                <a href="/app" class="mt-5 inline-flex items-center gap-1 text-xs text-primary font-semibold hover:underline">Open App <span class="material-symbols-outlined text-sm">arrow_forward</span></a>
             </div>
-            <div class="flex items-center gap-2">
-                <span class="material-symbols-outlined text-primary">check_circle</span>
-                <span>Instant Setup</span>
+            <!-- Pipeline Explorer -->
+            <div class="bg-matte-black neon-border rounded-2xl p-7 page-card fade-in" style="transition-delay:0.05s">
+                <div class="w-12 h-12 rounded-xl flex items-center justify-center mb-5" style="background:rgba(99,102,241,0.15);">
+                    <span class="material-symbols-outlined text-2xl" style="color:#818cf8;">account_tree</span>
+                </div>
+                <h3 class="text-lg font-bold mb-2">Pipeline Explorer</h3>
+                <p class="text-slate-400 text-sm">Watch every RAG stage execute in real time with embedding scores, BM25 ranks, and RRF tables.</p>
+                <a href="/pipeline" class="mt-5 inline-flex items-center gap-1 text-xs font-semibold hover:underline" style="color:#818cf8;">Open Pipeline <span class="material-symbols-outlined text-sm">arrow_forward</span></a>
+            </div>
+            <!-- AI Playground -->
+            <div class="bg-matte-black neon-border rounded-2xl p-7 page-card fade-in" style="transition-delay:0.1s">
+                <div class="w-12 h-12 rounded-xl flex items-center justify-center mb-5" style="background:rgba(16,185,129,0.15);">
+                    <span class="material-symbols-outlined text-2xl" style="color:#34d399;">biotech</span>
+                </div>
+                <h3 class="text-lg font-bold mb-2">AI Playground</h3>
+                <p class="text-slate-400 text-sm">Upload a file, ask a question, see the full animated pipeline graph with every stage lit up.</p>
+                <a href="/playground" class="mt-5 inline-flex items-center gap-1 text-xs font-semibold hover:underline" style="color:#34d399;">Open Playground <span class="material-symbols-outlined text-sm">arrow_forward</span></a>
+            </div>
+            <!-- Analytics Dashboard -->
+            <div class="bg-matte-black neon-border rounded-2xl p-7 page-card fade-in" style="transition-delay:0.15s">
+                <div class="w-12 h-12 rounded-xl flex items-center justify-center mb-5" style="background:rgba(251,191,36,0.15);">
+                    <span class="material-symbols-outlined text-2xl" style="color:#fbbf24;">dashboard</span>
+                </div>
+                <h3 class="text-lg font-bold mb-2">Analytics Dashboard</h3>
+                <p class="text-slate-400 text-sm">Stat cards, query logs with latency coloring, workspace overview, and usage trends.</p>
+                <a href="/dashboard" class="mt-5 inline-flex items-center gap-1 text-xs font-semibold hover:underline" style="color:#fbbf24;">Open Dashboard <span class="material-symbols-outlined text-sm">arrow_forward</span></a>
+            </div>
+            <!-- System Monitor -->
+            <div class="bg-matte-black neon-border rounded-2xl p-7 page-card fade-in" style="transition-delay:0.2s">
+                <div class="w-12 h-12 rounded-xl flex items-center justify-center mb-5" style="background:rgba(239,68,68,0.15);">
+                    <span class="material-symbols-outlined text-2xl" style="color:#f87171;">monitor_heart</span>
+                </div>
+                <h3 class="text-lg font-bold mb-2">System Monitor</h3>
+                <p class="text-slate-400 text-sm">Live health cards for every service — Supabase, Groq, Cohere, BM25 — with latency bars and error logs.</p>
+                <a href="/monitoring" class="mt-5 inline-flex items-center gap-1 text-xs font-semibold hover:underline" style="color:#f87171;">Open Monitor <span class="material-symbols-outlined text-sm">arrow_forward</span></a>
+            </div>
+            <!-- AI Chat -->
+            <div class="bg-matte-black neon-border rounded-2xl p-7 page-card fade-in" style="transition-delay:0.25s">
+                <div class="w-12 h-12 rounded-xl flex items-center justify-center mb-5" style="background:rgba(168,85,247,0.15);">
+                    <span class="material-symbols-outlined text-2xl" style="color:#c084fc;">smart_toy</span>
+                </div>
+                <h3 class="text-lg font-bold mb-2">AI Chat</h3>
+                <p class="text-slate-400 text-sm">General AI chatbot for any question — no documents required. Persistent sessions saved automatically.</p>
+                <a href="/ai-chat" class="mt-5 inline-flex items-center gap-1 text-xs font-semibold hover:underline" style="color:#c084fc;">Open AI Chat <span class="material-symbols-outlined text-sm">arrow_forward</span></a>
             </div>
         </div>
     </div>
 </section>
 
 <!-- Features Section -->
-<section id="features" class="py-32 relative z-10 px-8">
+<section id="features" class="py-32 relative z-10 px-8 bg-gradient-to-b from-black via-matte-black to-black">
     <div class="max-w-7xl mx-auto">
         <div class="text-center mb-20 fade-in">
+            <p class="text-xs font-bold text-primary uppercase tracking-widest mb-3">Capabilities</p>
             <h2 class="text-5xl font-black mb-4">Powerful Features</h2>
             <p class="text-xl text-slate-400">Everything you need to make your documents intelligent</p>
         </div>
-        
         <div class="grid md:grid-cols-3 gap-8">
             <div class="bg-matte-black neon-border rounded-2xl p-8 slide-in-left">
                 <div class="w-16 h-16 bg-primary/20 rounded-xl flex items-center justify-center mb-6">
@@ -205,15 +200,13 @@ html {
                 <h3 class="text-2xl font-bold mb-4">Multi-Format Support</h3>
                 <p class="text-slate-400">Upload PDFs, Word documents, Excel files, and images. Our AI extracts and understands content from any format.</p>
             </div>
-            
             <div class="bg-matte-black neon-border rounded-2xl p-8 fade-in">
                 <div class="w-16 h-16 bg-primary/20 rounded-xl flex items-center justify-center mb-6">
                     <span class="material-symbols-outlined text-4xl text-primary">chat_bubble</span>
                 </div>
-                <h3 class="text-2xl font-bold mb-4">Intelligent Q&A</h3>
+                <h3 class="text-2xl font-bold mb-4">Intelligent Q&amp;A</h3>
                 <p class="text-slate-400">Ask questions in natural language and get precise answers from your documents. Powered by advanced RAG technology.</p>
             </div>
-            
             <div class="bg-matte-black neon-border rounded-2xl p-8 slide-in-right">
                 <div class="w-16 h-16 bg-primary/20 rounded-xl flex items-center justify-center mb-6">
                     <span class="material-symbols-outlined text-4xl text-primary">workspaces</span>
@@ -221,7 +214,6 @@ html {
                 <h3 class="text-2xl font-bold mb-4">Workspace Organization</h3>
                 <p class="text-slate-400">Organize your documents into workspaces. Keep different projects separate and easily accessible.</p>
             </div>
-            
             <div class="bg-matte-black neon-border rounded-2xl p-8 slide-in-left">
                 <div class="w-16 h-16 bg-primary/20 rounded-xl flex items-center justify-center mb-6">
                     <span class="material-symbols-outlined text-4xl text-primary">bolt</span>
@@ -229,15 +221,13 @@ html {
                 <h3 class="text-2xl font-bold mb-4">Lightning Fast</h3>
                 <p class="text-slate-400">Get answers in milliseconds. Our optimized vector search ensures instant responses to your queries.</p>
             </div>
-            
             <div class="bg-matte-black neon-border rounded-2xl p-8 fade-in">
                 <div class="w-16 h-16 bg-primary/20 rounded-xl flex items-center justify-center mb-6">
                     <span class="material-symbols-outlined text-4xl text-primary">security</span>
                 </div>
-                <h3 class="text-2xl font-bold mb-4">Secure & Private</h3>
-                <p class="text-slate-400">Your documents are stored securely. We use industry-standard encryption and never share your data.</p>
+                <h3 class="text-2xl font-bold mb-4">Secure &amp; Private</h3>
+                <p class="text-slate-400">Your documents are stored in your own Supabase project. Industry-standard JWT auth, secure cookies, and HttpOnly sessions.</p>
             </div>
-            
             <div class="bg-matte-black neon-border rounded-2xl p-8 slide-in-right">
                 <div class="w-16 h-16 bg-primary/20 rounded-xl flex items-center justify-center mb-6">
                     <span class="material-symbols-outlined text-4xl text-primary">history</span>
@@ -245,13 +235,36 @@ html {
                 <h3 class="text-2xl font-bold mb-4">Chat History</h3>
                 <p class="text-slate-400">All your conversations are saved. Review past queries and answers anytime, organized by workspace.</p>
             </div>
-
-            <div class="bg-matte-black neon-border rounded-2xl p-8 slide-in-left md:col-start-2">
+            <div class="bg-matte-black neon-border rounded-2xl p-8 slide-in-left">
                 <div class="w-16 h-16 bg-primary/20 rounded-xl flex items-center justify-center mb-6">
                     <span class="material-symbols-outlined text-4xl text-primary">smart_toy</span>
                 </div>
                 <h3 class="text-2xl font-bold mb-4">General AI Chatbot</h3>
                 <p class="text-slate-400">Not everything needs a document. Switch to the built-in General AI assistant for coding help, writing, analysis, or any open-ended question.</p>
+            </div>
+            <!-- NEW: Pipeline Explorer -->
+            <div class="bg-matte-black neon-border rounded-2xl p-8 fade-in">
+                <div class="w-16 h-16 rounded-xl flex items-center justify-center mb-6" style="background:rgba(99,102,241,0.15);">
+                    <span class="material-symbols-outlined text-4xl" style="color:#818cf8;">account_tree</span>
+                </div>
+                <h3 class="text-2xl font-bold mb-4">Pipeline Explorer</h3>
+                <p class="text-slate-400">Step-by-step RAG walkthrough with embedding scores, BM25 ranks, RRF fusion table, and streamed answer. Ask multiple questions on the same file.</p>
+            </div>
+            <!-- NEW: Analytics Dashboard -->
+            <div class="bg-matte-black neon-border rounded-2xl p-8 slide-in-right">
+                <div class="w-16 h-16 rounded-xl flex items-center justify-center mb-6" style="background:rgba(251,191,36,0.15);">
+                    <span class="material-symbols-outlined text-4xl" style="color:#fbbf24;">dashboard</span>
+                </div>
+                <h3 class="text-2xl font-bold mb-4">Analytics Dashboard</h3>
+                <p class="text-slate-400">Track queries, latency, feedback, storage usage, and workspace activity. Color-coded query log with latency heat mapping.</p>
+            </div>
+            <!-- NEW: System Monitoring -->
+            <div class="bg-matte-black neon-border rounded-2xl p-8 fade-in md:col-start-2">
+                <div class="w-16 h-16 rounded-xl flex items-center justify-center mb-6" style="background:rgba(239,68,68,0.15);">
+                    <span class="material-symbols-outlined text-4xl" style="color:#f87171;">monitor_heart</span>
+                </div>
+                <h3 class="text-2xl font-bold mb-4">System Monitoring</h3>
+                <p class="text-slate-400">Real-time health dashboard for every service. Latency bars, error logs, uptime display, and environment badge for instant status.</p>
             </div>
         </div>
     </div>
@@ -261,18 +274,13 @@ html {
 <section id="ai-chat" class="py-32 relative z-10 px-8">
     <div class="max-w-7xl mx-auto">
         <div class="grid md:grid-cols-2 gap-16 items-center">
-            <!-- Left: text -->
             <div class="slide-in-left">
                 <div class="inline-flex items-center gap-2 bg-primary/10 border border-primary/30 rounded-full px-4 py-2 mb-6">
                     <span class="material-symbols-outlined text-primary text-sm">smart_toy</span>
                     <span class="text-xs font-bold text-primary uppercase tracking-widest">New Feature</span>
                 </div>
-                <h2 class="text-5xl font-black mb-6 leading-tight">
-                    General AI<br/><span class="gradient-text">Chatbot</span>
-                </h2>
-                <p class="text-lg text-slate-400 mb-6">
-                    Not everything needs a document. Our built-in General AI assistant answers any question using its broad knowledge — coding, writing, analysis, brainstorming, or just a conversation.
-                </p>
+                <h2 class="text-5xl font-black mb-6 leading-tight">General AI<br/><span class="gradient-text">Chatbot</span></h2>
+                <p class="text-lg text-slate-400 mb-6">Not everything needs a document. Our built-in General AI assistant answers any question using its broad knowledge — coding, writing, analysis, brainstorming, or just a conversation.</p>
                 <ul class="space-y-3 mb-8">
                     <li class="flex items-start gap-3">
                         <span class="material-symbols-outlined text-primary text-lg mt-0.5">code</span>
@@ -280,11 +288,11 @@ html {
                     </li>
                     <li class="flex items-start gap-3">
                         <span class="material-symbols-outlined text-primary text-lg mt-0.5">edit_note</span>
-                        <div><p class="text-sm font-semibold text-white">Writing & Analysis</p><p class="text-xs text-slate-500">Drafts, summaries, research, and brainstorming.</p></div>
+                        <div><p class="text-sm font-semibold text-white">Writing &amp; Analysis</p><p class="text-xs text-slate-500">Drafts, summaries, research, and brainstorming.</p></div>
                     </li>
                     <li class="flex items-start gap-3">
                         <span class="material-symbols-outlined text-primary text-lg mt-0.5">forum</span>
-                        <div><p class="text-sm font-semibold text-white">Persistent Sessions</p><p class="text-xs text-slate-500">Conversations are saved locally across sessions.</p></div>
+                        <div><p class="text-sm font-semibold text-white">Persistent Sessions</p><p class="text-xs text-slate-500">Conversations are saved across sessions.</p></div>
                     </li>
                     <li class="flex items-start gap-3">
                         <span class="material-symbols-outlined text-primary text-lg mt-0.5">swap_horiz</span>
@@ -296,20 +304,15 @@ html {
                     Try AI Chat
                 </a>
             </div>
-            <!-- Right: visual mockup -->
             <div class="slide-in-right">
                 <div class="bg-matte-black neon-border rounded-2xl overflow-hidden">
-                    <!-- Fake header -->
                     <div class="px-4 py-3 border-b border-white/5 flex items-center gap-3">
                         <div class="flex gap-1.5"><div class="w-2.5 h-2.5 rounded-full bg-red-500/70"></div><div class="w-2.5 h-2.5 rounded-full bg-yellow-500/70"></div><div class="w-2.5 h-2.5 rounded-full bg-green-500/70"></div></div>
                         <div class="flex-1 bg-white/5 rounded-md h-5 flex items-center px-2"><span class="text-[9px] text-slate-600">ragcore.app/ai-chat</span></div>
                     </div>
-                    <!-- Fake chat -->
                     <div class="p-5 space-y-4">
                         <div class="flex justify-end">
-                            <div class="bg-charcoal border border-white/10 rounded-2xl px-4 py-2.5 text-xs text-slate-300 max-w-[80%]">
-                                Write a Python function to reverse a linked list
-                            </div>
+                            <div class="bg-charcoal border border-white/10 rounded-2xl px-4 py-2.5 text-xs text-slate-300 max-w-[80%]">Write a Python function to reverse a linked list</div>
                         </div>
                         <div class="flex justify-start">
                             <div class="border-l-2 border-primary bg-[#0D0D0D] rounded-2xl px-4 py-3 text-xs text-slate-300 max-w-[85%] space-y-1.5">
@@ -321,23 +324,19 @@ html {
                                     &nbsp;&nbsp;<span class="text-primary">while</span> head:<br/>
                                     &nbsp;&nbsp;&nbsp;&nbsp;nxt = head.next<br/>
                                     &nbsp;&nbsp;&nbsp;&nbsp;head.next = prev<br/>
-                                    &nbsp;&nbsp;&nbsp;&nbsp;prev = head<br/>
-                                    &nbsp;&nbsp;&nbsp;&nbsp;head = nxt<br/>
+                                    &nbsp;&nbsp;&nbsp;&nbsp;prev = head; head = nxt<br/>
                                     &nbsp;&nbsp;<span class="text-primary">return</span> prev
                                 </div>
                             </div>
                         </div>
                         <div class="flex justify-end">
-                            <div class="bg-charcoal border border-white/10 rounded-2xl px-4 py-2.5 text-xs text-slate-300 max-w-[80%]">
-                                What's the time complexity?
-                            </div>
+                            <div class="bg-charcoal border border-white/10 rounded-2xl px-4 py-2.5 text-xs text-slate-300 max-w-[80%]">What's the time complexity?</div>
                         </div>
                         <div class="flex justify-start">
                             <div class="border-l-2 border-primary bg-[#0D0D0D] rounded-2xl px-4 py-3 text-xs text-slate-400 max-w-[85%]">
                                 <span class="text-white">O(n)</span> time and <span class="text-white">O(1)</span> space — we visit each node once with no extra data structures.
                             </div>
                         </div>
-                        <!-- Typing indicator -->
                         <div class="flex items-center gap-1.5 pl-1">
                             <div class="w-1.5 h-1.5 rounded-full bg-primary animate-bounce" style="animation-delay:0s"></div>
                             <div class="w-1.5 h-1.5 rounded-full bg-primary animate-bounce" style="animation-delay:.15s"></div>
@@ -354,10 +353,10 @@ html {
 <section id="how-it-works" class="py-32 relative z-10 px-8 bg-gradient-to-b from-black via-matte-black to-black">
     <div class="max-w-7xl mx-auto">
         <div class="text-center mb-20 fade-in">
+            <p class="text-xs font-bold text-primary uppercase tracking-widest mb-3">Simple Process</p>
             <h2 class="text-5xl font-black mb-4">How It Works</h2>
             <p class="text-xl text-slate-400">Get started in three simple steps</p>
         </div>
-        
         <div class="grid md:grid-cols-3 gap-12 items-start">
             <div class="text-center scale-in">
                 <div class="w-24 h-24 bg-primary/20 rounded-full flex items-center justify-center mx-auto mb-6 border-4 border-primary/30">
@@ -366,7 +365,6 @@ html {
                 <h3 class="text-2xl font-bold mb-4">Upload Documents</h3>
                 <p class="text-slate-400">Create a workspace and upload your documents. We support PDF, Word, Excel, and image files.</p>
             </div>
-            
             <div class="text-center scale-in" style="transition-delay: 0.2s">
                 <div class="w-24 h-24 bg-primary/20 rounded-full flex items-center justify-center mx-auto mb-6 border-4 border-primary/30">
                     <span class="text-4xl font-black text-primary">2</span>
@@ -374,13 +372,12 @@ html {
                 <h3 class="text-2xl font-bold mb-4">AI Processing</h3>
                 <p class="text-slate-400">Our AI extracts, chunks, and indexes your content using advanced vector embeddings for semantic search.</p>
             </div>
-            
             <div class="text-center scale-in" style="transition-delay: 0.4s">
                 <div class="w-24 h-24 bg-primary/20 rounded-full flex items-center justify-center mx-auto mb-6 border-4 border-primary/30">
                     <span class="text-4xl font-black text-primary">3</span>
                 </div>
                 <h3 class="text-2xl font-bold mb-4">Ask Questions</h3>
-                <p class="text-slate-400">Start chatting! Ask any question about your documents and get instant, accurate answers.</p>
+                <p class="text-slate-400">Start chatting! Ask any question about your documents and get instant, accurate answers with page citations.</p>
             </div>
         </div>
     </div>
@@ -390,52 +387,170 @@ html {
 <section id="technology" class="py-32 relative z-10 px-8">
     <div class="max-w-7xl mx-auto">
         <div class="text-center mb-20 fade-in">
+            <p class="text-xs font-bold text-primary uppercase tracking-widest mb-3">Stack</p>
             <h2 class="text-5xl font-black mb-4">Built with Cutting-Edge Technology</h2>
             <p class="text-xl text-slate-400">Production-grade stack powering every query</p>
         </div>
-        
         <div class="grid md:grid-cols-4 gap-6">
-            <div class="bg-matte-black neon-border rounded-xl p-6 text-center slide-in-left">
+            <div class="bg-matte-black neon-border rounded-xl p-6 text-center tech-tile slide-in-left">
                 <div class="text-3xl font-bold text-primary mb-2">pgvector</div>
                 <div class="text-sm text-slate-400">Supabase Vector Store</div>
             </div>
-            <div class="bg-matte-black neon-border rounded-xl p-6 text-center fade-in">
+            <div class="bg-matte-black neon-border rounded-xl p-6 text-center tech-tile fade-in">
                 <div class="text-3xl font-bold text-primary mb-2">BGE</div>
                 <div class="text-sm text-slate-400">384-dim Embeddings</div>
             </div>
-            <div class="bg-matte-black neon-border rounded-xl p-6 text-center fade-in">
+            <div class="bg-matte-black neon-border rounded-xl p-6 text-center tech-tile fade-in">
                 <div class="text-3xl font-bold text-primary mb-2">BM25</div>
                 <div class="text-sm text-slate-400">Keyword Hybrid Search</div>
             </div>
-            <div class="bg-matte-black neon-border rounded-xl p-6 text-center slide-in-right">
+            <div class="bg-matte-black neon-border rounded-xl p-6 text-center tech-tile slide-in-right">
                 <div class="text-3xl font-bold text-primary mb-2">Groq</div>
                 <div class="text-sm text-slate-400">LLM + Vision Inference</div>
+            </div>
+            <div class="bg-matte-black neon-border rounded-xl p-6 text-center tech-tile slide-in-left">
+                <div class="text-3xl font-bold text-primary mb-2">Cohere</div>
+                <div class="text-sm text-slate-400">Cross-Encoder Reranking</div>
+            </div>
+            <div class="bg-matte-black neon-border rounded-xl p-6 text-center tech-tile fade-in">
+                <div class="text-3xl font-bold text-primary mb-2">FastAPI</div>
+                <div class="text-sm text-slate-400">Async Python Backend</div>
+            </div>
+            <div class="bg-matte-black neon-border rounded-xl p-6 text-center tech-tile fade-in">
+                <div class="text-3xl font-bold text-primary mb-2">Langfuse</div>
+                <div class="text-sm text-slate-400">LLM Observability &amp; Tracing</div>
+            </div>
+            <div class="bg-matte-black neon-border rounded-xl p-6 text-center tech-tile slide-in-right">
+                <div class="text-3xl font-bold text-primary mb-2">ChromaDB</div>
+                <div class="text-sm text-slate-400">Local Vector Fallback</div>
             </div>
         </div>
     </div>
 </section>
 
+<!-- Enterprise-Grade RAG Pipeline Section -->
+<section id="pipeline-flow" class="py-32 relative z-10 px-8 bg-gradient-to-b from-black via-matte-black to-black">
+    <div class="max-w-7xl mx-auto">
+        <div class="text-center mb-16 fade-in">
+            <p class="text-xs font-bold text-primary uppercase tracking-widest mb-3">Under the Hood</p>
+            <h2 class="text-5xl font-black mb-4">Enterprise-Grade RAG Pipeline</h2>
+            <p class="text-xl text-slate-400">Every query travels through a battle-tested multi-stage retrieval system</p>
+        </div>
+        <!-- Pipeline flow — row 1: ingestion -->
+        <div class="mb-6 fade-in">
+            <p class="text-xs font-bold text-slate-500 uppercase tracking-widest mb-4">Ingestion</p>
+            <div class="flex flex-wrap items-center gap-0">
+                <!-- Step -->
+                <div class="pipeline-step flex-1 min-w-[80px] bg-matte-black neon-border rounded-xl p-4 text-center mx-2 my-2">
+                    <div class="w-8 h-8 rounded-full bg-primary/20 border border-primary/40 flex items-center justify-center mx-auto mb-2 text-xs font-black text-primary">1</div>
+                    <span class="material-symbols-outlined text-xl text-primary block mb-1">upload_file</span>
+                    <p class="text-xs font-semibold text-white">Upload</p>
+                    <p class="text-[10px] text-slate-500 mt-0.5">PDF · DOCX · Excel · Image</p>
+                </div>
+                <span class="material-symbols-outlined text-slate-700 text-xl mx-1">arrow_forward</span>
+                <div class="pipeline-step flex-1 min-w-[80px] bg-matte-black neon-border rounded-xl p-4 text-center mx-2 my-2">
+                    <div class="w-8 h-8 rounded-full bg-primary/20 border border-primary/40 flex items-center justify-center mx-auto mb-2 text-xs font-black text-primary">2</div>
+                    <span class="material-symbols-outlined text-xl text-primary block mb-1">description</span>
+                    <p class="text-xs font-semibold text-white">Extract</p>
+                    <p class="text-[10px] text-slate-500 mt-0.5">PyMuPDF · docx · pandas · OCR</p>
+                </div>
+                <span class="material-symbols-outlined text-slate-700 text-xl mx-1">arrow_forward</span>
+                <div class="pipeline-step flex-1 min-w-[80px] bg-matte-black neon-border rounded-xl p-4 text-center mx-2 my-2">
+                    <div class="w-8 h-8 rounded-full bg-primary/20 border border-primary/40 flex items-center justify-center mx-auto mb-2 text-xs font-black text-primary">3</div>
+                    <span class="material-symbols-outlined text-xl text-primary block mb-1">content_cut</span>
+                    <p class="text-xs font-semibold text-white">Chunk</p>
+                    <p class="text-[10px] text-slate-500 mt-0.5">1000 chars · 300 overlap</p>
+                </div>
+                <span class="material-symbols-outlined text-slate-700 text-xl mx-1">arrow_forward</span>
+                <div class="pipeline-step flex-1 min-w-[80px] bg-matte-black neon-border rounded-xl p-4 text-center mx-2 my-2">
+                    <div class="w-8 h-8 rounded-full bg-primary/20 border border-primary/40 flex items-center justify-center mx-auto mb-2 text-xs font-black text-primary">4</div>
+                    <span class="material-symbols-outlined text-xl text-primary block mb-1">hub</span>
+                    <p class="text-xs font-semibold text-white">Embed</p>
+                    <p class="text-[10px] text-slate-500 mt-0.5">BGE-small · 384 dims</p>
+                </div>
+                <span class="material-symbols-outlined text-slate-700 text-xl mx-1">arrow_forward</span>
+                <div class="pipeline-step flex-1 min-w-[80px] bg-matte-black neon-border rounded-xl p-4 text-center mx-2 my-2">
+                    <div class="w-8 h-8 rounded-full bg-primary/20 border border-primary/40 flex items-center justify-center mx-auto mb-2 text-xs font-black text-primary">5</div>
+                    <span class="material-symbols-outlined text-xl text-primary block mb-1">storage</span>
+                    <p class="text-xs font-semibold text-white">Store</p>
+                    <p class="text-[10px] text-slate-500 mt-0.5">pgvector · ChromaDB · BM25</p>
+                </div>
+            </div>
+        </div>
+        <!-- Pipeline flow — row 2: retrieval -->
+        <div class="fade-in" style="transition-delay:0.15s">
+            <p class="text-xs font-bold text-slate-500 uppercase tracking-widest mb-4">Retrieval &amp; Generation</p>
+            <div class="flex flex-wrap items-center gap-0">
+                <div class="pipeline-step flex-1 min-w-[80px] bg-matte-black neon-border rounded-xl p-4 text-center mx-2 my-2">
+                    <div class="w-8 h-8 rounded-full bg-primary/20 border border-primary/40 flex items-center justify-center mx-auto mb-2 text-xs font-black text-primary">6</div>
+                    <span class="material-symbols-outlined text-xl text-primary block mb-1">search</span>
+                    <p class="text-xs font-semibold text-white">Query</p>
+                    <p class="text-[10px] text-slate-500 mt-0.5">Natural language input</p>
+                </div>
+                <span class="material-symbols-outlined text-slate-700 text-xl mx-1">arrow_forward</span>
+                <div class="pipeline-step flex-1 min-w-[80px] bg-matte-black neon-border rounded-xl p-4 text-center mx-2 my-2">
+                    <div class="w-8 h-8 rounded-full bg-primary/20 border border-primary/40 flex items-center justify-center mx-auto mb-2 text-xs font-black text-primary">7</div>
+                    <span class="material-symbols-outlined text-xl text-primary block mb-1">merge</span>
+                    <p class="text-xs font-semibold text-white">Hybrid Search</p>
+                    <p class="text-[10px] text-slate-500 mt-0.5">Vector + BM25</p>
+                </div>
+                <span class="material-symbols-outlined text-slate-700 text-xl mx-1">arrow_forward</span>
+                <div class="pipeline-step flex-1 min-w-[80px] bg-matte-black neon-border rounded-xl p-4 text-center mx-2 my-2">
+                    <div class="w-8 h-8 rounded-full bg-primary/20 border border-primary/40 flex items-center justify-center mx-auto mb-2 text-xs font-black text-primary">8</div>
+                    <span class="material-symbols-outlined text-xl text-primary block mb-1">sort</span>
+                    <p class="text-xs font-semibold text-white">RRF Fusion</p>
+                    <p class="text-[10px] text-slate-500 mt-0.5">Σ 1/(60+rank)</p>
+                </div>
+                <span class="material-symbols-outlined text-slate-700 text-xl mx-1">arrow_forward</span>
+                <div class="pipeline-step flex-1 min-w-[80px] bg-matte-black neon-border rounded-xl p-4 text-center mx-2 my-2">
+                    <div class="w-8 h-8 rounded-full bg-primary/20 border border-primary/40 flex items-center justify-center mx-auto mb-2 text-xs font-black text-primary">9</div>
+                    <span class="material-symbols-outlined text-xl text-primary block mb-1">military_tech</span>
+                    <p class="text-xs font-semibold text-white">Rerank</p>
+                    <p class="text-[10px] text-slate-500 mt-0.5">Cohere cross-encoder</p>
+                </div>
+                <span class="material-symbols-outlined text-slate-700 text-xl mx-1">arrow_forward</span>
+                <div class="pipeline-step flex-1 min-w-[80px] bg-matte-black neon-border rounded-xl p-4 text-center mx-2 my-2">
+                    <div class="w-8 h-8 rounded-full bg-primary/20 border border-primary/40 flex items-center justify-center mx-auto mb-2 text-xs font-black text-primary">10</div>
+                    <span class="material-symbols-outlined text-xl text-primary block mb-1">psychology</span>
+                    <p class="text-xs font-semibold text-white">LLM</p>
+                    <p class="text-[10px] text-slate-500 mt-0.5">Groq streaming</p>
+                </div>
+                <span class="material-symbols-outlined text-slate-700 text-xl mx-1">arrow_forward</span>
+                <div class="pipeline-step flex-1 min-w-[80px] bg-matte-black rounded-xl p-4 text-center mx-2 my-2" style="border:1px solid rgba(255,46,98,0.6);box-shadow:0 0 20px rgba(255,46,98,0.2);">
+                    <div class="w-8 h-8 rounded-full flex items-center justify-center mx-auto mb-2 text-xs font-black text-white" style="background:#ff2e62;">11</div>
+                    <span class="material-symbols-outlined text-xl text-white block mb-1">chat_bubble</span>
+                    <p class="text-xs font-semibold text-white">Answer</p>
+                    <p class="text-[10px] text-slate-500 mt-0.5">Cited · streamed</p>
+                </div>
+            </div>
+        </div>
+        <div class="mt-8 text-center fade-in" style="transition-delay:0.3s">
+            <a href="/pipeline" class="inline-flex items-center gap-2 bg-matte-black neon-border text-white px-6 py-3 rounded-xl font-semibold text-sm hover:border-primary/60 transition-all">
+                <span class="material-symbols-outlined text-primary">account_tree</span>
+                Explore the Pipeline Step by Step
+            </a>
+        </div>
+    </div>
+</section>
+
 <!-- FAQ Section -->
-<section id="faq" class="py-32 relative z-10 px-8 bg-gradient-to-b from-black via-matte-black to-black">
+<section id="faq" class="py-32 relative z-10 px-8">
     <div class="max-w-3xl mx-auto">
         <div class="text-center mb-16 fade-in">
+            <p class="text-xs font-bold text-primary uppercase tracking-widest mb-3">Questions</p>
             <h2 class="text-5xl font-black mb-4">Frequently Asked Questions</h2>
             <p class="text-xl text-slate-400">Everything you need to know</p>
         </div>
-
         <div class="space-y-4 fade-in">
-            <!-- Q1 -->
             <details class="bg-matte-black border border-white/10 rounded-2xl overflow-hidden group">
                 <summary class="flex items-center justify-between px-6 py-5 cursor-pointer list-none font-semibold text-sm hover:text-primary transition-colors">
                     What file formats are supported?
                     <span class="material-symbols-outlined text-slate-500 group-open:rotate-180 transition-transform text-base">expand_more</span>
                 </summary>
                 <div class="px-6 pb-5 text-slate-400 text-sm leading-relaxed border-t border-white/5 pt-4">
-                    PDF, DOCX (Word), XLSX/XLS (Excel), PNG, JPG, and JPEG. Image files are processed using Groq's vision model to extract text — no Tesseract/OCR installation required. Max file size is 50MB.
+                    PDF, DOCX (Word), XLSX/XLS (Excel), PNG, JPG, and JPEG. Image files are processed using Groq's vision model to extract text. Max file size is 50 MB.
                 </div>
             </details>
-
-            <!-- Q2 -->
             <details class="bg-matte-black border border-white/10 rounded-2xl overflow-hidden group">
                 <summary class="flex items-center justify-between px-6 py-5 cursor-pointer list-none font-semibold text-sm hover:text-primary transition-colors">
                     Does it work without Supabase?
@@ -445,8 +560,6 @@ html {
                     Yes — the app runs fully locally without any Supabase configuration. It uses ChromaDB for vector storage, BM25 pickle files on disk, and JSON files for chat/workspace data. Supabase is an optional cloud persistence layer that makes data survive server restarts and deployments.
                 </div>
             </details>
-
-            <!-- Q3 -->
             <details class="bg-matte-black border border-white/10 rounded-2xl overflow-hidden group">
                 <summary class="flex items-center justify-between px-6 py-5 cursor-pointer list-none font-semibold text-sm hover:text-primary transition-colors">
                     How accurate are the answers?
@@ -456,8 +569,6 @@ html {
                     Very accurate for factual queries within your documents. The system uses hybrid retrieval (vector + BM25 keyword search) fused with Reciprocal Rank Fusion, then optionally re-ranked by Cohere. The LLM is instructed to answer only from the provided context — it won't hallucinate from outside knowledge.
                 </div>
             </details>
-
-            <!-- Q4 -->
             <details class="bg-matte-black border border-white/10 rounded-2xl overflow-hidden group">
                 <summary class="flex items-center justify-between px-6 py-5 cursor-pointer list-none font-semibold text-sm hover:text-primary transition-colors">
                     Can I upload multiple documents to one workspace?
@@ -467,8 +578,6 @@ html {
                     Yes. Each workspace supports unlimited documents. When you ask a question, the AI searches across all documents in the workspace simultaneously. You can also create multiple workspaces to keep different projects separate.
                 </div>
             </details>
-
-            <!-- Q5 -->
             <details class="bg-matte-black border border-white/10 rounded-2xl overflow-hidden group">
                 <summary class="flex items-center justify-between px-6 py-5 cursor-pointer list-none font-semibold text-sm hover:text-primary transition-colors">
                     Is my data private?
@@ -478,8 +587,6 @@ html {
                     Your documents are stored in your own Supabase project — we never have access. Document text is sent to Groq for LLM inference (covered by Groq's privacy policy). All sessions use secure HttpOnly cookies and JWT authentication.
                 </div>
             </details>
-
-            <!-- Q6 -->
             <details class="bg-matte-black border border-white/10 rounded-2xl overflow-hidden group">
                 <summary class="flex items-center justify-between px-6 py-5 cursor-pointer list-none font-semibold text-sm hover:text-primary transition-colors">
                     Can I deploy this myself?
@@ -487,6 +594,26 @@ html {
                 </summary>
                 <div class="px-6 pb-5 text-slate-400 text-sm leading-relaxed border-t border-white/5 pt-4">
                     Yes — the project includes a <code class="bg-white/10 px-1.5 py-0.5 rounded text-xs font-mono text-primary">render.yaml</code> for one-click Render deployment. You'll need a Groq API key (free), a Supabase project (free tier), and optionally a Cohere API key for reranking. Full setup instructions are in the README.
+                </div>
+            </details>
+            <!-- NEW FAQ: Pipeline Explorer -->
+            <details class="bg-matte-black border border-white/10 rounded-2xl overflow-hidden group">
+                <summary class="flex items-center justify-between px-6 py-5 cursor-pointer list-none font-semibold text-sm hover:text-primary transition-colors">
+                    What is the Pipeline Explorer?
+                    <span class="material-symbols-outlined text-slate-500 group-open:rotate-180 transition-transform text-base">expand_more</span>
+                </summary>
+                <div class="px-6 pb-5 text-slate-400 text-sm leading-relaxed border-t border-white/5 pt-4">
+                    The Pipeline Explorer (<code class="bg-white/10 px-1.5 py-0.5 rounded text-xs font-mono text-primary">/pipeline</code>) is an educational step-by-step walkthrough of the full RAG pipeline. Upload any file, ask a question, and watch the system execute each stage — embedding bars, BM25 keyword scores, the RRF fusion table, Cohere reranking scores, and the final streamed LLM answer. You can ask multiple questions on the same file without re-uploading.
+                </div>
+            </details>
+            <!-- NEW FAQ: Query Analytics -->
+            <details class="bg-matte-black border border-white/10 rounded-2xl overflow-hidden group">
+                <summary class="flex items-center justify-between px-6 py-5 cursor-pointer list-none font-semibold text-sm hover:text-primary transition-colors">
+                    Can I see query analytics and system health?
+                    <span class="material-symbols-outlined text-slate-500 group-open:rotate-180 transition-transform text-base">expand_more</span>
+                </summary>
+                <div class="px-6 pb-5 text-slate-400 text-sm leading-relaxed border-t border-white/5 pt-4">
+                    Yes. The Analytics Dashboard (<code class="bg-white/10 px-1.5 py-0.5 rounded text-xs font-mono text-primary">/dashboard</code>) shows aggregate stat cards (workspaces, documents, chunks, queries, storage, feedback), a recent query log with color-coded latency, and a per-workspace overview. The System Monitor (<code class="bg-white/10 px-1.5 py-0.5 rounded text-xs font-mono text-primary">/monitoring</code>) shows real-time health cards for every service — Supabase, embedding model, BM25, ChromaDB, Groq, and Cohere — with latency bars, uptime counter, and a recent error log.
                 </div>
             </details>
         </div>
@@ -497,9 +624,7 @@ html {
 <section id="pricing" class="py-32 relative z-10 px-8">
     <div class="max-w-4xl mx-auto text-center">
         <div class="relative overflow-hidden rounded-3xl p-12 scale-in" style="background:linear-gradient(135deg,rgba(255,46,98,.15),rgba(255,46,98,.05));border:1px solid rgba(255,46,98,.25);box-shadow:0 0 60px rgba(255,46,98,.1);">
-            <!-- Background glow -->
             <div style="position:absolute;top:-40px;left:50%;transform:translateX(-50%);width:300px;height:300px;background:radial-gradient(circle,rgba(255,46,98,.15),transparent 70%);pointer-events:none;"></div>
-            
             <div class="relative">
                 <div class="inline-flex items-center gap-2 bg-white/5 border border-white/10 rounded-full px-4 py-1.5 mb-6">
                     <div class="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse"></div>
@@ -527,45 +652,72 @@ html {
 </section>
 
 <!-- Footer -->
-<footer class="border-t border-white/5 py-12 relative z-10 px-8">
+<footer class="border-t border-white/5 py-16 relative z-10 px-8">
     <div class="max-w-7xl mx-auto">
-        <div class="flex flex-col md:flex-row justify-between items-center">
-            <div class="flex items-center gap-2 mb-4 md:mb-0">
-                <div class="w-3 h-3 bg-primary rounded-full animate-pulse"></div>
-                <h1 class="text-lg font-bold tracking-tighter uppercase">RAG<span class="text-primary font-black">CORE</span></h1>
+        <div class="grid md:grid-cols-4 gap-10 mb-12">
+            <!-- Brand -->
+            <div>
+                <div class="flex items-center gap-2 mb-4">
+                    <div class="w-3 h-3 bg-primary rounded-full animate-pulse"></div>
+                    <h1 class="text-lg font-bold tracking-tighter uppercase">RAG<span class="text-primary font-black">CORE</span></h1>
+                </div>
+                <p class="text-sm text-slate-500 mb-3">Production-ready RAG system. Upload docs, chat with AI, monitor everything.</p>
+                <p class="text-xs text-slate-600">Built with FastAPI + Tailwind</p>
             </div>
-            <div class="text-sm text-slate-500">
-                © 2024 RAGCore. All rights reserved.
+            <!-- Product -->
+            <div>
+                <p class="text-xs font-bold text-slate-400 uppercase tracking-widest mb-4">Product</p>
+                <div class="space-y-2">
+                    <a href="#features" class="block text-sm text-slate-500 hover:text-primary transition-colors">Features</a>
+                    <a href="#how-it-works" class="block text-sm text-slate-500 hover:text-primary transition-colors">How It Works</a>
+                    <a href="#pipeline-flow" class="block text-sm text-slate-500 hover:text-primary transition-colors">RAG Pipeline</a>
+                    <a href="#faq" class="block text-sm text-slate-500 hover:text-primary transition-colors">FAQ</a>
+                </div>
+            </div>
+            <!-- App -->
+            <div>
+                <p class="text-xs font-bold text-slate-400 uppercase tracking-widest mb-4">App</p>
+                <div class="space-y-2">
+                    <a href="/dashboard" class="block text-sm text-slate-500 hover:text-primary transition-colors">Dashboard</a>
+                    <a href="/pipeline" class="block text-sm text-slate-500 hover:text-primary transition-colors">Pipeline</a>
+                    <a href="/playground" class="block text-sm text-slate-500 hover:text-primary transition-colors">Playground</a>
+                    <a href="/monitoring" class="block text-sm text-slate-500 hover:text-primary transition-colors">Monitor</a>
+                    <a href="/ai-chat" class="block text-sm text-slate-500 hover:text-primary transition-colors">AI Chat</a>
+                </div>
+            </div>
+            <!-- Account -->
+            <div>
+                <p class="text-xs font-bold text-slate-400 uppercase tracking-widest mb-4">Account</p>
+                <div class="space-y-2">
+                    <a href="/login" class="block text-sm text-slate-500 hover:text-primary transition-colors">Login</a>
+                    <a href="/register" class="block text-sm text-slate-500 hover:text-primary transition-colors">Register</a>
+                    <a href="/profile" class="block text-sm text-slate-500 hover:text-primary transition-colors">Profile</a>
+                    <a href="/settings" class="block text-sm text-slate-500 hover:text-primary transition-colors">Settings</a>
+                </div>
+            </div>
+        </div>
+        <div class="border-t border-white/5 pt-8 flex flex-col md:flex-row justify-between items-center gap-4">
+            <div class="text-sm text-slate-600">© 2025 RAGCore · Sujit Sadalage · All rights reserved.</div>
+            <div class="flex items-center gap-3">
+                <span class="text-xs text-slate-700">Built with</span>
+                <span class="text-xs bg-white/5 border border-white/10 rounded px-2 py-0.5 text-slate-500">FastAPI</span>
+                <span class="text-xs text-slate-700">+</span>
+                <span class="text-xs bg-white/5 border border-white/10 rounded px-2 py-0.5 text-slate-500">Tailwind</span>
             </div>
         </div>
     </div>
 </footer>
 
 <script>
-// Scroll animations
-const observerOptions = {
-    threshold: 0.1,
-    rootMargin: '0px 0px -100px 0px'
-};
-
+const observerOptions = { threshold: 0.1, rootMargin: '0px 0px -100px 0px' };
 const observer = new IntersectionObserver((entries) => {
-    entries.forEach(entry => {
-        if (entry.isIntersecting) {
-            entry.target.classList.add('visible');
-        }
-    });
+    entries.forEach(entry => { if (entry.isIntersecting) entry.target.classList.add('visible'); });
 }, observerOptions);
+document.querySelectorAll('.fade-in, .slide-in-left, .slide-in-right, .scale-in').forEach(el => observer.observe(el));
 
-document.querySelectorAll('.fade-in, .slide-in-left, .slide-in-right, .scale-in').forEach(el => {
-    observer.observe(el);
-});
-
-// Particle background
 function createParticles() {
     const particlesContainer = document.getElementById('particles');
-    const particleCount = 50;
-    
-    for (let i = 0; i < particleCount; i++) {
+    for (let i = 0; i < 50; i++) {
         const particle = document.createElement('div');
         particle.className = 'particle';
         particle.style.left = Math.random() * 100 + '%';
@@ -574,23 +726,15 @@ function createParticles() {
         particlesContainer.appendChild(particle);
     }
 }
-
 createParticles();
 
-// Smooth scroll for anchor links
 document.querySelectorAll('a[href^="#"]').forEach(anchor => {
     anchor.addEventListener('click', function (e) {
         e.preventDefault();
         const target = document.querySelector(this.getAttribute('href'));
-        if (target) {
-            target.scrollIntoView({
-                behavior: 'smooth',
-                block: 'start'
-            });
-        }
+        if (target) target.scrollIntoView({ behavior: 'smooth', block: 'start' });
     });
 });
 </script>
 </body>
 </html>
-
