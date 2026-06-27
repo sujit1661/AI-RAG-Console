@@ -13,15 +13,46 @@
 *{box-sizing:border-box;}
 body{background:#000;color:#f1f5f9;font-family:'Space Grotesk',sans-serif;}
 ::-webkit-scrollbar{width:4px;} ::-webkit-scrollbar-thumb{background:#1e293b;border-radius:4px;}
-.card{background:#0a0a0a;border:1px solid rgba(255,255,255,.07);border-radius:14px;padding:24px;}
-.section-title{font-size:.6rem;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:#334155;margin-bottom:12px;}
-.row{display:flex;justify-content:space-between;align-items:center;padding:12px 0;border-bottom:1px solid rgba(255,255,255,.05);}
-.row:last-child{border-bottom:none;}
-.mono{font-family:'JetBrains Mono',monospace;font-size:.72rem;}
-.key-badge{display:inline-flex;align-items:center;gap:4px;padding:2px 8px;border-radius:6px;font-size:.62rem;font-weight:700;}
-.key-set{background:rgba(16,185,129,.1);border:1px solid rgba(16,185,129,.2);color:#10b981;}
-.key-missing{background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.2);color:#ef4444;}
-.key-optional{background:rgba(245,158,11,.1);border:1px solid rgba(245,158,11,.2);color:#f59e0b;}
+
+.card{background:#0a0a0a;border:1px solid rgba(255,255,255,.07);border-radius:14px;overflow:hidden;transition:border-color .2s;}
+.card:hover{border-color:rgba(255,255,255,.1);}
+
+.card-header{padding:18px 22px 14px;border-bottom:1px solid rgba(255,255,255,.05);display:flex;align-items:center;gap:12px;}
+.card-body{padding:0;}
+
+.info-row{
+  display:flex;justify-content:space-between;align-items:center;
+  padding:11px 22px;
+  border-bottom:1px solid rgba(255,255,255,.04);
+  transition:background .15s;
+}
+.info-row:last-child{border-bottom:none;}
+.info-row:hover{background:rgba(255,255,255,.02);}
+
+.row-label{font-size:.75rem;color:#64748b;display:flex;align-items:center;gap:7px;}
+.row-value{font-size:.72rem;color:#94a3b8;font-family:'JetBrains Mono',monospace;display:flex;align-items:center;gap:7px;}
+
+.badge{display:inline-flex;align-items:center;gap:3px;padding:2px 8px;border-radius:6px;font-size:.6rem;font-weight:700;letter-spacing:.02em;}
+.badge-green{background:rgba(16,185,129,.1);border:1px solid rgba(16,185,129,.2);color:#10b981;}
+.badge-red{background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.2);color:#ef4444;}
+.badge-yellow{background:rgba(245,158,11,.1);border:1px solid rgba(245,158,11,.2);color:#f59e0b;}
+
+.section-label{font-size:.58rem;font-weight:800;letter-spacing:.14em;text-transform:uppercase;color:#334155;margin-bottom:10px;display:flex;align-items:center;gap:6px;}
+.section-label::after{content:'';flex:1;height:1px;background:rgba(255,255,255,.04);}
+
+.copy-btn{
+  display:inline-flex;align-items:center;gap:3px;
+  padding:2px 7px;border-radius:5px;
+  font-size:.58rem;font-weight:700;
+  background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.08);
+  color:#475569;cursor:pointer;transition:all .15s;
+  font-family:'Space Grotesk',sans-serif;
+}
+.copy-btn:hover{background:rgba(255,255,255,.09);color:#94a3b8;}
+.copy-btn.copied{background:rgba(16,185,129,.1);border-color:rgba(16,185,129,.2);color:#10b981;}
+
+.skeleton{background:linear-gradient(90deg,rgba(255,255,255,.04) 25%,rgba(255,255,255,.07) 50%,rgba(255,255,255,.04) 75%);background-size:200% 100%;animation:shimmer 1.5s infinite;border-radius:5px;}
+@keyframes shimmer{0%{background-position:200% 0;}100%{background-position:-200% 0;}}
 </style>
 </head>
 <body class="min-h-screen">
@@ -41,85 +72,150 @@ body{background:#000;color:#f1f5f9;font-family:'Space Grotesk',sans-serif;}
   <div class="flex items-center gap-2">
     <a href="/profile"  class="text-[10px] font-bold bg-white/5 border border-white/10 px-3 py-1.5 rounded-full text-slate-400 hover:text-primary transition-all flex items-center gap-1.5"><span class="material-symbols-outlined text-sm">account_circle</span><span id="usernameDisplay">—</span></a>
     <a href="/settings" class="text-[10px] font-bold bg-primary/10 border border-primary/30 px-3 py-1.5 rounded-full text-primary flex items-center gap-1.5"><span class="material-symbols-outlined text-sm">settings</span></a>
-    <button onclick="doLogout()" class="text-[10px] font-bold bg-white/5 border border-white/10 px-3 py-1.5 rounded-full text-slate-400 hover:text-primary transition-all flex items-center gap-1.5"><span class="material-symbols-outlined text-sm">logout</span></button>
+    <button onclick="doLogout()" class="text-[10px] font-bold bg-white/5 border border-white/10 px-3 py-1.5 rounded-full text-slate-400 hover:text-red-400 hover:border-red-400/30 transition-all flex items-center gap-1.5"><span class="material-symbols-outlined text-sm">logout</span></button>
   </div>
 </header>
 
-<div class="max-w-3xl mx-auto px-6 py-8 space-y-6">
+<div class="max-w-3xl mx-auto px-6 py-8 space-y-5">
 
-  <div class="mb-6">
-    <h1 class="text-2xl font-black mb-1">Settings</h1>
+  <div class="mb-7">
+    <div class="flex items-center gap-3 mb-2">
+      <a href="/app" style="display:inline-flex;align-items:center;gap:5px;font-size:.7rem;font-weight:700;color:#475569;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.08);border-radius:8px;padding:4px 10px;text-decoration:none;transition:all .15s;" onmouseover="this.style.color='#f1f5f9';this.style.borderColor='rgba(255,255,255,.15)'" onmouseout="this.style.color='#475569';this.style.borderColor='rgba(255,255,255,.08)'">
+        <span class="material-symbols-outlined" style="font-size:13px;">arrow_back</span>Back to RAG
+      </a>
+    </div>
+    <h1 class="text-2xl font-black mb-1 tracking-tight">Settings</h1>
     <p class="text-sm text-slate-500">System configuration, model info, and API key status.</p>
   </div>
 
   <!-- AI Models -->
-  <div class="card">
-    <p class="section-title">AI Models</p>
-    <div id="modelsSection">
-      <div class="flex items-center justify-center py-6 text-slate-600 text-sm">Loading…</div>
+  <div>
+    <div class="section-label"><span class="material-symbols-outlined text-xs text-slate-600">smart_toy</span>AI Models</div>
+    <div class="card" id="modelsCard">
+      <div class="card-header">
+        <div style="width:32px;height:32px;border-radius:9px;background:rgba(255,46,98,.1);border:1px solid rgba(255,46,98,.2);display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+          <span class="material-symbols-outlined" style="font-size:16px;color:#ff2e62;">model_training</span>
+        </div>
+        <div>
+          <p style="font-size:.82rem;font-weight:700;">Inference Stack</p>
+          <p style="font-size:.65rem;color:#475569;">LLM, embedding, vision, and reranking models</p>
+        </div>
+      </div>
+      <div class="card-body" id="modelsSection">
+        <div class="info-row"><div class="skeleton h-3 w-24 rounded"></div><div class="skeleton h-3 w-40 rounded"></div></div>
+        <div class="info-row"><div class="skeleton h-3 w-24 rounded"></div><div class="skeleton h-3 w-40 rounded"></div></div>
+        <div class="info-row"><div class="skeleton h-3 w-24 rounded"></div><div class="skeleton h-3 w-40 rounded"></div></div>
+        <div class="info-row"><div class="skeleton h-3 w-24 rounded"></div><div class="skeleton h-3 w-40 rounded"></div></div>
+      </div>
     </div>
   </div>
 
-  <!-- Retrieval config -->
-  <div class="card">
-    <p class="section-title">Retrieval Configuration</p>
-    <div id="retrievalSection">
-      <div class="flex items-center justify-center py-6 text-slate-600 text-sm">Loading…</div>
+  <!-- Retrieval -->
+  <div>
+    <div class="section-label"><span class="material-symbols-outlined text-xs text-slate-600">manage_search</span>Retrieval Configuration</div>
+    <div class="card">
+      <div class="card-header">
+        <div style="width:32px;height:32px;border-radius:9px;background:rgba(99,102,241,.1);border:1px solid rgba(99,102,241,.2);display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+          <span class="material-symbols-outlined" style="font-size:16px;color:#818cf8;">tune</span>
+        </div>
+        <div>
+          <p style="font-size:.82rem;font-weight:700;">Chunking & Retrieval Params</p>
+          <p style="font-size:.65rem;color:#475569;">Controls document splitting and candidate selection</p>
+        </div>
+      </div>
+      <div class="card-body" id="retrievalSection">
+        <div class="info-row"><div class="skeleton h-3 w-24 rounded"></div><div class="skeleton h-3 w-32 rounded"></div></div>
+        <div class="info-row"><div class="skeleton h-3 w-24 rounded"></div><div class="skeleton h-3 w-32 rounded"></div></div>
+        <div class="info-row"><div class="skeleton h-3 w-24 rounded"></div><div class="skeleton h-3 w-32 rounded"></div></div>
+        <div class="info-row"><div class="skeleton h-3 w-24 rounded"></div><div class="skeleton h-3 w-32 rounded"></div></div>
+      </div>
     </div>
   </div>
 
   <!-- Storage -->
-  <div class="card">
-    <p class="section-title">Storage Layers</p>
-    <div id="storageSection">
-      <div class="flex items-center justify-center py-6 text-slate-600 text-sm">Loading…</div>
+  <div>
+    <div class="section-label"><span class="material-symbols-outlined text-xs text-slate-600">storage</span>Storage Layers</div>
+    <div class="card">
+      <div class="card-header">
+        <div style="width:32px;height:32px;border-radius:9px;background:rgba(6,182,212,.1);border:1px solid rgba(6,182,212,.2);display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+          <span class="material-symbols-outlined" style="font-size:16px;color:#06b6d4;">database</span>
+        </div>
+        <div>
+          <p style="font-size:.82rem;font-weight:700;">Data Storage Stack</p>
+          <p style="font-size:.65rem;color:#475569;">Vector store, keyword index, file storage, and fallback</p>
+        </div>
+      </div>
+      <div class="card-body" id="storageSection">
+        <div class="info-row"><div class="skeleton h-3 w-24 rounded"></div><div class="skeleton h-3 w-36 rounded"></div></div>
+        <div class="info-row"><div class="skeleton h-3 w-24 rounded"></div><div class="skeleton h-3 w-36 rounded"></div></div>
+        <div class="info-row"><div class="skeleton h-3 w-24 rounded"></div><div class="skeleton h-3 w-36 rounded"></div></div>
+        <div class="info-row"><div class="skeleton h-3 w-24 rounded"></div><div class="skeleton h-3 w-36 rounded"></div></div>
+      </div>
     </div>
   </div>
 
   <!-- API Keys -->
-  <div class="card">
-    <p class="section-title">API Keys</p>
-    <p class="text-xs text-slate-500 mb-4">Keys are set as environment variables. Never exposed through the API.</p>
-    <div id="keysSection">
-      <div class="flex items-center justify-center py-6 text-slate-600 text-sm">Loading…</div>
+  <div>
+    <div class="section-label"><span class="material-symbols-outlined text-xs text-slate-600">key</span>API Keys</div>
+    <div class="card">
+      <div class="card-header">
+        <div style="width:32px;height:32px;border-radius:9px;background:rgba(245,158,11,.1);border:1px solid rgba(245,158,11,.2);display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+          <span class="material-symbols-outlined" style="font-size:16px;color:#f59e0b;">key</span>
+        </div>
+        <div>
+          <p style="font-size:.82rem;font-weight:700;">External Service Keys</p>
+          <p style="font-size:.65rem;color:#475569;">Set as environment variables — never exposed through the API</p>
+        </div>
+      </div>
+      <div class="card-body" id="keysSection">
+        <div class="info-row"><div class="skeleton h-3 w-36 rounded"></div><div class="skeleton h-5 w-24 rounded"></div></div>
+        <div class="info-row"><div class="skeleton h-3 w-36 rounded"></div><div class="skeleton h-5 w-24 rounded"></div></div>
+        <div class="info-row"><div class="skeleton h-3 w-36 rounded"></div><div class="skeleton h-5 w-24 rounded"></div></div>
+        <div class="info-row"><div class="skeleton h-3 w-36 rounded"></div><div class="skeleton h-5 w-24 rounded"></div></div>
+      </div>
     </div>
   </div>
 
   <!-- Langfuse -->
-  <div class="card">
-    <div class="flex items-center gap-3 mb-4">
-      <div style="width:36px;height:36px;border-radius:10px;background:rgba(255,46,98,.1);border:1px solid rgba(255,46,98,.2);display:flex;align-items:center;justify-content:center;">
-        <span class="material-symbols-outlined" style="font-size:18px;color:#ff2e62;">analytics</span>
+  <div>
+    <div class="section-label"><span class="material-symbols-outlined text-xs text-slate-600">analytics</span>Observability</div>
+    <div class="card">
+      <div class="card-header">
+        <div style="width:32px;height:32px;border-radius:9px;background:rgba(255,46,98,.1);border:1px solid rgba(255,46,98,.2);display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+          <span class="material-symbols-outlined" style="font-size:16px;color:#ff2e62;">analytics</span>
+        </div>
+        <div style="flex:1;">
+          <p style="font-size:.82rem;font-weight:700;">Langfuse Tracing</p>
+          <p style="font-size:.65rem;color:#475569;">LLM observability — traces every RAG query with latency, retrieved chunks, and feedback</p>
+        </div>
+        <span id="langfuseStatus" class="badge badge-yellow ml-auto">Optional</span>
       </div>
-      <div>
-        <p class="text-sm font-bold">Langfuse Tracing</p>
-        <p class="text-xs text-slate-500">LLM observability — traces every RAG query with latency, retrieved chunks, and user feedback.</p>
-      </div>
-      <span id="langfuseStatus" class="key-optional ml-auto">Not configured</span>
-    </div>
-    <div style="background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.06);border-radius:9px;padding:14px;" class="space-y-2 text-xs text-slate-400">
-      <p>To enable, add these to your <span class="mono text-primary">.env</span> or Render environment variables:</p>
-      <pre style="background:#000;border:1px solid rgba(255,255,255,.08);border-radius:7px;padding:10px;font-size:.7rem;color:#94a3b8;overflow-x:auto;">LANGFUSE_PUBLIC_KEY=pk-lf-...
+      <div class="card-body">
+        <div class="info-row" style="flex-direction:column;align-items:flex-start;gap:10px;padding:16px 22px;">
+          <p style="font-size:.72rem;color:#475569;">Add these to your <span style="font-family:'JetBrains Mono',monospace;color:#ff2e62;font-size:.68rem;">.env</span> file or Render environment variables:</p>
+          <div style="width:100%;background:#000;border:1px solid rgba(255,255,255,.08);border-radius:9px;padding:12px 14px;position:relative;">
+            <pre style="font-family:'JetBrains Mono',monospace;font-size:.68rem;color:#94a3b8;margin:0;line-height:1.7;overflow-x:auto;">LANGFUSE_PUBLIC_KEY=pk-lf-...
 LANGFUSE_SECRET_KEY=sk-lf-...
 LANGFUSE_HOST=https://cloud.langfuse.com</pre>
-      <p>Get free keys at <a href="https://cloud.langfuse.com" target="_blank" class="text-primary hover:underline">cloud.langfuse.com</a> — no credit card required.</p>
+            <button class="copy-btn" id="langfuseCopyBtn" onclick="copyLangfuseEnv()" style="position:absolute;top:8px;right:8px;">
+              <span class="material-symbols-outlined" style="font-size:10px;">content_copy</span>Copy
+            </button>
+          </div>
+          <p style="font-size:.68rem;color:#334155;">Get free keys at <a href="https://cloud.langfuse.com" target="_blank" style="color:#ff2e62;text-decoration:none;" onmouseover="this.style.textDecoration='underline'" onmouseout="this.style.textDecoration='none'">cloud.langfuse.com</a> — no credit card required.</p>
+        </div>
+      </div>
     </div>
   </div>
 
   <!-- Environment -->
-  <div class="card">
-    <p class="section-title">Environment</p>
-    <div class="row">
-      <span class="text-sm text-slate-400">Mode</span>
-      <span id="envVal" class="key-optional">—</span>
-    </div>
-    <div class="row">
-      <span class="text-sm text-slate-400">Version</span>
-      <span class="mono text-slate-500">1.0.0</span>
-    </div>
-    <div class="row">
-      <span class="text-sm text-slate-400">Health</span>
-      <a href="/health" target="_blank" class="mono text-primary hover:underline text-xs">/health</a>
+  <div>
+    <div class="section-label"><span class="material-symbols-outlined text-xs text-slate-600">info</span>Environment</div>
+    <div class="card">
+      <div class="card-body" id="envSection">
+        <div class="info-row"><div class="skeleton h-3 w-16 rounded"></div><div class="skeleton h-5 w-20 rounded"></div></div>
+        <div class="info-row"><div class="skeleton h-3 w-16 rounded"></div><div class="skeleton h-3 w-12 rounded"></div></div>
+        <div class="info-row"><div class="skeleton h-3 w-16 rounded"></div><div class="skeleton h-3 w-20 rounded"></div></div>
+      </div>
     </div>
   </div>
 
@@ -129,14 +225,61 @@ LANGFUSE_HOST=https://cloud.langfuse.com</pre>
 function esc(s){const d=document.createElement("div");d.textContent=String(s||"");return d.innerHTML;}
 async function doLogout(){try{await fetch("/auth/logout",{method:"POST",credentials:"include"});}catch{}location.href="/";}
 
-function keyBadge(set, label, optional) {
-  if (set)      return `<span class="key-badge key-set"><span class="material-symbols-outlined text-xs">check</span>${label||"Configured"}</span>`;
-  if (optional) return `<span class="key-badge key-optional"><span class="material-symbols-outlined text-xs">info</span>Not set (optional)</span>`;
-  return `<span class="key-badge key-missing"><span class="material-symbols-outlined text-xs">warning</span>Missing</span>`;
+function copyLangfuseEnv() {
+  const text = `LANGFUSE_PUBLIC_KEY=pk-lf-...\nLANGFUSE_SECRET_KEY=sk-lf-...\nLANGFUSE_HOST=https://cloud.langfuse.com`;
+  navigator.clipboard.writeText(text).then(() => {
+    const btn = document.getElementById("langfuseCopyBtn");
+    btn.classList.add("copied");
+    btn.innerHTML = '<span class="material-symbols-outlined" style="font-size:10px;">check</span>Copied';
+    setTimeout(() => {
+      btn.classList.remove("copied");
+      btn.innerHTML = '<span class="material-symbols-outlined" style="font-size:10px;">content_copy</span>Copy';
+    }, 2000);
+  }).catch(() => {});
 }
 
-function infoRow(label, value) {
-  return `<div class="row"><span style="font-size:.78rem;color:#64748b;">${esc(label)}</span><span class="mono text-slate-300">${esc(value)}</span></div>`;
+function copyValue(val, btnId) {
+  navigator.clipboard.writeText(val).then(() => {
+    const btn = document.getElementById(btnId);
+    if (!btn) return;
+    btn.classList.add("copied");
+    btn.innerHTML = '<span class="material-symbols-outlined" style="font-size:10px;">check</span>Copied';
+    setTimeout(() => {
+      btn.classList.remove("copied");
+      btn.innerHTML = '<span class="material-symbols-outlined" style="font-size:10px;">content_copy</span>Copy';
+    }, 2000);
+  }).catch(() => {});
+}
+
+function keyBadge(set, optional) {
+  if (set) return `<span class="badge badge-green"><span class="material-symbols-outlined" style="font-size:9px;">check</span>Configured</span>`;
+  if (optional) return `<span class="badge badge-yellow"><span class="material-symbols-outlined" style="font-size:9px;">info</span>Not set · optional</span>`;
+  return `<span class="badge badge-red"><span class="material-symbols-outlined" style="font-size:9px;">warning</span>Missing</span>`;
+}
+
+function infoRow(icon, label, value, copyId) {
+  const copyBtn = copyId
+    ? `<button class="copy-btn" id="${copyId}" onclick="copyValue('${esc(value).replace(/'/g,"\\'")}','${copyId}')">
+        <span class="material-symbols-outlined" style="font-size:10px;">content_copy</span>Copy
+       </button>`
+    : "";
+  return `<div class="info-row">
+    <span class="row-label">
+      ${icon ? `<span class="material-symbols-outlined" style="font-size:13px;color:#334155;">${icon}</span>` : ""}
+      ${esc(label)}
+    </span>
+    <span class="row-value">${esc(value)}${copyBtn}</span>
+  </div>`;
+}
+
+function keyRow(icon, label, set, optional) {
+  return `<div class="info-row">
+    <span class="row-label">
+      <span class="material-symbols-outlined" style="font-size:13px;color:#334155;">${icon}</span>
+      <span style="font-family:'JetBrains Mono',monospace;font-size:.68rem;">${esc(label)}</span>
+    </span>
+    ${keyBadge(set, optional)}
+  </div>`;
 }
 
 async function loadSettings() {
@@ -147,49 +290,53 @@ async function loadSettings() {
 
     // Models
     document.getElementById("modelsSection").innerHTML =
-      infoRow("LLM",             d.model.llm) +
-      infoRow("Embeddings",      d.model.embedding) +
-      infoRow("Vision / OCR",    d.model.vision) +
-      infoRow("Reranker",        d.model.reranker);
+      infoRow("smart_toy",     "LLM",           d.model.llm,        "copy-llm") +
+      infoRow("hub",           "Embeddings",     d.model.embedding,  "copy-emb") +
+      infoRow("visibility",    "Vision / OCR",   d.model.vision,     null) +
+      infoRow("sort",          "Reranker",       d.model.reranker,   null);
 
     // Retrieval
     const ret = d.retrieval;
     document.getElementById("retrievalSection").innerHTML =
-      infoRow("Chunk size",      ret.chunk_size + " chars") +
-      infoRow("Chunk overlap",   ret.chunk_overlap + " chars") +
-      infoRow("Candidate k",     ret.candidate_k + " per source") +
-      infoRow("RRF k",           ret.rrf_k);
+      infoRow("segment",       "Chunk size",     ret.chunk_size + " chars",         null) +
+      infoRow("compare_arrows","Chunk overlap",  ret.chunk_overlap + " chars",      null) +
+      infoRow("search",        "Candidate k",    ret.candidate_k + " per source",   null) +
+      infoRow("tune",          "RRF k",          String(ret.rrf_k),                 null);
 
     // Storage
     const st = d.storage;
     document.getElementById("storageSection").innerHTML =
-      infoRow("Vector store",    st.vector_store) +
-      infoRow("Keyword index",   st.keyword_index) +
-      infoRow("File storage",    st.file_storage) +
-      infoRow("Fallback",        st.fallback);
+      infoRow("database",      "Vector store",   st.vector_store,    null) +
+      infoRow("spellcheck",    "Keyword index",  st.keyword_index,   null) +
+      infoRow("folder",        "File storage",   st.file_storage,    null) +
+      infoRow("sync_alt",      "Fallback",       st.fallback,        null);
 
     // Keys
     const k = d.keys;
-    document.getElementById("keysSection").innerHTML = `
-      <div class="row"><span style="font-size:.78rem;color:#64748b;">GROQ_API_KEY</span>${keyBadge(k.groq, "Set", false)}</div>
-      <div class="row"><span style="font-size:.78rem;color:#64748b;">SUPABASE_URL + SERVICE_KEY</span>${keyBadge(k.supabase, "Set", false)}</div>
-      <div class="row"><span style="font-size:.78rem;color:#64748b;">SUPABASE_JWT_SECRET</span>${keyBadge(k.jwt_secret, "Set", true)}</div>
-      <div class="row"><span style="font-size:.78rem;color:#64748b;">COHERE_API_KEY</span>${keyBadge(k.cohere, "Set", true)}</div>`;
+    document.getElementById("keysSection").innerHTML =
+      keyRow("smart_toy",      "GROQ_API_KEY",                   k.groq,       false) +
+      keyRow("database",       "SUPABASE_URL + SERVICE_KEY",     k.supabase,   false) +
+      keyRow("lock",           "SUPABASE_JWT_SECRET",            k.jwt_secret, true)  +
+      keyRow("sort",           "COHERE_API_KEY",                 k.cohere,     true);
 
-    // Langfuse (check via monitoring endpoint)
-    try {
-      const ms = await fetch("/monitoring/status", {credentials:"include"});
-      const md = await ms.json();
-      // If Langfuse not in monitoring, assume based on keys check
-    } catch {}
-    // Simple heuristic — if we got here, Langfuse configured status unknown
-    document.getElementById("langfuseStatus").className = "key-optional ml-auto";
-    document.getElementById("langfuseStatus").textContent = "Optional — see below";
+    // Environment
+    const envClass = d.environment === "production" ? "badge-green" : "badge-yellow";
+    document.getElementById("envSection").innerHTML =
+      `<div class="info-row">
+        <span class="row-label"><span class="material-symbols-outlined" style="font-size:13px;color:#334155;">toggle_on</span>Mode</span>
+        <span class="badge ${envClass}">${esc(d.environment||"—")}</span>
+      </div>
+      <div class="info-row">
+        <span class="row-label"><span class="material-symbols-outlined" style="font-size:13px;color:#334155;">tag</span>Version</span>
+        <span class="row-value">1.0.0</span>
+      </div>
+      <div class="info-row">
+        <span class="row-label"><span class="material-symbols-outlined" style="font-size:13px;color:#334155;">monitor_heart</span>Health endpoint</span>
+        <a href="/health" target="_blank" class="row-value" style="color:#ff2e62;text-decoration:none;" onmouseover="this.style.textDecoration='underline'" onmouseout="this.style.textDecoration='none'">/health</a>
+      </div>`;
 
-    // Env
-    const envEl = document.getElementById("envVal");
-    envEl.textContent = d.environment;
-    envEl.className = d.environment === "production" ? "key-badge key-set" : "key-badge key-optional";
+    document.getElementById("langfuseStatus").className = "badge badge-yellow ml-auto";
+    document.getElementById("langfuseStatus").textContent = "Optional";
   } catch(e) {
     location.href = "/login";
   }
