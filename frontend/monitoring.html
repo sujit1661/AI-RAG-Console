@@ -13,15 +13,52 @@
 *{box-sizing:border-box;}
 body{background:#000;color:#f1f5f9;font-family:'Space Grotesk',sans-serif;}
 ::-webkit-scrollbar{width:4px;} ::-webkit-scrollbar-thumb{background:#1e293b;border-radius:4px;}
-.card{background:#0a0a0a;border:1px solid rgba(255,255,255,.07);border-radius:14px;padding:20px 24px;}
-.status-ok{color:#10b981;} .status-err{color:#ef4444;} .status-warn{color:#f59e0b;}
-.mono{font-family:'JetBrains Mono',monospace;font-size:.72rem;}
-.chip{display:inline-flex;align-items:center;gap:4px;padding:2px 8px;border-radius:6px;font-size:.62rem;font-weight:700;}
+
+.card{
+  background:#0a0a0a;
+  border:1px solid rgba(255,255,255,.07);
+  border-radius:14px;
+  padding:20px 22px;
+  transition:border-color .2s, box-shadow .2s, transform .15s;
+  position:relative;
+  overflow:hidden;
+}
+.card:hover{
+  border-color:rgba(255,255,255,.11);
+  transform:translateY(-1px);
+}
+.card.ok:hover{border-color:rgba(16,185,129,.2);}
+.card.err:hover{border-color:rgba(239,68,68,.2);}
+
+/* Status indicator dot */
+.status-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0;}
+.status-dot.ok{background:#10b981;box-shadow:0 0 6px rgba(16,185,129,.5);}
+.status-dot.err{background:#ef4444;box-shadow:0 0 6px rgba(239,68,68,.5);}
+.status-dot.warn{background:#f59e0b;box-shadow:0 0 6px rgba(245,158,11,.5);}
+
+.chip{display:inline-flex;align-items:center;gap:3px;padding:2px 8px;border-radius:6px;font-size:.6rem;font-weight:700;letter-spacing:.02em;}
 .chip-green{background:rgba(16,185,129,.1);border:1px solid rgba(16,185,129,.2);color:#10b981;}
 .chip-red{background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.2);color:#ef4444;}
 .chip-yellow{background:rgba(245,158,11,.1);border:1px solid rgba(245,158,11,.2);color:#f59e0b;}
 .chip-blue{background:rgba(99,102,241,.1);border:1px solid rgba(99,102,241,.2);color:#818cf8;}
 .chip-gray{background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);color:#64748b;}
+.chip-cyan{background:rgba(6,182,212,.1);border:1px solid rgba(6,182,212,.2);color:#06b6d4;}
+
+.mono{font-family:'JetBrains Mono',monospace;font-size:.7rem;}
+.section-label{font-size:.58rem;font-weight:800;letter-spacing:.14em;text-transform:uppercase;color:#334155;margin-bottom:10px;display:flex;align-items:center;gap:6px;}
+.section-label::after{content:'';flex:1;height:1px;background:rgba(255,255,255,.04);}
+
+/* Latency bar */
+.latency-bar{height:3px;border-radius:2px;background:rgba(255,255,255,.06);overflow:hidden;margin-top:6px;}
+.latency-fill{height:100%;border-radius:2px;transition:width .6s ease;}
+
+/* Skeleton */
+.skeleton{background:linear-gradient(90deg,rgba(255,255,255,.04) 25%,rgba(255,255,255,.07) 50%,rgba(255,255,255,.04) 75%);background-size:200% 100%;animation:shimmer 1.5s infinite;border-radius:6px;}
+@keyframes shimmer{0%{background-position:200% 0;}100%{background-position:-200% 0;}}
+
+/* Refresh spin */
+.refreshing .material-symbols-outlined{animation:spin .7s linear infinite;}
+@keyframes spin{to{transform:rotate(360deg);}}
 </style>
 </head>
 <body class="min-h-screen">
@@ -42,49 +79,63 @@ body{background:#000;color:#f1f5f9;font-family:'Space Grotesk',sans-serif;}
   <div class="flex items-center gap-2">
     <a href="/profile"  class="text-[10px] font-bold bg-white/5 border border-white/10 px-3 py-1.5 rounded-full text-slate-400 hover:text-primary transition-all flex items-center gap-1.5"><span class="material-symbols-outlined text-sm">account_circle</span><span id="usernameDisplay">—</span></a>
     <a href="/settings" class="text-[10px] font-bold bg-white/5 border border-white/10 px-3 py-1.5 rounded-full text-slate-400 hover:text-primary transition-all flex items-center gap-1.5"><span class="material-symbols-outlined text-sm">settings</span></a>
-    <button onclick="doLogout()" class="text-[10px] font-bold bg-white/5 border border-white/10 px-3 py-1.5 rounded-full text-slate-400 hover:text-primary transition-all flex items-center gap-1.5"><span class="material-symbols-outlined text-sm">logout</span></button>
+    <button onclick="doLogout()" class="text-[10px] font-bold bg-white/5 border border-white/10 px-3 py-1.5 rounded-full text-slate-400 hover:text-red-400 hover:border-red-400/30 transition-all flex items-center gap-1.5"><span class="material-symbols-outlined text-sm">logout</span></button>
   </div>
 </header>
 
 <div class="max-w-5xl mx-auto px-6 py-8">
-  <div class="mb-8 flex items-center justify-between">
+
+  <!-- Page header -->
+  <div class="mb-8 flex items-start justify-between">
     <div>
-      <h1 class="text-2xl font-black mb-1">System Monitoring</h1>
+      <div class="flex items-center gap-3 mb-2">
+        <a href="/app" style="display:inline-flex;align-items:center;gap:5px;font-size:.7rem;font-weight:700;color:#475569;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.08);border-radius:8px;padding:4px 10px;text-decoration:none;transition:all .15s;" onmouseover="this.style.color='#f1f5f9';this.style.borderColor='rgba(255,255,255,.15)'" onmouseout="this.style.color='#475569';this.style.borderColor='rgba(255,255,255,.08)'">
+          <span class="material-symbols-outlined" style="font-size:13px;">arrow_back</span>Back to RAG
+        </a>
+      </div>
+      <h1 class="text-2xl font-black mb-1 tracking-tight">System Monitoring</h1>
       <p class="text-sm text-slate-500">Real-time health of all connected services and models.</p>
     </div>
-    <button onclick="refresh()" class="flex items-center gap-2 bg-white/5 border border-white/10 px-4 py-2 rounded-xl text-xs font-bold text-slate-400 hover:text-white hover:border-white/20 transition-all">
-      <span class="material-symbols-outlined text-sm">refresh</span>Refresh
-    </button>
+    <div class="flex items-center gap-3">
+      <span id="lastChecked" class="text-xs text-slate-600 flex items-center gap-1.5">
+        <span class="material-symbols-outlined text-sm">schedule</span>
+        <span id="lastCheckedTime">—</span>
+      </span>
+      <button id="refreshBtn" onclick="doRefresh()" class="flex items-center gap-2 bg-white/5 border border-white/10 px-4 py-2 rounded-xl text-xs font-bold text-slate-400 hover:text-white hover:border-white/20 transition-all">
+        <span class="material-symbols-outlined text-sm">refresh</span>Refresh
+      </button>
+    </div>
   </div>
 
   <!-- Uptime banner -->
   <div id="uptimeBanner" class="card mb-6 flex items-center gap-4">
-    <div class="w-10 h-10 rounded-xl bg-green-500/10 border border-green-500/20 flex items-center justify-center flex-shrink-0">
-      <span class="material-symbols-outlined text-green-400 text-lg">check_circle</span>
+    <div class="skeleton" style="width:40px;height:40px;border-radius:12px;flex-shrink:0;"></div>
+    <div style="flex:1;">
+      <div class="skeleton h-4 w-40 rounded mb-2"></div>
+      <div class="skeleton h-3 w-28 rounded"></div>
     </div>
-    <div>
-      <p class="text-sm font-bold text-green-400">All systems operational</p>
-      <p class="text-xs text-slate-500">Uptime: <span id="uptimeVal">—</span></p>
-    </div>
-    <div class="ml-auto text-right">
-      <p class="text-xs text-slate-500">Environment</p>
-      <span id="envChip" class="chip chip-gray">—</span>
-    </div>
+    <div class="skeleton h-6 w-20 rounded"></div>
   </div>
 
   <!-- Services grid -->
+  <div class="section-label mb-4"><span class="material-symbols-outlined text-xs text-slate-600">dns</span>Services</div>
   <div class="grid md:grid-cols-3 gap-4 mb-8" id="servicesGrid">
-    <div class="card col-span-3 flex items-center justify-center py-8">
-      <div class="w-5 h-5 border-2 border-white/10 border-t-primary rounded-full animate-spin mr-3"></div>
-      <span class="text-sm text-slate-500">Checking services…</span>
-    </div>
+    <div class="card"><div class="skeleton h-4 w-24 rounded mb-3"></div><div class="skeleton h-3 w-full rounded mb-2"></div><div class="skeleton h-3 w-3/4 rounded"></div></div>
+    <div class="card"><div class="skeleton h-4 w-24 rounded mb-3"></div><div class="skeleton h-3 w-full rounded mb-2"></div><div class="skeleton h-3 w-3/4 rounded"></div></div>
+    <div class="card"><div class="skeleton h-4 w-24 rounded mb-3"></div><div class="skeleton h-3 w-full rounded mb-2"></div><div class="skeleton h-3 w-3/4 rounded"></div></div>
+    <div class="card"><div class="skeleton h-4 w-24 rounded mb-3"></div><div class="skeleton h-3 w-full rounded mb-2"></div><div class="skeleton h-3 w-3/4 rounded"></div></div>
+    <div class="card"><div class="skeleton h-4 w-24 rounded mb-3"></div><div class="skeleton h-3 w-full rounded mb-2"></div><div class="skeleton h-3 w-3/4 rounded"></div></div>
+    <div class="card"><div class="skeleton h-4 w-24 rounded mb-3"></div><div class="skeleton h-3 w-full rounded mb-2"></div><div class="skeleton h-3 w-3/4 rounded"></div></div>
   </div>
 
   <!-- Error log -->
-  <p class="text-[.6rem] font-[800] tracking-[.12em] uppercase text-slate-600 mb-3">Recent Errors</p>
-  <div class="card">
-    <div id="errorLog" class="space-y-2">
-      <div class="flex items-center justify-center py-6 text-slate-600 text-sm">Loading…</div>
+  <div class="section-label mb-3"><span class="material-symbols-outlined text-xs text-slate-600">error</span>Recent Errors</div>
+  <div class="card" style="padding:0;">
+    <div id="errorLog">
+      <div class="flex items-center justify-center py-8 gap-3">
+        <div style="width:16px;height:16px;border:2px solid rgba(255,255,255,.08);border-top-color:#ff2e62;border-radius:50%;animation:spin .7s linear infinite;"></div>
+        <span class="text-sm text-slate-600">Loading error log…</span>
+      </div>
     </div>
   </div>
 </div>
@@ -94,22 +145,45 @@ function esc(s){const d=document.createElement("div");d.textContent=String(s||""
 function relTime(iso){if(!iso)return "";const diff=Date.now()-new Date(iso).getTime();const m=Math.floor(diff/60000);if(m<1)return "just now";if(m<60)return m+"m ago";const h=Math.floor(m/60);if(h<24)return h+"h ago";return Math.floor(h/24)+"d ago";}
 async function doLogout(){try{await fetch("/auth/logout",{method:"POST",credentials:"include"});}catch{}location.href="/";}
 
-function svcCard(label, icon, color, ok, detail, extra) {
-  const chip = ok
-    ? '<span class="chip chip-green"><span class="material-symbols-outlined text-xs">check</span>OK</span>'
-    : '<span class="chip chip-red"><span class="material-symbols-outlined text-xs">error</span>Error</span>';
-  return `<div class="card">
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
-      <div style="display:flex;align-items:center;gap:10px;">
-        <div style="width:36px;height:36px;border-radius:10px;background:${color}18;border:1px solid ${color}30;display:flex;align-items:center;justify-content:center;">
-          <span class="material-symbols-outlined" style="font-size:18px;color:${color};">${icon}</span>
+function latencyBar(ms, maxMs) {
+  if (!ms) return "";
+  const pct = Math.min(100, Math.round((ms / maxMs) * 100));
+  const color = ms < 200 ? "#10b981" : ms < 600 ? "#f59e0b" : "#ef4444";
+  return `<div class="latency-bar"><div class="latency-fill" style="width:${pct}%;background:${color};"></div></div>`;
+}
+
+function svcCard(label, icon, color, ok, detail, extra, latency) {
+  const statusChip = ok
+    ? `<span class="chip chip-green"><span class="material-symbols-outlined" style="font-size:9px;">check</span>Operational</span>`
+    : `<span class="chip chip-red"><span class="material-symbols-outlined" style="font-size:9px;">error</span>Error</span>`;
+  const dot = `<div class="status-dot ${ok ? 'ok' : 'err'}"></div>`;
+  const latHtml = latency
+    ? `<div style="margin-top:10px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:3px;">
+          <span style="font-size:.58rem;font-weight:700;color:#334155;text-transform:uppercase;letter-spacing:.1em;">Latency</span>
+          <span class="mono" style="color:${latency < 200 ? '#10b981' : latency < 600 ? '#f59e0b' : '#ef4444'};font-weight:600;">${latency}ms</span>
         </div>
-        <span style="font-size:.82rem;font-weight:700;">${esc(label)}</span>
+        ${latencyBar(latency, 1000)}
+       </div>`
+    : "";
+  return `<div class="card ${ok ? 'ok' : 'err'}">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
+      <div style="display:flex;align-items:center;gap:9px;">
+        <div style="width:34px;height:34px;border-radius:9px;background:${color}18;border:1px solid ${color}25;display:flex;align-items:center;justify-content:center;">
+          <span class="material-symbols-outlined" style="font-size:17px;color:${color};">${icon}</span>
+        </div>
+        <div>
+          <div style="display:flex;align-items:center;gap:6px;">
+            ${dot}
+            <span style="font-size:.82rem;font-weight:700;color:#f1f5f9;">${esc(label)}</span>
+          </div>
+        </div>
       </div>
-      ${chip}
+      ${statusChip}
     </div>
-    <p style="font-size:.68rem;color:#475569;">${esc(detail)}</p>
-    ${extra ? `<p style="font-size:.62rem;color:#334155;margin-top:4px;">${extra}</p>` : ""}
+    <p style="font-size:.7rem;color:#64748b;line-height:1.5;">${esc(detail)}</p>
+    ${extra ? `<p style="font-size:.63rem;color:#334155;margin-top:4px;line-height:1.5;">${esc(extra)}</p>` : ""}
+    ${latHtml}
   </div>`;
 }
 
@@ -119,46 +193,84 @@ async function refresh() {
     if (!r.ok) return;
     const d = await r.json();
 
-    document.getElementById("uptimeVal").textContent = d.uptime_fmt || "—";
-    document.getElementById("envChip").textContent = d.environment || "—";
-    document.getElementById("envChip").className = "chip " +
-      (d.environment === "production" ? "chip-green" : "chip-yellow");
+    // Uptime banner
+    const allOk = [d.supabase?.ok, d.embedding_model?.ok, d.bm25?.ok, d.groq?.ok].every(Boolean);
+    const partialOk = [d.supabase?.ok, d.embedding_model?.ok, d.bm25?.ok, d.groq?.ok].some(Boolean);
+    const bannerColor = allOk ? "#10b981" : partialOk ? "#f59e0b" : "#ef4444";
+    const bannerIcon  = allOk ? "check_circle" : partialOk ? "warning" : "cancel";
+    const bannerText  = allOk ? "All systems operational" : partialOk ? "Partial outage detected" : "Service disruption";
+    const bannerClass = allOk ? "chip-green" : partialOk ? "chip-yellow" : "chip-red";
+    const envLabel    = d.environment || "—";
+    const envClass    = d.environment === "production" ? "chip-green" : "chip-yellow";
 
-    const sup = d.supabase || {};
-    const bm  = d.bm25 || {};
-    const emb = d.embedding_model || {};
-    const chdb = d.chromadb || {};
+    document.getElementById("uptimeBanner").innerHTML = `
+      <div style="width:40px;height:40px;border-radius:12px;background:${bannerColor}18;border:1px solid ${bannerColor}25;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+        <span class="material-symbols-outlined" style="color:${bannerColor};font-size:20px;">${bannerIcon}</span>
+      </div>
+      <div style="flex:1;">
+        <p style="font-size:.85rem;font-weight:700;color:${bannerColor};">${bannerText}</p>
+        <p style="font-size:.7rem;color:#475569;margin-top:2px;">Uptime: <span style="color:#64748b;font-family:'JetBrains Mono',monospace;">${esc(d.uptime_fmt||"—")}</span></p>
+      </div>
+      <div style="display:flex;flex-direction:column;align-items:flex-end;gap:5px;">
+        <span class="chip ${envClass}">${esc(envLabel)}</span>
+        <span style="font-size:.6rem;color:#334155;">environment</span>
+      </div>`;
+
+    const sup  = d.supabase        || {};
+    const bm   = d.bm25            || {};
+    const emb  = d.embedding_model || {};
+    const chdb = d.chromadb        || {};
 
     document.getElementById("servicesGrid").innerHTML =
       svcCard("Supabase", "database", "#3b82f6",
         sup.ok,
-        sup.ok ? `Latency: ${sup.latency_ms}ms` : sup.error || "Unreachable",
-        "pgvector · Storage · Auth") +
+        sup.ok ? "pgvector · Storage · Auth · connected" : sup.error || "Unreachable",
+        "Primary vector store and file storage",
+        sup.latency_ms || null) +
+
       svcCard("Embedding Model", "hub", "#06b6d4",
         emb.ok,
-        emb.ok ? `BAAI/bge-small-en-v1.5 · ${emb.dims} dims` : emb.error || "Not loaded",
-        emb.loaded ? "Loaded in memory" : "Will load on first query") +
+        emb.ok ? `BAAI/bge-small-en-v1.5 · ${emb.dims||384} dims` : emb.error || "Not loaded",
+        emb.loaded ? "Model loaded in memory — ready for inference" : "Will load on first query") +
+
       svcCard("BM25 Index", "spellcheck", "#f59e0b",
         bm.ok,
-        bm.ok ? `${bm.indexes_in_memory || 0} indexes in memory` : bm.error || "—",
-        bm.keys?.length ? "Keys: " + bm.keys.slice(0,3).join(", ") + (bm.keys.length > 3 ? "…" : "") : null) +
+        bm.ok ? `${bm.indexes_in_memory||0} index${bm.indexes_in_memory!==1?"es":""} in memory` : bm.error || "No indexes",
+        bm.keys?.length ? "Keys: " + bm.keys.slice(0,3).join(", ") + (bm.keys.length>3?"…":"") : "No workspaces indexed yet") +
+
       svcCard("ChromaDB", "storage", "#8b5cf6",
         chdb.available,
-        chdb.available ? "Available (local fallback)" : "Not available — Supabase-only mode",
+        chdb.available ? "Local fallback available" : "Not available — Supabase-only mode",
         "Used as fallback when Supabase is unreachable") +
+
       svcCard("Groq API", "smart_toy", "#ff2e62",
         d.groq?.ok,
-        d.groq?.key_set ? "API key configured" : "GROQ_API_KEY not set",
-        "LLM + Vision model inference") +
+        d.groq?.key_set ? "API key configured · LLM inference ready" : "GROQ_API_KEY not set",
+        "Powers LLM responses and vision/OCR tasks") +
+
       svcCard("Cohere Rerank", "sort", "#10b981",
         d.cohere?.key_set,
-        d.cohere?.key_set ? "API key configured — reranking enabled" : "COHERE_API_KEY not set — using RRF order",
-        "Optional — cross-encoder reranking");
+        d.cohere?.key_set ? "API key configured · cross-encoder reranking enabled" : "COHERE_API_KEY not set · using RRF fallback",
+        "Optional — improves retrieval precision");
 
+    document.getElementById("lastCheckedTime").textContent = "Checked " + relTime(new Date().toISOString());
   } catch(e) {
     document.getElementById("servicesGrid").innerHTML =
-      `<div class="card col-span-3 text-center py-6 text-red-400 text-sm">Failed to load status: ${esc(e.message)}</div>`;
+      `<div class="card" style="grid-column:1/-1;text-align:center;padding:32px;">
+        <span class="material-symbols-outlined" style="font-size:28px;color:#334155;display:block;margin-bottom:8px;">cloud_off</span>
+        <p style="font-size:.82rem;color:#ef4444;font-weight:600;">Failed to load status</p>
+        <p style="font-size:.7rem;color:#334155;margin-top:4px;">${esc(e.message)}</p>
+      </div>`;
   }
+}
+
+async function doRefresh() {
+  const btn = document.getElementById("refreshBtn");
+  btn.classList.add("refreshing");
+  btn.disabled = true;
+  await Promise.all([refresh(), loadErrors()]);
+  btn.classList.remove("refreshing");
+  btn.disabled = false;
 }
 
 async function loadErrors() {
@@ -168,17 +280,29 @@ async function loadErrors() {
     const errs = d.errors || [];
     const el = document.getElementById("errorLog");
     if (!errs.length) {
-      el.innerHTML = '<p style="text-align:center;color:#334155;font-size:.75rem;padding:16px 0;">No errors recorded — looking good ✓</p>';
+      el.innerHTML = `<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;padding:36px 20px;gap:10px;">
+        <div style="width:38px;height:38px;border-radius:12px;background:rgba(16,185,129,.08);border:1px solid rgba(16,185,129,.15);display:flex;align-items:center;justify-content:center;">
+          <span class="material-symbols-outlined" style="font-size:20px;color:#10b981;">check_circle</span>
+        </div>
+        <p style="font-size:.78rem;font-weight:600;color:#10b981;">No errors recorded</p>
+        <p style="font-size:.68rem;color:#334155;">Everything is looking good.</p>
+      </div>`;
       return;
     }
-    el.innerHTML = errs.map(e =>
-      `<div style="display:flex;align-items:flex-start;gap:10px;padding:8px 0;border-bottom:1px solid rgba(255,255,255,.04);">
-        <span class="material-symbols-outlined chip-red" style="font-size:14px;color:#ef4444;flex-shrink:0;margin-top:2px;">error</span>
-        <div style="flex:1;min-width:0;">
-          <p style="font-size:.72rem;color:#fca5a5;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${esc(e.question || "—")}</p>
-          <p style="font-size:.62rem;color:#334155;margin-top:2px;">${esc(e.workspace_slug||"—")} · ${relTime(e.created_at)}</p>
+    el.innerHTML = errs.map((e, i) =>
+      `<div style="display:flex;align-items:flex-start;gap:12px;padding:12px 22px;border-bottom:1px solid rgba(255,255,255,.04);${i===0?'border-radius:14px 14px 0 0;':''}transition:background .15s;" onmouseover="this.style.background='rgba(255,255,255,.02)'" onmouseout="this.style.background=''">
+        <div style="width:28px;height:28px;border-radius:8px;background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.2);display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px;">
+          <span class="material-symbols-outlined" style="font-size:13px;color:#ef4444;">error</span>
         </div>
-        <span class="chip chip-red" style="flex-shrink:0;">ERROR</span>
+        <div style="flex:1;min-width:0;">
+          <p style="font-size:.72rem;color:#fca5a5;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:500;">${esc(e.question||"Unknown error")}</p>
+          <p style="font-size:.62rem;color:#334155;margin-top:3px;display:flex;align-items:center;gap:6px;">
+            <span style="font-family:'JetBrains Mono',monospace;">${esc(e.workspace_slug||"—")}</span>
+            <span style="color:#1e293b;">·</span>
+            <span>${relTime(e.created_at)}</span>
+          </p>
+        </div>
+        <span class="chip chip-red" style="flex-shrink:0;margin-top:1px;">ERROR</span>
       </div>`
     ).join("");
   } catch {}
