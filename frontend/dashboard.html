@@ -6,31 +6,117 @@
 <title>RAGCORE — Dashboard</title>
 <script src="https://cdn.tailwindcss.com"></script>
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet"/>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined"/>
-<script>tailwind.config={darkMode:"class",theme:{extend:{colors:{primary:"#ff2e62","matte-black":"#0A0A0A"}}}}</script>
+<script>tailwind.config={darkMode:"class",theme:{extend:{colors:{primary:"#ff2e62","matte-black":"#0A0A0A",charcoal:"#111111"}}}}</script>
 <style>
 *{box-sizing:border-box;}
 body{background:#000;color:#f1f5f9;font-family:'Space Grotesk',sans-serif;}
 ::-webkit-scrollbar{width:4px;height:4px;}
 ::-webkit-scrollbar-thumb{background:#1e293b;border-radius:4px;}
-.stat-card{background:#0a0a0a;border:1px solid rgba(255,255,255,.07);border-radius:14px;padding:20px 24px;transition:border-color .2s;}
-.stat-card:hover{border-color:rgba(255,46,98,.2);}
-.nav-link{display:flex;align-items:center;gap:6px;padding:6px 12px;border-radius:8px;font-size:.72rem;font-weight:600;color:#64748b;text-decoration:none;transition:all .15s;}
-.nav-link:hover{color:#f1f5f9;background:rgba(255,255,255,.05);}
-.nav-link.active{color:#ff2e62;background:rgba(255,46,98,.1);}
-.badge{display:inline-flex;align-items:center;gap:4px;padding:2px 8px;border-radius:6px;font-size:.62rem;font-weight:700;}
+
+.stat-card{
+  background:#0a0a0a;
+  border:1px solid rgba(255,255,255,.07);
+  border-radius:14px;
+  padding:20px 22px;
+  transition:border-color .2s, box-shadow .2s, transform .2s;
+  position:relative;
+  overflow:hidden;
+}
+.stat-card:hover{
+  border-color:rgba(255,46,98,.22);
+  box-shadow:0 0 0 1px rgba(255,46,98,.08), 0 4px 20px rgba(0,0,0,.4);
+  transform:translateY(-1px);
+}
+.stat-card::after{
+  content:'';
+  position:absolute;
+  top:0;left:0;right:0;
+  height:1px;
+  background:linear-gradient(90deg,transparent,rgba(255,46,98,.15),transparent);
+  opacity:0;
+  transition:opacity .2s;
+}
+.stat-card:hover::after{opacity:1;}
+
+.card{
+  background:#0a0a0a;
+  border:1px solid rgba(255,255,255,.07);
+  border-radius:14px;
+  overflow:hidden;
+  transition:border-color .2s;
+}
+.card:hover{border-color:rgba(255,255,255,.11);}
+
+.badge{display:inline-flex;align-items:center;gap:3px;padding:2px 7px;border-radius:6px;font-size:.6rem;font-weight:700;letter-spacing:.02em;}
 .badge-green{background:rgba(16,185,129,.1);border:1px solid rgba(16,185,129,.2);color:#10b981;}
 .badge-red{background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.2);color:#ef4444;}
 .badge-yellow{background:rgba(245,158,11,.1);border:1px solid rgba(245,158,11,.2);color:#f59e0b;}
 .badge-blue{background:rgba(99,102,241,.1);border:1px solid rgba(99,102,241,.2);color:#818cf8;}
-.table-row{display:grid;border-bottom:1px solid rgba(255,255,255,.04);transition:background .1s;}
-.table-row:hover{background:rgba(255,255,255,.02);}
-.section-title{font-size:.6rem;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:#334155;margin-bottom:12px;}
+.badge-cyan{background:rgba(6,182,212,.1);border:1px solid rgba(6,182,212,.2);color:#06b6d4;}
+
+/* ── Query table ── */
+.q-table{width:100%;table-layout:fixed;border-collapse:collapse;}
+.q-table thead th{
+  font-size:.58rem;font-weight:800;letter-spacing:.12em;text-transform:uppercase;
+  color:#334155;padding:9px 12px;text-align:left;
+  border-bottom:1px solid rgba(255,255,255,.06);white-space:nowrap;
+}
+.q-table tbody tr{border-bottom:1px solid rgba(255,255,255,.04);transition:background .15s;}
+.q-table tbody tr:last-child{border-bottom:none;}
+.q-table tbody tr:hover{background:rgba(255,255,255,.025);}
+.q-table tbody td{padding:9px 12px;vertical-align:middle;}
+/* Column widths */
+.col-q{width:auto;}          /* Question – takes remaining space */
+.col-ws{width:100px;}        /* Workspace */
+.col-lat{width:72px;}        /* Latency */
+.col-tok{width:72px;}        /* Tokens */
+.col-st{width:72px;}         /* Status */
+/* Cell text overflow */
+.q-table .cell-truncate{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;display:block;max-width:100%;}
+
+.section-label{font-size:.58rem;font-weight:800;letter-spacing:.14em;text-transform:uppercase;color:#334155;margin-bottom:10px;display:flex;align-items:center;gap:6px;}
+.section-label::after{content:'';flex:1;height:1px;background:rgba(255,255,255,.04);}
+
+.skeleton{background:linear-gradient(90deg,rgba(255,255,255,.04) 25%,rgba(255,255,255,.07) 50%,rgba(255,255,255,.04) 75%);background-size:200% 100%;animation:shimmer 1.5s infinite;}
+@keyframes shimmer{0%{background-position:200% 0;}100%{background-position:-200% 0;}}
+
+.ws-card{
+  display:block;
+  background:#0a0a0a;
+  border:1px solid rgba(255,255,255,.07);
+  border-radius:12px;
+  padding:14px;
+  text-decoration:none;
+  transition:border-color .2s, box-shadow .2s, transform .15s;
+}
+.ws-card:hover{
+  border-color:rgba(255,46,98,.2);
+  box-shadow:0 4px 16px rgba(0,0,0,.3);
+  transform:translateY(-1px);
+}
+
+.mono{font-family:'JetBrains Mono',monospace;}
+
+/* Trend indicators */
+.trend-up{color:#10b981;font-size:.6rem;font-weight:700;}
+.trend-down{color:#ef4444;font-size:.6rem;font-weight:700;}
+.trend-neutral{color:#475569;font-size:.6rem;font-weight:700;}
+
+/* Toast */
+.toast{position:fixed;bottom:24px;right:24px;background:#0f0f0f;border:1px solid rgba(255,255,255,.1);border-radius:12px;padding:11px 16px;font-size:.78rem;font-weight:600;display:flex;align-items:center;gap:8px;z-index:999;transform:translateY(80px);opacity:0;transition:transform .25s cubic-bezier(.34,1.56,.64,1),opacity .25s;}
+.toast.show{transform:translateY(0);opacity:1;}
+.toast.success{border-color:rgba(16,185,129,.25);color:#10b981;}
+.toast.error{border-color:rgba(239,68,68,.25);color:#ef4444;}
+
+@keyframes countUp{from{opacity:0;transform:translateY(6px);}to{opacity:1;transform:translateY(0);}}
+.count-anim{animation:countUp .4s ease-out forwards;}
 </style>
 </head>
 <body class="min-h-screen">
 
-<!-- ── Top nav ──────────────────────────────────────────────── -->
+<!-- ── Header ── -->
 <header class="h-14 border-b border-white/5 bg-[#0A0A0A] flex items-center justify-between px-6 sticky top-0 z-50">
   <div class="flex items-center gap-3">
     <a href="/app" class="flex items-center gap-2">
@@ -38,73 +124,97 @@ body{background:#000;color:#f1f5f9;font-family:'Space Grotesk',sans-serif;}
       <span class="text-base font-bold tracking-tighter uppercase">RAG<span class="text-primary font-black">CORE</span></span>
     </a>
     <div class="flex items-center bg-white/5 border border-white/10 rounded-xl p-1 gap-0.5">
-      <a href="/app"        class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold text-slate-400 hover:text-white transition-all"><span class="material-symbols-outlined text-sm">folder_open</span><span class="hidden sm:inline">RAG</span></a>
-      <a href="/ai-chat"    class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold text-slate-400 hover:text-white transition-all"><span class="material-symbols-outlined text-sm">smart_toy</span><span class="hidden sm:inline">AI Chat</span></a>
+      <a href="/app"        class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold text-slate-400 hover:text-white transition-all duration-150"><span class="material-symbols-outlined text-sm">folder_open</span><span class="hidden sm:inline">RAG</span></a>
+      <a href="/ai-chat"    class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold text-slate-400 hover:text-white transition-all duration-150"><span class="material-symbols-outlined text-sm">smart_toy</span><span class="hidden sm:inline">AI Chat</span></a>
       <a href="/dashboard"  class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold bg-primary/20 text-primary border border-primary/30"><span class="material-symbols-outlined text-sm">dashboard</span><span class="hidden sm:inline">Dashboard</span></a>
-      <a href="/monitoring" class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold text-slate-400 hover:text-white transition-all"><span class="material-symbols-outlined text-sm">monitor_heart</span><span class="hidden sm:inline">Monitor</span></a>
+      <a href="/monitoring" class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold text-slate-400 hover:text-white transition-all duration-150"><span class="material-symbols-outlined text-sm">monitor_heart</span><span class="hidden sm:inline">Monitor</span></a>
     </div>
   </div>
   <div class="flex items-center gap-2">
-    <a href="/profile" class="text-[10px] font-bold bg-white/5 border border-white/10 px-3 py-1.5 rounded-full text-slate-400 hover:text-primary hover:border-primary/40 transition-all flex items-center gap-1.5">
-      <span class="material-symbols-outlined text-sm">account_circle</span><span id="usernameDisplay">—</span>
-    </a>
-    <a href="/settings" class="text-[10px] font-bold bg-white/5 border border-white/10 px-3 py-1.5 rounded-full text-slate-400 hover:text-primary transition-all flex items-center gap-1.5">
-      <span class="material-symbols-outlined text-sm">settings</span>
-    </a>
-    <button onclick="doLogout()" class="text-[10px] font-bold bg-white/5 border border-white/10 px-3 py-1.5 rounded-full text-slate-400 hover:text-primary hover:border-primary/40 transition-all flex items-center gap-1.5">
-      <span class="material-symbols-outlined text-sm">logout</span>
-    </button>
+    <a href="/profile"  class="text-[10px] font-bold bg-white/5 border border-white/10 px-3 py-1.5 rounded-full text-slate-400 hover:text-primary hover:border-primary/30 transition-all duration-150 flex items-center gap-1.5"><span class="material-symbols-outlined text-sm">account_circle</span><span id="usernameDisplay">—</span></a>
+    <a href="/settings" class="text-[10px] font-bold bg-white/5 border border-white/10 px-3 py-1.5 rounded-full text-slate-400 hover:text-primary hover:border-primary/30 transition-all duration-150 flex items-center gap-1.5"><span class="material-symbols-outlined text-sm">settings</span></a>
+    <button onclick="doLogout()" class="text-[10px] font-bold bg-white/5 border border-white/10 px-3 py-1.5 rounded-full text-slate-400 hover:text-red-400 hover:border-red-400/30 transition-all duration-150 flex items-center gap-1.5"><span class="material-symbols-outlined text-sm">logout</span></button>
   </div>
 </header>
 
-<!-- ── Body ─────────────────────────────────────────────────── -->
+<!-- ── Body ── -->
 <div class="max-w-6xl mx-auto px-6 py-8">
 
   <!-- Page title -->
-  <div class="mb-8">
-    <h1 class="text-2xl font-black mb-1">Dashboard</h1>
-    <p class="text-sm text-slate-500">Overview of your workspaces, documents, and query activity.</p>
+  <div class="mb-8 flex items-start justify-between">
+    <div>
+      <div class="flex items-center gap-3 mb-1">
+        <a href="/app" style="display:inline-flex;align-items:center;gap:5px;font-size:.7rem;font-weight:700;color:#475569;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.08);border-radius:8px;padding:4px 10px;text-decoration:none;transition:all .15s;" onmouseover="this.style.color='#f1f5f9';this.style.borderColor='rgba(255,255,255,.15)'" onmouseout="this.style.color='#475569';this.style.borderColor='rgba(255,255,255,.08)'">
+          <span class="material-symbols-outlined" style="font-size:13px;">arrow_back</span>Back to RAG
+        </a>
+      </div>
+      <h1 class="text-2xl font-black mb-1 tracking-tight">Dashboard</h1>
+      <p class="text-sm text-slate-500">Overview of your workspaces, documents, and query activity.</p>
+    </div>
+    <div id="lastRefreshed" class="text-xs text-slate-600 mt-1 flex items-center gap-1.5">
+      <span class="material-symbols-outlined text-sm">schedule</span>
+      <span id="refreshTime">—</span>
+    </div>
   </div>
 
   <!-- ── Stat cards ── -->
-  <div id="statsGrid" class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-    <!-- filled by JS -->
-    <div class="stat-card col-span-2 md:col-span-4 flex items-center justify-center py-8">
-      <div class="w-5 h-5 border-2 border-white/10 border-t-primary rounded-full animate-spin mr-3"></div>
-      <span class="text-sm text-slate-500">Loading stats…</span>
-    </div>
+  <div id="statsGrid" class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-8">
+    <!-- Skeleton loaders -->
+    <div class="stat-card"><div class="skeleton h-4 w-20 rounded mb-3"></div><div class="skeleton h-8 w-16 rounded mb-2"></div><div class="skeleton h-3 w-24 rounded"></div></div>
+    <div class="stat-card"><div class="skeleton h-4 w-20 rounded mb-3"></div><div class="skeleton h-8 w-16 rounded mb-2"></div><div class="skeleton h-3 w-24 rounded"></div></div>
+    <div class="stat-card"><div class="skeleton h-4 w-20 rounded mb-3"></div><div class="skeleton h-8 w-16 rounded mb-2"></div><div class="skeleton h-3 w-24 rounded"></div></div>
+    <div class="stat-card"><div class="skeleton h-4 w-20 rounded mb-3"></div><div class="skeleton h-8 w-16 rounded mb-2"></div><div class="skeleton h-3 w-24 rounded"></div></div>
+    <div class="stat-card"><div class="skeleton h-4 w-20 rounded mb-3"></div><div class="skeleton h-8 w-16 rounded mb-2"></div><div class="skeleton h-3 w-24 rounded"></div></div>
+    <div class="stat-card"><div class="skeleton h-4 w-20 rounded mb-3"></div><div class="skeleton h-8 w-16 rounded mb-2"></div><div class="skeleton h-3 w-24 rounded"></div></div>
+    <div class="stat-card"><div class="skeleton h-4 w-20 rounded mb-3"></div><div class="skeleton h-8 w-16 rounded mb-2"></div><div class="skeleton h-3 w-24 rounded"></div></div>
+    <div class="stat-card"><div class="skeleton h-4 w-20 rounded mb-3"></div><div class="skeleton h-8 w-16 rounded mb-2"></div><div class="skeleton h-3 w-24 rounded"></div></div>
   </div>
 
   <div class="grid md:grid-cols-3 gap-6">
 
     <!-- ── Recent queries ── -->
-    <div class="md:col-span-2">
-      <p class="section-title">Recent Queries</p>
-      <div class="bg-[#0a0a0a] border border-white/7 rounded-2xl overflow-hidden">
-        <!-- Header row -->
-        <div class="table-row grid-cols-[1fr_100px_70px_80px_60px] px-4 py-2 border-b border-white/8" style="grid-template-columns:1fr 100px 70px 80px 60px;">
-          <span class="text-[10px] font-800 uppercase tracking-wider text-slate-600">Question</span>
-          <span class="text-[10px] font-800 uppercase tracking-wider text-slate-600">Workspace</span>
-          <span class="text-[10px] font-800 uppercase tracking-wider text-slate-600">Latency</span>
-          <span class="text-[10px] font-800 uppercase tracking-wider text-slate-600">Tokens</span>
-          <span class="text-[10px] font-800 uppercase tracking-wider text-slate-600">Status</span>
-        </div>
-        <div id="queryLog" style="max-height:380px;overflow-y:auto;">
-          <div class="flex items-center justify-center py-10 text-slate-600 text-sm">Loading…</div>
+    <div class="md:col-span-2 flex flex-col gap-3">
+      <div class="section-label"><span class="material-symbols-outlined text-xs text-slate-600">query_stats</span>Recent Queries</div>
+      <div class="card" style="overflow:hidden;">
+        <div style="overflow-x:auto;max-height:400px;overflow-y:auto;">
+          <table class="q-table">
+            <thead style="position:sticky;top:0;background:#0a0a0a;z-index:1;">
+              <tr>
+                <th class="col-q">Question</th>
+                <th class="col-ws">Workspace</th>
+                <th class="col-lat">Latency</th>
+                <th class="col-tok">Tokens</th>
+                <th class="col-st">Status</th>
+              </tr>
+            </thead>
+            <tbody id="queryLog">
+              <tr><td colspan="5" style="text-align:center;padding:40px;">
+                <div style="display:flex;align-items:center;justify-content:center;gap:10px;">
+                  <div style="width:16px;height:16px;border:2px solid rgba(255,255,255,.08);border-top-color:#ff2e62;border-radius:50%;animation:spin .7s linear infinite;"></div>
+                  <span style="font-size:.82rem;color:#475569;">Loading queries…</span>
+                </div>
+              </td></tr>
+            </tbody>
+          </table>
         </div>
       </div>
     </div>
 
     <!-- ── Workspace list ── -->
-    <div>
-      <p class="section-title">Workspaces</p>
+    <div class="flex flex-col gap-3">
+      <div class="section-label"><span class="material-symbols-outlined text-xs text-slate-600">workspaces</span>Workspaces</div>
       <div id="wsList" class="space-y-2">
-        <div class="flex items-center justify-center py-8 text-slate-600 text-sm">Loading…</div>
+        <div class="ws-card"><div class="skeleton h-4 w-24 rounded mb-2"></div><div class="skeleton h-3 w-16 rounded"></div></div>
+        <div class="ws-card"><div class="skeleton h-4 w-20 rounded mb-2"></div><div class="skeleton h-3 w-14 rounded"></div></div>
       </div>
     </div>
 
   </div>
 </div>
+
+<div id="toast" class="toast"><span class="material-symbols-outlined text-sm" id="toastIcon">check_circle</span><span id="toastMsg"></span></div>
+
+<style>@keyframes spin{to{transform:rotate(360deg);}}</style>
 
 <script>
 async function doLogout() {
@@ -127,14 +237,38 @@ function relTime(iso) {
   return Math.floor(h/24) + "d ago";
 }
 
-function statCard(icon, label, value, sub, color) {
+function showToast(msg, type="success") {
+  const t = document.getElementById("toast");
+  document.getElementById("toastMsg").textContent = msg;
+  document.getElementById("toastIcon").textContent = type === "success" ? "check_circle" : "error";
+  t.className = "toast show " + type;
+  setTimeout(() => t.className = "toast " + type, 3000);
+}
+
+function latencyColor(ms) {
+  if (!ms) return "#475569";
+  if (ms < 1000) return "#10b981";
+  if (ms < 3000) return "#f59e0b";
+  return "#ef4444";
+}
+
+function statCard(icon, label, value, sub, color, trend) {
+  const trendHtml = trend
+    ? `<span class="trend-${trend.dir}" style="display:inline-flex;align-items:center;gap:2px;">
+        <span class="material-symbols-outlined" style="font-size:10px;">${trend.dir === 'up' ? 'trending_up' : trend.dir === 'down' ? 'trending_down' : 'remove'}</span>
+        ${esc(trend.label)}
+       </span>`
+    : "";
   return `<div class="stat-card">
-    <div style="width:36px;height:36px;border-radius:10px;background:${color}18;border:1px solid ${color}30;display:flex;align-items:center;justify-content:center;margin-bottom:12px;">
-      <span class="material-symbols-outlined" style="font-size:18px;color:${color};">${icon}</span>
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
+      <div style="width:34px;height:34px;border-radius:9px;background:${color}18;border:1px solid ${color}25;display:flex;align-items:center;justify-content:center;">
+        <span class="material-symbols-outlined" style="font-size:17px;color:${color};">${icon}</span>
+      </div>
+      ${trendHtml}
     </div>
-    <div style="font-size:1.6rem;font-weight:800;color:#f1f5f9;line-height:1;">${esc(String(value))}</div>
-    <div style="font-size:.72rem;font-weight:600;color:#475569;margin-top:4px;">${esc(label)}</div>
-    ${sub ? `<div style="font-size:.62rem;color:#334155;margin-top:2px;">${esc(sub)}</div>` : ""}
+    <div class="count-anim" style="font-size:1.65rem;font-weight:800;color:#f1f5f9;line-height:1;letter-spacing:-.02em;">${esc(String(value))}</div>
+    <div style="font-size:.72rem;font-weight:600;color:#64748b;margin-top:5px;">${esc(label)}</div>
+    ${sub ? `<div style="font-size:.62rem;color:#334155;margin-top:3px;display:flex;align-items:center;gap:3px;">${esc(sub)}</div>` : ""}
   </div>`;
 }
 
@@ -143,15 +277,26 @@ async function loadStats() {
     const r = await fetch("/dashboard/stats", {credentials:"include"});
     if (!r.ok) return;
     const d = await r.json();
+    const successRate = d.queries > 0
+      ? Math.round(((d.queries - (d.errors || 0)) / d.queries) * 100)
+      : null;
+    const feedbackTotal = (d.thumbs_up || 0) + (d.thumbs_down || 0);
+    const feedbackRate = feedbackTotal > 0
+      ? Math.round((d.thumbs_up / feedbackTotal) * 100)
+      : null;
+
     document.getElementById("statsGrid").innerHTML =
-      statCard("workspaces",    "Workspaces",       d.workspaces,       null,                    "#ff2e62") +
-      statCard("description",   "Documents",        d.documents,        d.chunks.toLocaleString() + " chunks", "#3b82f6") +
-      statCard("chat_bubble",   "Chats",            d.chats,            null,                    "#818cf8") +
-      statCard("query_stats",   "Queries",          d.queries,          d.avg_latency_ms + "ms avg", "#10b981") +
-      statCard("thumb_up",      "Positive",         d.thumbs_up,        "feedback",              "#10b981") +
-      statCard("thumb_down",    "Negative",         d.thumbs_down,      "feedback",              "#ef4444") +
-      statCard("database",      "Storage",          d.storage_fmt,      null,                    "#f59e0b") +
-      statCard("memory",        "Indexed Chunks",   d.chunks.toLocaleString(), "across all docs", "#06b6d4");
+      statCard("workspaces",  "Workspaces",     d.workspaces,   d.workspaces === 1 ? "1 active workspace" : d.workspaces + " total workspaces", "#ff2e62") +
+      statCard("description", "Documents",      d.documents,    (d.chunks||0).toLocaleString() + " indexed chunks",  "#3b82f6") +
+      statCard("chat_bubble", "Chats",          d.chats,        "across all workspaces", "#818cf8") +
+      statCard("query_stats", "Queries",        d.queries,      d.avg_latency_ms ? "avg " + d.avg_latency_ms + "ms latency" : "no queries yet", "#10b981",
+        successRate !== null ? {dir: successRate >= 90 ? "up" : successRate >= 70 ? "neutral" : "down", label: successRate + "% success"} : null) +
+      statCard("thumb_up",    "Positive",       d.thumbs_up||0, feedbackRate !== null ? feedbackRate + "% approval rate" : "no feedback yet", "#10b981") +
+      statCard("thumb_down",  "Negative",       d.thumbs_down||0, feedbackTotal + " total responses rated", "#ef4444") +
+      statCard("database",    "Storage Used",   d.storage_fmt||"0 B",  "documents & embeddings", "#f59e0b") +
+      statCard("memory",      "Indexed Chunks", (d.chunks||0).toLocaleString(), "embedded across all docs", "#06b6d4");
+
+    document.getElementById("refreshTime").textContent = "Updated " + relTime(new Date().toISOString());
   } catch {}
 }
 
@@ -161,22 +306,48 @@ async function loadQueries() {
     const d = await r.json();
     const rows = d.queries || [];
     const el = document.getElementById("queryLog");
-    if (!rows.length) { el.innerHTML = '<div class="text-center py-8 text-slate-600 text-sm">No queries yet</div>'; return; }
-    el.innerHTML = rows.map(q => {
-      const status = q.status === "ERROR"
-        ? '<span class="badge badge-red">Error</span>'
-        : '<span class="badge badge-green">OK</span>';
-      const fb = q.feedback === "up" ? "👍" : q.feedback === "down" ? "👎" : "—";
-      return `<div class="table-row px-4 py-2.5" style="display:grid;grid-template-columns:1fr 100px 70px 80px 60px;align-items:center;gap:8px;">
-        <div style="min-width:0;">
-          <p style="font-size:.72rem;color:#cbd5e1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${esc(q.question)}">${esc(q.question)}</p>
-          <p style="font-size:.6rem;color:#334155;margin-top:1px;">${relTime(q.created_at)}</p>
+    if (!rows.length) {
+      el.innerHTML = `<tr><td colspan="5">
+        <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;padding:40px 20px;gap:10px;">
+          <div style="width:38px;height:38px;border-radius:12px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.07);display:flex;align-items:center;justify-content:center;">
+            <span class="material-symbols-outlined" style="font-size:19px;color:#334155;">query_stats</span>
+          </div>
+          <p style="font-size:.78rem;font-weight:600;color:#475569;margin:0;">No queries yet</p>
+          <p style="font-size:.7rem;color:#334155;margin:0;">Queries appear here after you chat in a workspace.</p>
         </div>
-        <span style="font-size:.65rem;color:#475569;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${esc(q.workspace_slug||"—")}</span>
-        <span style="font-size:.7rem;color:#64748b;">${q.latency_ms ? q.latency_ms + "ms" : "—"}</span>
-        <span style="font-size:.7rem;color:#64748b;">${q.total_tokens ? q.total_tokens.toLocaleString() : "—"}</span>
-        <div style="display:flex;align-items:center;gap:4px;">${status}<span style="font-size:.75rem;">${fb}</span></div>
-      </div>`;
+      </td></tr>`;
+      return;
+    }
+    el.innerHTML = rows.map(q => {
+      const isErr = q.status === "ERROR";
+      const statusBadge = isErr
+        ? '<span class="badge badge-red"><span class="material-symbols-outlined" style="font-size:9px;">error</span>ERR</span>'
+        : '<span class="badge badge-green"><span class="material-symbols-outlined" style="font-size:9px;">check</span>OK</span>';
+      const fb = q.feedback === "up"
+        ? ' <span style="font-size:.75rem;" title="Positive">👍</span>'
+        : q.feedback === "down"
+        ? ' <span style="font-size:.75rem;" title="Negative">👎</span>'
+        : "";
+      const latMs = q.latency_ms || 0;
+      const latColor = latencyColor(latMs);
+      return `<tr>
+        <td class="col-q">
+          <span class="cell-truncate" style="font-size:.72rem;color:#cbd5e1;font-weight:500;" title="${esc(q.question)}">${esc(q.question)}</span>
+          <span style="font-size:.6rem;color:#334155;display:block;margin-top:1px;">${relTime(q.created_at)}</span>
+        </td>
+        <td class="col-ws">
+          <span class="cell-truncate" style="font-size:.63rem;color:#475569;font-family:'JetBrains Mono',monospace;" title="${esc(q.workspace_slug||'')}">${esc(q.workspace_slug||"—")}</span>
+        </td>
+        <td class="col-lat">
+          <span style="font-size:.68rem;color:${latColor};font-weight:600;font-family:'JetBrains Mono',monospace;">${latMs ? latMs+"ms" : "—"}</span>
+        </td>
+        <td class="col-tok">
+          <span style="font-size:.68rem;color:#475569;font-family:'JetBrains Mono',monospace;">${q.total_tokens ? q.total_tokens.toLocaleString() : "—"}</span>
+        </td>
+        <td class="col-st">
+          <div style="display:flex;align-items:center;gap:3px;">${statusBadge}${fb}</div>
+        </td>
+      </tr>`;
     }).join("");
   } catch {}
 }
@@ -187,20 +358,33 @@ async function loadWorkspaces() {
     const d = await r.json();
     const list = d.workspaces || [];
     const el = document.getElementById("wsList");
-    if (!list.length) { el.innerHTML = '<div class="text-sm text-slate-600 text-center py-4">No workspaces</div>'; return; }
-    el.innerHTML = list.map(ws => `
-      <a href="/app" onclick="sessionStorage.setItem('ragcore_activeWS','${esc(ws.slug)}');return true;"
-        class="block bg-[#0a0a0a] border border-white/7 rounded-xl p-4 hover:border-primary/25 transition-all">
+    if (!list.length) {
+      el.innerHTML = `<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;padding:32px 16px;gap:10px;background:#0a0a0a;border:1px solid rgba(255,255,255,.07);border-radius:12px;">
+        <div style="width:36px;height:36px;border-radius:10px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.07);display:flex;align-items:center;justify-content:center;">
+          <span class="material-symbols-outlined" style="font-size:18px;color:#334155;">workspaces</span>
+        </div>
+        <div style="text-align:center;">
+          <p style="font-size:.75rem;font-weight:600;color:#475569;margin-bottom:2px;">No workspaces</p>
+          <p style="font-size:.65rem;color:#334155;">Create one in the RAG view.</p>
+        </div>
+      </div>`;
+      return;
+    }
+    el.innerHTML = list.map(ws => {
+      const initial = (ws.name||"?")[0].toUpperCase();
+      const hasMessages = ws.message_count > 0;
+      return `<a href="/app" onclick="sessionStorage.setItem('ragcore_activeWS','${esc(ws.slug)}');return true;" class="ws-card">
         <div style="display:flex;align-items:center;gap:10px;">
-          <div style="width:32px;height:32px;border-radius:9px;background:rgba(255,46,98,.1);border:1px solid rgba(255,46,98,.2);display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:.75rem;font-weight:800;color:#ff2e62;">${esc((ws.name||"?")[0].toUpperCase())}</div>
+          <div style="width:32px;height:32px;border-radius:9px;background:rgba(255,46,98,.1);border:1px solid rgba(255,46,98,.2);display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:.75rem;font-weight:800;color:#ff2e62;">${esc(initial)}</div>
           <div style="flex:1;min-width:0;">
             <p style="font-size:.8rem;font-weight:600;color:#f1f5f9;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${esc(ws.name)}</p>
-            <p style="font-size:.62rem;color:#334155;">${esc(ws.slug)}</p>
+            <p style="font-size:.6rem;color:#334155;font-family:'JetBrains Mono',monospace;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${esc(ws.slug)}</p>
           </div>
-          ${ws.message_count > 0 ? `<span class="badge badge-blue">${ws.message_count}</span>` : ""}
+          ${hasMessages ? `<span class="badge badge-blue">${ws.message_count}</span>` : ""}
         </div>
-        ${ws.last_message ? `<p style="font-size:.65rem;color:#334155;margin-top:8px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${esc(ws.last_message)}</p>` : ""}
-      </a>`).join("");
+        ${ws.last_message ? `<p style="font-size:.64rem;color:#334155;margin-top:9px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;padding-left:42px;">${esc(ws.last_message)}</p>` : ""}
+      </a>`;
+    }).join("");
   } catch {}
 }
 
