@@ -1,10 +1,27 @@
 # RAGCORE
 
+![Python](https://img.shields.io/badge/Python-3.11%2B-blue?style=flat-square&logo=python)
+![FastAPI](https://img.shields.io/badge/FastAPI-0.110%2B-009688?style=flat-square&logo=fastapi)
+![Groq](https://img.shields.io/badge/Groq-LLM-orange?style=flat-square)
+![Supabase](https://img.shields.io/badge/Supabase-pgvector-3ECF8E?style=flat-square&logo=supabase)
+![License](https://img.shields.io/badge/License-Proprietary-red?style=flat-square)
+
 A production-ready, full-stack Retrieval-Augmented Generation (RAG) system. Upload documents, ask questions, and get AI answers grounded exclusively in your content — with hybrid search, a visual pipeline explorer, a general AI chatbot, and a real-time monitoring dashboard.
 
 ---
 
-## What's New (Latest)
+## ✨ What's New (Latest Release)
+
+### UI Polish & New Pages
+
+- **Dashboard improvements** — stat cards with trend indicators, skeleton loaders during fetch, animated count-up on numbers, color-coded query latency table (green/yellow/red), workspace list with one-click open
+- **Monitor improvements** — latency bar visualizations per service, animated status dot (green/yellow/red), structured service health cards with uptime counter
+- **Settings improvements** — section icons for visual grouping, copy-to-clipboard buttons for API key status, skeleton loaders on initial load
+- **Profile improvements** — avatar with online status dot, account stats grid (workspaces / queries / docs), password strength meter with color progression, active session cards with device info
+- **Back navigation buttons** on all secondary pages (Dashboard, Monitor, Profile, Settings, Pipeline, Playground)
+- **Fixed input field dark backgrounds** on Profile page (password fields now respect dark theme)
+- **Proper semantic HTML table** for query log in Dashboard (was broken div-grid layout)
+- **Landing page redesign** — "What's Inside" page card section, status bar in hero, pipeline flow diagram section, expanded nav with Dashboard/Pipeline/Playground links, 8-tile technology grid, 2 new FAQ items, multi-column footer
 
 ### New Pages (Dashboard, Monitoring, Profile, Settings)
 - **`/dashboard`** — Aggregate stats (workspaces, documents, chunks, chats, queries, storage, feedback), recent query log table, workspace list with one-click open
@@ -70,33 +87,30 @@ A production-ready, full-stack Retrieval-Augmented Generation (RAG) system. Uplo
 | **Cohere Reranking** | Optional cross-encoder reranking for higher precision. Falls back to RRF order if key not set. |
 | **General AI Chatbot** | Separate chat interface backed by Groq — no documents needed. Sessions persisted to Supabase. |
 | **RAG Playground** | Visual animated flow graph. Upload a document, ask a question, watch every pipeline stage execute in real time. Ask again without re-uploading. |
-| **Pipeline Explorer** | Step-by-step educational walkthrough with embedding bars, score bars, RRF tables, and streamed LLM output. Ask multiple questions on the same file. |
-| **Monitoring Dashboard** | SSE-powered live trace viewer. See every RAG query and file upload as it happens. |
+| **Pipeline Explorer** | Step-by-step educational walkthrough with embedding bars, BM25 score bars, RRF fusion table, Cohere rerank scores, and streamed LLM output. Ask multiple questions on the same file without re-uploading. |
+| **Analytics Dashboard** | Aggregate stat cards (workspaces, docs, chunks, queries, storage, feedback), recent query log with color-coded latency, workspace overview with one-click open. |
+| **System Monitoring** | Real-time health cards for every service (Supabase, BGE, BM25, ChromaDB, Groq, Cohere). Latency bars, uptime counter, recent error log. |
 | **Multi-workspace** | Isolated workspaces per user. Each workspace has its own documents, chat history, and vector index. All data persists across restarts. |
-| **Auth** | Supabase Auth (JWT verified with PyJWT) with local JSON fallback. bcrypt password hashing. |
+| **Auth** | Supabase Auth (JWT verified with PyJWT) with local JSON fallback. bcrypt password hashing, secure HttpOnly cookies. |
+| **Langfuse Tracing** | Optional LLM observability — traces every RAG query with latency, chunks retrieved, token count, and user feedback scores. |
 
 ---
 
-## Tech Stack
+## Pages
 
-**Backend**
-- FastAPI + Uvicorn (async, production-ready)
-- `BAAI/bge-small-en-v1.5` via SentenceTransformers — 384-dim dense embeddings
-- ChromaDB — local vector store (fallback only in production)
-- Supabase pgvector — cloud vector store (primary, HNSW index)
-- BM25 — pure-Python keyword index, persisted to Supabase Storage
-- Cohere Rerank API (optional)
-- Groq API — LLM inference
-- PyMuPDF, python-docx, pandas, Tesseract OCR — document extraction
-- SlowAPI — rate limiting
-- PyJWT — JWT verification
-
-**Frontend**
-- Vanilla HTML/CSS/JS — no build step
-- Tailwind CSS (CDN), Space Grotesk font, Material Symbols icons
-- Server-Sent Events (SSE) for streaming across all features
-- marked.js — markdown rendering
-- `requestAnimationFrame` smooth typing engine
+| URL | Description |
+|---|---|
+| `/` | Landing page — hero, What's Inside cards, pipeline flow diagram, features, tech stack, FAQ |
+| `/app` | Main RAG chat — workspaces, documents, streaming answers with page citations |
+| `/ai-chat` | General AI chatbot (no documents needed), persistent sessions |
+| `/playground` | Visual animated pipeline graph — upload a file, ask a question, watch every stage |
+| `/pipeline` | Educational pipeline explorer — embedding bars, score bars, RRF table, streamed answer |
+| `/dashboard` | Analytics dashboard — stat cards, query log, workspace overview |
+| `/monitoring` | System health — Supabase, models, BM25, ChromaDB, Groq, Cohere, error log |
+| `/profile` | User profile, avatar, account stats, password change with strength meter, active sessions |
+| `/settings` | Read-only system config, model info, API key status with copy buttons, Langfuse setup |
+| `/login` | Login |
+| `/register` | Create account |
 
 ---
 
@@ -168,6 +182,30 @@ Question
 
 ---
 
+## Tech Stack
+
+**Backend**
+- FastAPI + Uvicorn (async, production-ready)
+- `BAAI/bge-small-en-v1.5` via SentenceTransformers — 384-dim dense embeddings
+- ChromaDB — local vector store (fallback only in production)
+- Supabase pgvector — cloud vector store (primary, HNSW index)
+- BM25 — pure-Python keyword index, persisted to Supabase Storage
+- Cohere Rerank API (optional cross-encoder reranking)
+- Groq API — LLM inference (streaming + vision)
+- PyMuPDF, python-docx, pandas, Tesseract OCR — document extraction
+- SlowAPI — rate limiting
+- PyJWT — JWT verification
+- Langfuse — LLM observability & tracing (optional)
+
+**Frontend**
+- Vanilla HTML/CSS/JS — no build step required
+- Tailwind CSS (CDN), Space Grotesk font, Material Symbols icons
+- Server-Sent Events (SSE) for streaming across all features
+- marked.js — markdown rendering
+- `requestAnimationFrame` smooth typing engine (4 chars/frame)
+
+---
+
 ## Project Structure
 
 ```
@@ -210,7 +248,7 @@ frontend/
   monitoring.html             ← System health (Supabase, models, BM25, errors)
   profile.html                ← User profile, password change, sessions
   settings.html               ← System config, model info, API key status
-  landing.html                ← Public marketing page (FAQ, CTA sections)
+  landing.html                ← Public marketing page (pipeline flow, page cards, FAQ)
   login.html / register.html  ← Auth pages
 
 database/
@@ -238,6 +276,8 @@ pip install -r requirements.txt
 
 ### 2. Configure environment
 
+Create a `.env` file in the project root:
+
 ```env
 # ── Required ──────────────────────────────────────
 GROQ_API_KEY=gsk_...
@@ -256,6 +296,11 @@ SECURE_COOKIES=true                      # true on HTTPS
 COHERE_API_KEY=...
 ADMIN_PASSWORD=changeme                  # leave unset in prod to skip default user
 ALLOWED_ORIGINS=https://yourdomain.com
+
+# ── Langfuse (optional) ───────────────────────────
+LANGFUSE_PUBLIC_KEY=pk-lf-...
+LANGFUSE_SECRET_KEY=sk-lf-...
+LANGFUSE_HOST=https://cloud.langfuse.com
 ```
 
 Without Supabase keys the app runs **fully locally** using ChromaDB + BM25 + JSON files. No features are lost.
@@ -296,25 +341,7 @@ Open **http://localhost:8000**
 4. Set all environment variables in Render dashboard (marked `sync: false` in `render.yaml`)
 5. Deploy — `render.yaml` sets the build and start commands
 
-Minimum plan: **Starter ($7/mo)** — the embedding model needs ~512MB RAM.
-
----
-
-## Pages
-
-| URL | Description |
-|---|---|
-| `/` | Landing page |
-| `/app` | Main RAG chat — workspaces, documents, streaming answers |
-| `/ai-chat` | General AI chatbot (no documents needed) |
-| `/playground` | Visual pipeline animation — watch RAG run step by step |
-| `/pipeline` | Educational pipeline explorer with full metadata per stage |
-| `/dashboard` | Analytics dashboard — stats, query log, workspace overview |
-| `/monitoring` | System health — Supabase, models, BM25, error log |
-| `/profile` | User profile, password change, active sessions |
-| `/settings` | System config, model info, API key status, Langfuse setup |
-| `/login` | Login |
-| `/register` | Create account |
+Minimum plan: **Starter ($7/mo)** — the embedding model needs ~512 MB RAM.
 
 ---
 
