@@ -6,7 +6,7 @@ from pydantic import BaseModel
 
 from backend.deps import get_token, get_safe_name, get_workspace_path
 from backend.auth import get_current_user
-from backend.ingestion import extract_pdf_text, extract_excel_text, extract_docx_text, extract_image_text
+from backend.ingestion import extract_pdf_text, extract_excel_text, extract_docx_text, extract_image_text, extract_text_file, TEXT_EXTENSIONS
 from backend.retriever import add_documents, delete_from_collection, _chroma_available
 from backend.supabase_storage import upload_file_to_supabase, delete_file_from_supabase
 from backend.supabase_db import add_document_metadata
@@ -119,6 +119,7 @@ def _process_and_index(slug: str, filename: str, file_path: str, username: str,
     try:
         ext = filename.lower()
         page_info = None
+        image_path = None   # set for image uploads — passed through to chunk metadata
         _pg("text_extraction", "running", f"Extracting text from {filename}")
         if ext.endswith(".pdf"):
             text, page_info = extract_pdf_text(file_path)
@@ -128,6 +129,10 @@ def _process_and_index(slug: str, filename: str, file_path: str, username: str,
             text = extract_docx_text(file_path)
         elif ext.endswith((".png", ".jpg", ".jpeg")):
             text = extract_image_text(file_path)
+            # Store a servable URL so retrieval can surface the image in the chat UI
+            image_path = f"/workspace-image/{slug}/{filename}"
+        elif any(ext.endswith(e) for e in TEXT_EXTENSIONS):
+            text = extract_text_file(file_path)
         else:
             logger.error(f"Unsupported format: {filename}")
             _pg("text_extraction", "error", f"Unsupported format: {filename}")
@@ -157,7 +162,7 @@ def _process_and_index(slug: str, filename: str, file_path: str, username: str,
         _pg("embedding", "running", "Generating vector embeddings")
         _pg("vector_store", "running", "Writing to Supabase pgvector + ChromaDB + BM25")
 
-        add_documents(slug, chunks, filename, username=username)
+        add_documents(slug, chunks, filename, username=username, image_path=image_path)
 
         _pg("embedding", "done", f"BAAI/bge-small-en-v1.5 (384 dims)",
             {"model": "BAAI/bge-small-en-v1.5", "dims": 384, "chunks": len(chunks)})

@@ -167,6 +167,7 @@ async def chat_stream(data: ChatRequest, username: str = Depends(_require_auth))
             full_answer = ""
             token_usage = {"prompt_tokens": 0, "completion_tokens": 0, "total_tokens": 0}
             page_numbers = []
+            image_urls = []
 
             if not context_chunks:
                 msg = "No context found. Please upload documents first."
@@ -176,6 +177,10 @@ async def chat_stream(data: ChatRequest, username: str = Depends(_require_auth))
             else:
                 context = "\n\n".join(context_chunks)
                 page_numbers = sorted({m["page"] for m in metadatas if m and m.get("page") is not None})
+                # Collect unique image URLs from image-file chunks
+                image_urls = list(dict.fromkeys(
+                    m["image_path"] for m in metadatas if m and m.get("image_path")
+                ))
                 prior = load_history(slug, (data.chat_id or "").strip() or None)
                 trace.emit_stage("llm_generation", "running",
                                  "Streaming from LLM",
@@ -191,7 +196,7 @@ async def chat_stream(data: ChatRequest, username: str = Depends(_require_auth))
             trace.emit_stage("llm_generation", "done",
                              f"{token_usage.get('total_tokens', 0)} tokens",
                              token_usage)
-            yield f"data: {json.dumps({'type': 'metadata', 'page_numbers': page_numbers, 'token_usage': token_usage, 'trace_id': trace.trace_id})}\n\n"
+            yield f"data: {json.dumps({'type': 'metadata', 'page_numbers': page_numbers, 'image_urls': image_urls, 'token_usage': token_usage, 'trace_id': trace.trace_id})}\n\n"
 
             chat_id = _resolve_chat_id(slug, data.chat_id)
             trace.emit_stage("storage", "running", "Persisting to local JSON + Supabase")
