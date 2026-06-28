@@ -1,6 +1,13 @@
 """
 BM25 keyword search index — persisted to Supabase Storage (primary) or disk (fallback).
 Combined with vector search for hybrid retrieval (RRF fusion).
+
+Performance optimisations (backward-compatible):
+  - Per-document TF maps stored at index time (no re-tokenisation on search).
+  - Inverted index: search only visits documents that contain at least one
+    query term instead of scanning every document.
+  - Both structures are pickled alongside the existing fields so old pickles
+    (missing the new attrs) are transparently upgraded on first load.
 """
 import logging
 import math
@@ -27,44 +34,108 @@ def _tokenize(text: str) -> List[str]:
 
 
 class BM25Index:
-    """Minimal BM25 — no external dependencies, pickle-serializable."""
+    """
+    BM25 with two performance improvements over the baseline:
+
+    1. Cached TF maps  — ``self.tf_maps[i]`` holds the pre-computed
+       {term: count} dict for document i so ``search()`` never re-tokenises.
+
+    2. Inverted index  — ``self.inverted[term]`` is a set of document indices
+       that contain that term.  ``search()`` unions the candidate sets for all
+       query terms and only scores those documents (~O(df) instead of O(N)).
+
+    Backward compatibility: ``__setstate__`` rebuilds the new structures from
+    ``self.tokenized`` when loading a pickle that pre-dates this version, so
+    existing saved indexes continue to work without re-indexing.
+    """
 
     def __init__(self, k1: float = 1.5, b: float = 0.75):
         self.k1 = k1
         self.b = b
         self.docs: List[str] = []
         self.metadatas: List[dict] = []
-        self.tokenized: List[List[str]] = []
+        self.tokenized: List[List[str]] = []          # kept for rebuild compat
         self.df: Dict[str, int] = defaultdict(int)
         self.avgdl: float = 0.0
+        # ── new ──────────────────────────────────────────
+        self.tf_maps: List[Dict[str, int]] = []       # per-doc term frequencies
+        self.inverted: Dict[str, set] = defaultdict(set)  # term → {doc indices}
 
+    # ------------------------------------------------------------------
+    # Backward-compat deserialisation
+    # ------------------------------------------------------------------
+    def __setstate__(self, state: dict):
+        self.__dict__.update(state)
+        # Rebuild missing structures from tokenized list (old pickle)
+        if not hasattr(self, "tf_maps") or len(self.tf_maps) != len(self.docs):
+            self.tf_maps = []
+            for tokens in self.tokenized:
+                tf: Dict[str, int] = defaultdict(int)
+                for t in tokens:
+                    tf[t] += 1
+                self.tf_maps.append(tf)
+        if not hasattr(self, "inverted") or not self.inverted:
+            self.inverted = defaultdict(set)
+            for i, tokens in enumerate(self.tokenized):
+                for term in set(tokens):
+                    self.inverted[term].add(i)
+
+    # ------------------------------------------------------------------
+    # Indexing
+    # ------------------------------------------------------------------
     def add(self, texts: List[str], metadatas: List[dict]):
         for text, meta in zip(texts, metadatas):
             tokens = _tokenize(text)
+            idx = len(self.docs)
+
+            # Build TF map for this document
+            tf: Dict[str, int] = defaultdict(int)
+            for t in tokens:
+                tf[t] += 1
+
             self.docs.append(text)
             self.metadatas.append(meta)
             self.tokenized.append(tokens)
+            self.tf_maps.append(tf)
+
+            # Update DF and inverted index
             for term in set(tokens):
                 self.df[term] += 1
+                self.inverted[term].add(idx)
+
         total = sum(len(t) for t in self.tokenized)
         self.avgdl = total / len(self.tokenized) if self.tokenized else 1.0
 
+    # ------------------------------------------------------------------
+    # Search  (inverted-index candidate selection + cached TF scoring)
+    # ------------------------------------------------------------------
     def search(self, query: str, k: int = 20) -> List[Tuple[float, str, dict]]:
         if not self.docs:
             return []
+
         query_terms = _tokenize(query)
+        if not query_terms:
+            return []
+
         N = len(self.docs)
-        scores = []
-        for i, tokens in enumerate(self.tokenized):
-            tf_map: Dict[str, int] = defaultdict(int)
-            for t in tokens:
-                tf_map[t] += 1
+
+        # Candidate set: only docs that share at least one token with the query
+        candidates: set = set()
+        for term in query_terms:
+            candidates |= self.inverted.get(term, set())
+
+        if not candidates:
+            return []
+
+        scores: List[Tuple[float, int]] = []
+        for i in candidates:
+            tf_map = self.tf_maps[i]
+            dl = len(self.tokenized[i])
             score = 0.0
-            dl = len(tokens)
             for term in query_terms:
-                if term not in tf_map:
+                tf = tf_map.get(term, 0)
+                if tf == 0:
                     continue
-                tf = tf_map[term]
                 df = self.df.get(term, 0)
                 idf = math.log((N - df + 0.5) / (df + 0.5) + 1)
                 tf_norm = (tf * (self.k1 + 1)) / (
@@ -72,21 +143,38 @@ class BM25Index:
                 )
                 score += idf * tf_norm
             if score > 0:
-                scores.append((score, self.docs[i], self.metadatas[i]))
-        scores.sort(key=lambda x: x[0], reverse=True)
-        return scores[:k]
+                scores.append((score, i))
 
+        scores.sort(key=lambda x: x[0], reverse=True)
+        return [(s, self.docs[i], self.metadatas[i]) for s, i in scores[:k]]
+
+    # ------------------------------------------------------------------
+    # Deletion
+    # ------------------------------------------------------------------
     def delete_by_source(self, filename: str):
-        keep = [(d, m, t) for d, m, t in zip(self.docs, self.metadatas, self.tokenized)
-                if m.get("source") != filename]
-        if keep:
-            self.docs, self.metadatas, self.tokenized = map(list, zip(*keep))
-        else:
+        keep_idx = [i for i, m in enumerate(self.metadatas) if m.get("source") != filename]
+
+        if not keep_idx:
             self.docs, self.metadatas, self.tokenized = [], [], []
+            self.tf_maps = []
+            self.df = defaultdict(int)
+            self.inverted = defaultdict(set)
+            self.avgdl = 0.0
+            return
+
+        self.docs      = [self.docs[i]      for i in keep_idx]
+        self.metadatas = [self.metadatas[i] for i in keep_idx]
+        self.tokenized = [self.tokenized[i] for i in keep_idx]
+        self.tf_maps   = [self.tf_maps[i]   for i in keep_idx]
+
+        # Rebuild DF and inverted from scratch (deletion is infrequent)
         self.df = defaultdict(int)
-        for tokens in self.tokenized:
+        self.inverted = defaultdict(set)
+        for new_i, tokens in enumerate(self.tokenized):
             for term in set(tokens):
                 self.df[term] += 1
+                self.inverted[term].add(new_i)
+
         total = sum(len(t) for t in self.tokenized)
         self.avgdl = total / len(self.tokenized) if self.tokenized else 1.0
 
