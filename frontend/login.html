@@ -79,16 +79,57 @@ body{background:#000;color:#f1f5f9;font-family:'Space Grotesk',sans-serif;min-he
 .msg-err{background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.2);color:#fca5a5;}
 .msg-ok {background:rgba(16,185,129,.1);border:1px solid rgba(16,185,129,.2);color:#6ee7b7;}
 
-/* Progress bar (for success redirect) */
-.progress-bar{height:2px;background:rgba(255,255,255,.06);border-radius:1px;overflow:hidden;margin-top:10px;}
-.progress-fill{height:100%;background:#10b981;border-radius:1px;width:0%;transition:width 1.2s linear;}
-
 /* Fade in animation */
 @keyframes fadeUp{from{opacity:0;transform:translateY(12px);}to{opacity:1;transform:translateY(0);}}
 .card{animation:fadeUp .4s ease-out;}
+
+/* Progress bar (for success redirect) */
+.progress-bar{height:2px;background:rgba(255,255,255,.06);border-radius:1px;overflow:hidden;margin-top:10px;}
+.progress-fill{height:100%;background:#10b981;border-radius:1px;width:0%;transition:width 1.2s linear;}
+.admin-overlay{
+  position:fixed;inset:0;z-index:9999;
+  background:#000;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:20px;
+  opacity:0;pointer-events:none;
+  transition:opacity .3s ease;
+}
+.admin-overlay.show{opacity:1;pointer-events:all;}
+.shield-pulse{
+  width:72px;height:72px;border-radius:20px;
+  background:rgba(255,46,98,.15);border:2px solid rgba(255,46,98,.4);
+  display:flex;align-items:center;justify-content:center;
+  animation:shieldPop .4s cubic-bezier(.34,1.56,.64,1) forwards;
+}
+@keyframes shieldPop{
+  0%{transform:scale(.5);opacity:0;}
+  100%{transform:scale(1);opacity:1;}
+}
+.admin-scan{
+  width:72px;height:2px;background:linear-gradient(90deg,transparent,#ff2e62,transparent);
+  animation:scan 1s ease-in-out infinite;
+}
+@keyframes scan{0%{transform:translateY(-30px);}100%{transform:translateY(30px);}}
+.admin-text-anim{
+  animation:fadeSlideUp .4s .2s ease-out both;
+}
+@keyframes fadeSlideUp{from{opacity:0;transform:translateY(10px);}to{opacity:1;transform:translateY(0);}}
 </style>
 </head>
 <body>
+
+<!-- Admin redirect overlay -->
+<div id="adminOverlay" class="admin-overlay">
+  <div style="position:relative;display:flex;align-items:center;justify-content:center;">
+    <div class="shield-pulse">
+      <span class="material-symbols-outlined" style="font-size:34px;color:#ff2e62;">shield</span>
+    </div>
+    <div class="admin-scan" style="position:absolute;"></div>
+  </div>
+  <div class="admin-text-anim" style="text-align:center;">
+    <p style="font-size:1rem;font-weight:800;color:#f1f5f9;letter-spacing:-.01em;">Admin Access Granted</p>
+    <p style="font-size:.75rem;color:#475569;margin-top:4px;">Redirecting to Admin Panel…</p>
+  </div>
+</div>
 <div style="width:100%;max-width:420px;padding:20px;">
 
   <!-- Logo -->
@@ -142,7 +183,6 @@ body{background:#000;color:#f1f5f9;font-family:'Space Grotesk',sans-serif;min-he
   <!-- Links -->
   <div style="text-align:center;margin-top:18px;display:flex;flex-direction:column;gap:6px;">
     <p style="font-size:.72rem;color:#475569;">No account? <a href="/register" style="color:#ff2e62;text-decoration:none;font-weight:600;">Create one free</a></p>
-    <p style="font-size:.68rem;color:#334155;">Default: <span style="font-family:monospace;color:#475569;">admin / admin123</span></p>
     <a href="/" style="font-size:.68rem;color:#334155;text-decoration:none;display:inline-flex;align-items:center;gap:4px;justify-content:center;margin-top:4px;transition:color .15s;"
       onmouseover="this.style.color='#ff2e62'" onmouseout="this.style.color='#334155'">
       <span class="material-symbols-outlined" style="font-size:14px;">arrow_back</span>Back to home
@@ -243,8 +283,18 @@ form.onsubmit = async (e) => {
       sessionStorage.setItem("refresh_token", data.refresh_token);
     }
 
-    setState("success");
-    setTimeout(() => { location.href = "/app"; }, 1300);
+    // Check if user is admin — redirect to admin panel with special animation
+    const role = (data.user_info || {}).role || "user";
+    if (role === "admin") {
+      setState("success", "Welcome, Admin!");
+      setTimeout(() => {
+        document.getElementById("adminOverlay").classList.add("show");
+        setTimeout(() => { location.href = "/admin-panel"; }, 1800);
+      }, 400);
+    } else {
+      setState("success");
+      setTimeout(() => { location.href = "/app"; }, 1300);
+    }
 
   } catch(err) {
     const msg = err.message && err.message.includes("fetch")
