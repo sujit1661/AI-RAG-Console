@@ -182,7 +182,8 @@ def _supabase_login(username: str, password: str) -> Optional[dict]:
                 "user_id": res.user.id,
                 "username": username,
             }
-    except Exception:
+    except Exception as e:
+        logger.debug(f"Supabase Auth sign_in failed for {username}: {e}")
         return None
     return None
 
@@ -261,36 +262,46 @@ def _supabase_logout(token: str):
 def init_default_user():
     """
     Ensure an admin user exists in Supabase (and local fallback).
-    Only runs if the users table is empty — safe to call on every startup.
+    Credentials controlled entirely via environment variables:
+      ADMIN_USERNAME — defaults to 'admin'
+      ADMIN_PASSWORD — defaults to 'admin123'
     """
     sb = _get_supabase()
-    default_password = os.getenv("ADMIN_PASSWORD", "")
-    if not default_password:
-        logger.info("ADMIN_PASSWORD not set — skipping default user creation")
-        return
+    admin_username = os.getenv("ADMIN_USERNAME", "admin")
+    admin_password = os.getenv("ADMIN_PASSWORD", "admin123")
 
     if sb:
         try:
             res = sb.table("users").select("id").limit(1).execute()
             if res.data:
-                return  # users already exist
-            _supabase_register("admin", default_password, "admin@ragcore.local")
-            logger.info("Default admin user created in Supabase")
-            return
+                # Users exist — ensure admin role is set and local fallback is current
+                try:
+                    sb.table("users").update({"role": "admin"})\
+                        .eq("username", admin_username).execute()
+                except Exception:
+                    pass
+            else:
+                _supabase_register(admin_username, admin_password, f"{admin_username}@ragcore.local")
+                try:
+                    sb.table("users").update({"role": "admin"})\
+                        .eq("username", admin_username).execute()
+                except Exception:
+                    pass
+                logger.info(f"Default admin user '{admin_username}' created in Supabase")
         except Exception as e:
             logger.warning(f"Supabase init_default_user failed: {e}")
 
-    # Local fallback
+    # Always upsert admin into local users.json so local fallback auth works
     users = load_users()
-    if not users:
-        users["admin"] = {
-            "password_hash": hash_password(default_password),
-            "email": "",
-            "created_at": datetime.now().isoformat(),
-            "last_login": None,
-        }
-        save_users(users)
-        logger.info("Default admin user created locally")
+    users[admin_username] = {
+        "password_hash": hash_password(admin_password),
+        "email": f"{admin_username}@ragcore.local",
+        "role": "admin",
+        "created_at": users.get(admin_username, {}).get("created_at") or datetime.now().isoformat(),
+        "last_login": users.get(admin_username, {}).get("last_login"),
+    }
+    save_users(users)
+    logger.info(f"Admin user '{admin_username}' synced to local fallback store")
 
 def create_user(username: str, password: str, email: str = "") -> bool:
     sb = _get_supabase()
@@ -408,7 +419,7 @@ def get_user_info(username: str) -> Optional[dict]:
     sb = _get_supabase()
     if sb:
         try:
-            res = sb.table("users").select("username, email, created_at, last_login")\
+            res = sb.table("users").select("username, email, created_at, last_login, role")\
                 .eq("username", username).execute()
             if res.data:
                 return res.data[0]
@@ -417,10 +428,19 @@ def get_user_info(username: str) -> Optional[dict]:
     # Local fallback
     users = load_users()
     if username not in users:
-        return {"username": username}
+        return {"username": username, "role": "user"}
     info = users[username].copy()
     info.pop("password_hash", None)
+    if "role" not in info:
+        admin_username = os.getenv("ADMIN_USERNAME", "admin")
+        info["role"] = "admin" if username == admin_username else "user"
     return info
+
+
+def get_user_role(username: str) -> str:
+    """Return the role of a user ('admin' or 'user'). Defaults to 'user'."""
+    info = get_user_info(username)
+    return (info or {}).get("role", "user")
 
 def _update_last_login(username: str):
     now = datetime.now(timezone.utc).isoformat()
@@ -439,17 +459,39 @@ def _update_last_login(username: str):
         users[username]["last_login"] = now
         save_users(users)
 
+def _sync_supabase_auth_password(username: str, password: str):
+    """
+    Update Supabase Auth password to match local — called when local auth
+    succeeds but Supabase Auth failed, so they stay in sync going forward.
+    Non-fatal.
+    """
+    sb = _get_supabase()
+    if not sb:
+        return
+    try:
+        row = sb.table("users").select("id").eq("username", username).execute()
+        if not row.data:
+            return
+        user_id = row.data[0]["id"]
+        sb.auth.admin.update_user_by_id(user_id, {"password": password})
+        logger.info(f"Synced Supabase Auth password for {username}")
+    except Exception as e:
+        logger.debug(f"Supabase Auth password sync failed (non-fatal): {e}")
+
+
 def login_user(username: str, password: str) -> dict:
-    # Try Supabase Auth
+    # Try Supabase Auth first
     result = _supabase_login(username, password)
     if result:
         _update_last_login(username)
         return {**result, "source": "supabase"}
 
-    # Local fallback
+    # Local fallback — also works when Supabase Auth is out of sync
     if authenticate_user(username, password):
         token = create_session(username)
         _update_last_login(username)
+        # Silently re-sync Supabase Auth password so next login works via Supabase
+        _sync_supabase_auth_password(username, password)
         return {"token": token, "username": username, "source": "local"}
 
     raise HTTPException(status_code=401, detail="Invalid credentials")

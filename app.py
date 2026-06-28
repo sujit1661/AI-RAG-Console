@@ -81,9 +81,12 @@ app.include_router(pipeline_explorer_router)
 from routers.dashboard import router as dashboard_router
 app.include_router(dashboard_router)
 
+from routers.admin import router as admin_router
+app.include_router(admin_router)
+
 # ── Analytics ─────────────────────────────────────────────────
-from backend.deps import get_token, get_safe_name
-from backend.auth import get_current_user
+from backend.deps import get_token, get_safe_name, require_admin
+from backend.auth import get_current_user, get_user_role
 from backend.analytics import save_feedback, get_analytics
 
 
@@ -112,6 +115,24 @@ async def analytics(workspace_name: Optional[str] = None, token: Optional[str] =
 @app.get("/health")
 async def health():
     return {"status": "ok", "version": "1.0.0"}
+
+
+@app.get("/workspace-image/{slug}/{filename}")
+async def serve_workspace_image(slug: str, filename: str,
+                                token: Optional[str] = Depends(get_token)):
+    """Serve an uploaded image file from a workspace (auth required)."""
+    get_current_user(token)   # raises 401 if not logged in
+    from backend.deps import get_workspace_path, get_safe_name
+    safe_slug = get_safe_name(slug)
+    workspace_path = get_workspace_path(safe_slug)
+    # Prevent path traversal
+    safe_filename = os.path.basename(filename)
+    file_path = os.path.join(workspace_path, safe_filename)
+    if not os.path.exists(file_path):
+        raise HTTPException(status_code=404, detail="Image not found")
+    ext = safe_filename.rsplit(".", 1)[-1].lower()
+    media = {"png": "image/png", "jpg": "image/jpeg", "jpeg": "image/jpeg"}.get(ext, "image/octet-stream")
+    return FileResponse(file_path, media_type=media, headers=_NC)
 
 
 # ── Static pages ──────────────────────────────────────────────
@@ -169,8 +190,31 @@ async def serve_profile():
 
 
 @app.get("/settings", response_class=HTMLResponse)
-async def serve_settings():
+async def serve_settings(token: Optional[str] = Depends(get_token)):
+    """Settings page — admin only at the HTTP level."""
+    try:
+        username = get_current_user(token)
+        if get_user_role(username) != "admin":
+            from fastapi.responses import RedirectResponse
+            return RedirectResponse(url="/dashboard", status_code=303)
+    except Exception:
+        from fastapi.responses import RedirectResponse
+        return RedirectResponse(url="/login", status_code=303)
     return FileResponse("frontend/settings.html", headers=_NC)
+
+
+@app.get("/admin-panel", response_class=HTMLResponse)
+async def serve_admin_panel(token: Optional[str] = Depends(get_token)):
+    """Admin dashboard — admin only at the HTTP level."""
+    try:
+        username = get_current_user(token)
+        if get_user_role(username) != "admin":
+            from fastapi.responses import RedirectResponse
+            return RedirectResponse(url="/dashboard", status_code=303)
+    except Exception:
+        from fastapi.responses import RedirectResponse
+        return RedirectResponse(url="/login", status_code=303)
+    return FileResponse("frontend/admin.html", headers=_NC)
 
 
 if __name__ == "__main__":

@@ -18,7 +18,7 @@ tailwind.config = {
 }
 </script>
 <style>
-body { background: #000; color: #f1f5f9; font-family: 'Space Grotesk', sans-serif; }
+body { background: #000; color: #f1f5f9; font-family: 'Space Grotesk', sans-serif; visibility: hidden; }
 .neon-border { border: 1px solid rgba(255,46,98,0.3); box-shadow: 0 0 15px rgba(255,46,98,0.1); }
 .ai-bubble { border-left: 3px solid #ff2e62; background: #0D0D0D; }
 .ai-bubble h2 { font-size: 1rem; color: #ff2e62; font-weight: 700; margin: .75em 0 .4em; }
@@ -478,6 +478,7 @@ window.onload = async function() {
     const data = await res.json();
     if (!data.authenticated) { window.location.href = "/login"; return; }
     document.getElementById("usernameText").textContent = data.username || "—";
+    document.body.style.visibility = "visible";
   } catch { window.location.href = "/login"; return; }
 
   await loadSessions();

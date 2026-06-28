@@ -19,7 +19,7 @@ tailwind.config = {
 </script>
 <style>
 *{box-sizing:border-box;}
-body{background:#000;color:#f1f5f9;font-family:'Space Grotesk',sans-serif;}
+body{background:#000;color:#f1f5f9;font-family:'Space Grotesk',sans-serif;visibility:hidden;}
 ::-webkit-scrollbar{width:4px;height:4px;}
 ::-webkit-scrollbar-thumb{background:#222;border-radius:10px;}
 
@@ -220,7 +220,7 @@ body{background:#000;color:#f1f5f9;font-family:'Space Grotesk',sans-serif;}
         onmouseover="this.style.background='rgba(6,182,212,.14)'" onmouseout="this.style.background='rgba(6,182,212,.07)'">
         <span class="material-symbols-outlined" style="font-size:13px;">upload_file</span>Upload
       </button>
-      <input type="file" id="fileInput" hidden accept=".pdf,.docx,.xlsx,.xls,.png,.jpg,.jpeg"/>
+      <input type="file" id="fileInput" hidden accept=".pdf,.docx,.xlsx,.xls,.png,.jpg,.jpeg,.txt,.md,.markdown,.rst,.csv,.log"/>
       <div id="uploadStatus" class="hidden mt-1.5 text-center py-1 px-2 rounded-lg" style="font-size:.62rem;"></div>
     </div>
     <div id="libraryContainer" class="overflow-y-auto px-2 pb-2 flex-1 min-h-0"></div>
@@ -429,7 +429,7 @@ body{background:#000;color:#f1f5f9;font-family:'Space Grotesk',sans-serif;}
     </div>
     <div class="modal-body flex flex-col gap-4">
       <div class="flex gap-3"><div style="width:28px;height:28px;border-radius:50%;background:rgba(255,46,98,.2);border:1px solid rgba(255,46,98,.4);display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:.75rem;font-weight:800;color:#ff2e62;">1</div><div><p style="font-size:.82rem;font-weight:600;margin-bottom:3px;">Create a Workspace</p><p style="font-size:.72rem;color:#64748b;">Click <span style="color:#ff2e62;font-weight:600;">+ New Workspace</span>. Each workspace holds its own documents and chat history.</p></div></div>
-      <div class="flex gap-3"><div style="width:28px;height:28px;border-radius:50%;background:rgba(255,46,98,.2);border:1px solid rgba(255,46,98,.4);display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:.75rem;font-weight:800;color:#ff2e62;">2</div><div><p style="font-size:.82rem;font-weight:600;margin-bottom:3px;">Upload Documents</p><p style="font-size:.72rem;color:#64748b;">Click <span style="color:#06b6d4;font-weight:600;">Upload Document</span>. Supports PDF, Word, Excel, images. Max 50MB.</p></div></div>
+      <div class="flex gap-3"><div style="width:28px;height:28px;border-radius:50%;background:rgba(255,46,98,.2);border:1px solid rgba(255,46,98,.4);display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:.75rem;font-weight:800;color:#ff2e62;">2</div><div><p style="font-size:.82rem;font-weight:600;margin-bottom:3px;">Upload Documents</p><p style="font-size:.72rem;color:#64748b;">Click <span style="color:#06b6d4;font-weight:600;">Upload Document</span>. Supports PDF, Word, Excel, images, TXT, MD, CSV. Max 200MB.</p></div></div>
       <div class="flex gap-3"><div style="width:28px;height:28px;border-radius:50%;background:rgba(255,46,98,.2);border:1px solid rgba(255,46,98,.4);display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:.75rem;font-weight:800;color:#ff2e62;">3</div><div><p style="font-size:.82rem;font-weight:600;margin-bottom:3px;">Preview & Verify</p><p style="font-size:.72rem;color:#64748b;">Hover a file and click the preview icon to verify it was indexed correctly before chatting.</p></div></div>
       <div class="flex gap-3"><div style="width:28px;height:28px;border-radius:50%;background:rgba(255,46,98,.2);border:1px solid rgba(255,46,98,.4);display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:.75rem;font-weight:800;color:#ff2e62;">4</div><div><p style="font-size:.82rem;font-weight:600;margin-bottom:3px;">Ask Questions</p><p style="font-size:.72rem;color:#64748b;">Type in the input bar. The AI answers only from your documents. Use follow-up questions — context is remembered.</p></div></div>
       <div class="rounded-xl p-3" style="background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.07);">
@@ -509,6 +509,7 @@ window.onload = async () => {
     const r = await fetch("/auth/check", {credentials:"include"});
     const d = await r.json();
     if (!d.authenticated) { location.href="/login"; return; }
+    document.body.style.visibility = "visible";
   } catch { location.href="/login"; return; }
   await loadUserInfo();
   const rt = sessionStorage.getItem("refresh_token");
@@ -1024,9 +1025,9 @@ document.getElementById("fileInput").addEventListener("change", async () => {
     if (type !== "loading") setTimeout(() => statusEl.classList.add("hidden"), 4000);
   };
   if (!activeWS) { showStatus("Select a workspace first", "error"); document.getElementById("fileInput").value = ""; return; }
-  const allowed = [".pdf",".docx",".xlsx",".xls",".png",".jpg",".jpeg"];
+  const allowed = [".pdf",".docx",".xlsx",".xls",".png",".jpg",".jpeg",".txt",".md",".markdown",".rst",".csv",".log"];
   const ext = "." + file.name.split(".").pop().toLowerCase();
-  if (!allowed.includes(ext)) { showStatus("Unsupported format. Use PDF, DOCX, Excel, or image.", "error"); document.getElementById("fileInput").value = ""; return; }
+  if (!allowed.includes(ext)) { showStatus("Unsupported format. Allowed: PDF, DOCX, Excel, PNG/JPG, TXT, MD, CSV.", "error"); document.getElementById("fileInput").value = ""; return; }
   showStatus("Uploading " + file.name + " (" + (file.size/1024/1024).toFixed(1) + "MB)…", "loading");
   const btn = document.getElementById("uploadBtn"); btn.disabled = true;
   const fd = new FormData(); fd.append("file", file);
@@ -1060,12 +1061,16 @@ async function refreshLibrary() {
     const EXT_COLOR = {
       pdf:"#ef4444", docx:"#3b82f6", doc:"#3b82f6",
       xlsx:"#10b981", xls:"#10b981",
-      png:"#8b5cf6", jpg:"#8b5cf6", jpeg:"#8b5cf6"
+      png:"#8b5cf6", jpg:"#8b5cf6", jpeg:"#8b5cf6",
+      txt:"#64748b", md:"#f59e0b", markdown:"#f59e0b",
+      rst:"#64748b", csv:"#06b6d4", log:"#475569"
     };
     const EXT_ICON = {
       pdf:"picture_as_pdf", docx:"description", doc:"description",
       xlsx:"table_chart", xls:"table_chart",
-      png:"image", jpg:"image", jpeg:"image"
+      png:"image", jpg:"image", jpeg:"image",
+      txt:"text_snippet", md:"article", markdown:"article",
+      rst:"text_snippet", csv:"table_chart", log:"terminal"
     };
 
     d.files.forEach(f => {
@@ -1199,7 +1204,7 @@ async function sendMessage() {
     const r = await fetch("/chat/stream", {method:"POST",headers:{"Content-Type":"application/json"},credentials:"include",body:JSON.stringify({workspace_name:activeWS,question:val,chat_id:activeChatId})});
     if (!r.ok) throw new Error("HTTP " + r.status);
     const reader = r.body.getReader(), dec = new TextDecoder();
-    let buf = "", fullAnswer = "", pageNumbers = [], tokenUsage = {}, traceId = null;
+    let buf = "", fullAnswer = "", pageNumbers = [], tokenUsage = {}, traceId = null, imageUrls = [];
     while (true) {
       const {done,value} = await reader.read();
       if (done) break;
@@ -1210,13 +1215,13 @@ async function sendMessage() {
         try {
           const d = JSON.parse(line.slice(6));
           if (d.type==="chunk") { fullAnswer += d.content; updateBubble(thinkId, fullAnswer); }
-          else if (d.type==="metadata") { if (d.page_numbers) pageNumbers = d.page_numbers; if (d.token_usage) tokenUsage = d.token_usage; if (d.trace_id) traceId = d.trace_id; }
-          else if (d.type==="done") { finalizeBubble(thinkId, fullAnswer, pageNumbers, tokenUsage, traceId); refreshChatList(); break; }
+          else if (d.type==="metadata") { if (d.page_numbers) pageNumbers = d.page_numbers; if (d.image_urls) imageUrls = d.image_urls; if (d.token_usage) tokenUsage = d.token_usage; if (d.trace_id) traceId = d.trace_id; }
+          else if (d.type==="done") { finalizeBubble(thinkId, fullAnswer, pageNumbers, tokenUsage, traceId, imageUrls); refreshChatList(); break; }
           else if (d.type==="error") { updateBubble(thinkId, d.content||"Error"); break; }
         } catch {}
       }
     }
-    if (fullAnswer) finalizeBubble(thinkId, fullAnswer, pageNumbers, tokenUsage, traceId);
+    if (fullAnswer) finalizeBubble(thinkId, fullAnswer, pageNumbers, tokenUsage, traceId, imageUrls);
   } catch(e) { updateBubble(thinkId, "Error: " + e.message); }
   finally { input.removeAttribute("readonly"); document.getElementById("sendBtn").disabled = false; input.focus(); }
 }
@@ -1297,7 +1302,7 @@ function updateBubble(id, text) {
   if (delta) { state.queue += delta; _driveTyper(id); }
 }
 
-function finalizeBubble(id, text, pageNumbers, tokenUsage, traceId) {
+function finalizeBubble(id, text, pageNumbers, tokenUsage, traceId, imageUrls) {
   const wrap = document.getElementById(id);
   if (!wrap) return;
   const inner = wrap.querySelector("div");
@@ -1309,6 +1314,32 @@ function finalizeBubble(id, text, pageNumbers, tokenUsage, traceId) {
   }
   // Single markdown render, remove streaming elements
   inner.innerHTML = renderMarkdown(text);
+
+  // ── Source images (from image-file uploads) ──────────────────
+  if (imageUrls && imageUrls.length) {
+    const imgWrap = document.createElement("div");
+    imgWrap.style.cssText = "margin-top:12px;display:flex;flex-wrap:wrap;gap:8px;";
+    imageUrls.forEach(url => {
+      const container = document.createElement("div");
+      container.style.cssText = "position:relative;border-radius:10px;overflow:hidden;border:1px solid rgba(255,255,255,.1);cursor:pointer;transition:border-color .15s;max-width:240px;";
+      container.onmouseover = () => container.style.borderColor = "rgba(255,46,98,.4)";
+      container.onmouseout  = () => container.style.borderColor = "rgba(255,255,255,.1)";
+      container.onclick = () => window.open(url, "_blank");
+      const img = document.createElement("img");
+      img.src = url;
+      img.alt = "Source image";
+      img.style.cssText = "display:block;max-width:240px;max-height:180px;object-fit:contain;background:#0a0a0a;";
+      img.onerror = () => container.remove();  // hide if image fails to load
+      const label = document.createElement("div");
+      label.style.cssText = "position:absolute;bottom:0;left:0;right:0;background:rgba(0,0,0,.7);padding:3px 8px;font-size:.58rem;color:#94a3b8;display:flex;align-items:center;gap:3px;";
+      label.innerHTML = '<span class="material-symbols-outlined" style="font-size:10px;">image</span>' + esc(url.split("/").pop());
+      container.appendChild(img);
+      container.appendChild(label);
+      imgWrap.appendChild(container);
+    });
+    inner.appendChild(imgWrap);
+  }
+
   if ((pageNumbers && pageNumbers.length) || (tokenUsage && tokenUsage.total_tokens > 0) || traceId) {
     const meta = document.createElement("div");
     meta.style.cssText = "margin-top:10px;padding-top:10px;border-top:1px solid rgba(255,255,255,.07);font-size:.65rem;color:#475569;display:flex;align-items:center;flex-wrap:wrap;gap:10px;";

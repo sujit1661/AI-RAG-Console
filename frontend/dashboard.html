@@ -11,7 +11,7 @@
 <script>tailwind.config={darkMode:"class",theme:{extend:{colors:{primary:"#ff2e62","matte-black":"#0A0A0A",charcoal:"#111111"}}}}</script>
 <style>
 *{box-sizing:border-box;}
-body{background:#000;color:#f1f5f9;font-family:'Space Grotesk',sans-serif;}
+body{background:#000;color:#f1f5f9;font-family:'Space Grotesk',sans-serif;visibility:hidden;}
 ::-webkit-scrollbar{width:4px;height:4px;}
 ::-webkit-scrollbar-thumb{background:#1e293b;border-radius:4px;}
 
@@ -123,7 +123,7 @@ body{background:#000;color:#f1f5f9;font-family:'Space Grotesk',sans-serif;}
       <div class="w-2.5 h-2.5 bg-primary rounded-full animate-pulse"></div>
       <span class="text-base font-bold tracking-tighter uppercase">RAG<span class="text-primary font-black">CORE</span></span>
     </a>
-    <div class="flex items-center bg-white/5 border border-white/10 rounded-xl p-1 gap-0.5">
+    <div id="ragNavTabs" class="flex items-center bg-white/5 border border-white/10 rounded-xl p-1 gap-0.5">
       <a href="/app"        class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold text-slate-400 hover:text-white transition-all duration-150"><span class="material-symbols-outlined text-sm">folder_open</span><span class="hidden sm:inline">RAG</span></a>
       <a href="/ai-chat"    class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold text-slate-400 hover:text-white transition-all duration-150"><span class="material-symbols-outlined text-sm">smart_toy</span><span class="hidden sm:inline">AI Chat</span></a>
       <a href="/dashboard"  class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold bg-primary/20 text-primary border border-primary/30"><span class="material-symbols-outlined text-sm">dashboard</span><span class="hidden sm:inline">Dashboard</span></a>
@@ -132,7 +132,8 @@ body{background:#000;color:#f1f5f9;font-family:'Space Grotesk',sans-serif;}
   </div>
   <div class="flex items-center gap-2">
     <a href="/profile"  class="text-[10px] font-bold bg-white/5 border border-white/10 px-3 py-1.5 rounded-full text-slate-400 hover:text-primary hover:border-primary/30 transition-all duration-150 flex items-center gap-1.5"><span class="material-symbols-outlined text-sm">account_circle</span><span id="usernameDisplay">—</span></a>
-    <a href="/settings" class="text-[10px] font-bold bg-white/5 border border-white/10 px-3 py-1.5 rounded-full text-slate-400 hover:text-primary hover:border-primary/30 transition-all duration-150 flex items-center gap-1.5"><span class="material-symbols-outlined text-sm">settings</span></a>
+    <a href="/settings" id="settingsLink" class="text-[10px] font-bold bg-white/5 border border-white/10 px-3 py-1.5 rounded-full text-slate-400 hover:text-primary hover:border-primary/30 transition-all duration-150 items-center gap-1.5 hidden"><span class="material-symbols-outlined text-sm">settings</span></a>
+    <a href="/admin-panel" id="adminLink" class="text-[10px] font-bold bg-primary/10 border border-primary/30 px-3 py-1.5 rounded-full text-primary items-center gap-1.5 hidden"><span class="material-symbols-outlined text-sm">shield</span><span class="hidden sm:inline">Admin</span></a>
     <button onclick="doLogout()" class="text-[10px] font-bold bg-white/5 border border-white/10 px-3 py-1.5 rounded-full text-slate-400 hover:text-red-400 hover:border-red-400/30 transition-all duration-150 flex items-center gap-1.5"><span class="material-symbols-outlined text-sm">logout</span></button>
   </div>
 </header>
@@ -144,7 +145,7 @@ body{background:#000;color:#f1f5f9;font-family:'Space Grotesk',sans-serif;}
   <div class="mb-8 flex items-start justify-between">
     <div>
       <div class="flex items-center gap-3 mb-1">
-        <a href="/app" style="display:inline-flex;align-items:center;gap:5px;font-size:.7rem;font-weight:700;color:#475569;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.08);border-radius:8px;padding:4px 10px;text-decoration:none;transition:all .15s;" onmouseover="this.style.color='#f1f5f9';this.style.borderColor='rgba(255,255,255,.15)'" onmouseout="this.style.color='#475569';this.style.borderColor='rgba(255,255,255,.08)'">
+        <a id="backToRagBtn" href="/app" style="display:inline-flex;align-items:center;gap:5px;font-size:.7rem;font-weight:700;color:#475569;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.08);border-radius:8px;padding:4px 10px;text-decoration:none;transition:all .15s;" onmouseover="this.style.color='#f1f5f9';this.style.borderColor='rgba(255,255,255,.15)'" onmouseout="this.style.color='#475569';this.style.borderColor='rgba(255,255,255,.08)'">
           <span class="material-symbols-outlined" style="font-size:13px;">arrow_back</span>Back to RAG
         </a>
       </div>
@@ -391,8 +392,30 @@ async function loadWorkspaces() {
 async function loadUsername() {
   try {
     const r = await fetch("/auth/user", {credentials:"include"});
-    if (r.ok) { const d = await r.json(); document.getElementById("usernameDisplay").textContent = d.username||"—"; }
-    else { location.href = "/login"; }
+    if (r.ok) {
+      const d = await r.json();
+      document.getElementById("usernameDisplay").textContent = d.username||"—";
+      document.body.style.visibility="visible";
+      const role = (d.user_info||{}).role || "user";
+      if (role === "admin") {
+        // Hide all RAG navigation — admin has no business in RAG pages
+        const ragNav = document.getElementById("ragNavTabs");
+        if (ragNav) ragNav.style.display = "none";
+        const backBtn = document.getElementById("backToRagBtn");
+        if (backBtn) {
+          backBtn.href = "/admin-panel";
+          backBtn.innerHTML = '<span class="material-symbols-outlined" style="font-size:13px;">arrow_back</span>Admin Panel';
+        }
+        // Show admin/settings links
+        const sl = document.getElementById("settingsLink");
+        const al = document.getElementById("adminLink");
+        if(sl) sl.classList.replace("hidden","flex");
+        if(al) al.classList.replace("hidden","flex");
+        // Update logo link to go to admin panel instead of /app
+        const logoLink = document.querySelector('header a[href="/app"]');
+        if (logoLink) logoLink.href = "/admin-panel";
+      }
+    } else { location.href = "/login"; }
   } catch { location.href = "/login"; }
 }
 

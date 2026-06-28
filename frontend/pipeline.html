@@ -12,7 +12,7 @@
 <script>tailwind.config={darkMode:"class",theme:{extend:{colors:{primary:"#ff2e62","matte-black":"#0A0A0A",charcoal:"#111111"},fontFamily:{display:["Space Grotesk","sans-serif"],mono:["JetBrains Mono","monospace"]}}}}</script>
 <style>
 *{box-sizing:border-box;}
-body{background:#000;color:#f1f5f9;font-family:'Space Grotesk',sans-serif;}
+body{background:#000;color:#f1f5f9;font-family:'Space Grotesk',sans-serif;visibility:hidden;}
 ::-webkit-scrollbar{width:4px;height:4px;}
 ::-webkit-scrollbar-thumb{background:#1e293b;border-radius:4px;}
 
@@ -269,6 +269,7 @@ window.onload = async function() {
     if (!d.authenticated) { location.href="/login"; return; }
     document.getElementById("hdrUser").innerHTML =
       '<span class="material-symbols-outlined text-sm">person</span>' + esc(d.username);
+    document.body.style.visibility = "visible";
   } catch { location.href="/login"; }
 
   // Drag-and-drop

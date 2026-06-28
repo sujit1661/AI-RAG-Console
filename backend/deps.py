@@ -11,8 +11,8 @@ import re
 import json
 import logging
 from typing import Optional, List
-from fastapi import Request, HTTPException
-from backend.auth import get_current_user
+from fastapi import Request, HTTPException, Depends
+from backend.auth import get_current_user, get_user_role
 
 logger = logging.getLogger(__name__)
 
@@ -38,6 +38,15 @@ async def get_token(request: Request) -> Optional[str]:
     if auth and auth.startswith("Bearer "):
         return auth.split(" ")[1]
     return None
+
+
+async def require_admin(token: Optional[str] = Depends(get_token)) -> str:
+    """FastAPI dependency — raises 403 if the user is not an admin."""
+    username = get_current_user(token)   # raises 401 if not logged in
+    role = get_user_role(username)
+    if role != "admin":
+        raise HTTPException(status_code=403, detail="Admin access required")
+    return username
 
 def get_safe_name(name: str) -> str:
     slug = re.sub(r'[^\w\s-]', '', name).strip().lower()

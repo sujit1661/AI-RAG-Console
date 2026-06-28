@@ -71,6 +71,7 @@ def _supabase_add(workspace_slug: str, username: str, chunk_texts: list,
             "chunk_text": text,
             "embedding": emb,
             "page_num": meta.get("page"),
+            "image_path": meta.get("image_path"),
         } for cid, text, meta, emb in zip(ids, chunk_texts, metadatas, embeddings)]
         for i in range(0, len(rows), 100):
             sb.table("embeddings").upsert(rows[i:i + 100]).execute()
@@ -94,7 +95,7 @@ def _supabase_vector_search(workspace_slug: str, username: str,
         if result.data:
             return (
                 [r["chunk_text"] for r in result.data],
-                [{"source": r["filename"], "page": r.get("page_num")} for r in result.data]
+                [{"source": r["filename"], "page": r.get("page_num"), "image_path": r.get("image_path")} for r in result.data]
             )
         return [], []
     except Exception as e:
@@ -148,8 +149,12 @@ def _rrf_merge(vector_results: List[Tuple[str, dict]],
 # ─────────────────────────────────────────────
 
 def add_documents(workspace_slug: str, chunks, filename: str,
-                  username: str = "", page_numbers=None):
-    """Add chunks to Supabase pgvector + ChromaDB + BM25."""
+                  username: str = "", page_numbers=None, image_path: str = None):
+    """Add chunks to Supabase pgvector + ChromaDB + BM25.
+    
+    image_path: if set (image uploads only), stored in metadata so retrieval
+                can return the image URL alongside the answer.
+    """
     if not chunks:
         return
 
@@ -161,7 +166,14 @@ def add_documents(workspace_slug: str, chunks, filename: str,
         page_nums   = page_numbers if page_numbers else [None] * len(chunks)
 
     ids = [f"{filename}_{i}_{hash(t) % 1000000}" for i, t in enumerate(chunk_texts)]
-    metadatas = [{"source": filename, **({"page": p} if p is not None else {})} for p in page_nums]
+    metadatas = []
+    for p in page_nums:
+        m = {"source": filename}
+        if p is not None:
+            m["page"] = p
+        if image_path:
+            m["image_path"] = image_path
+        metadatas.append(m)
 
     # Supabase pgvector
     try:
