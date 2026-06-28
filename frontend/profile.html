@@ -11,7 +11,7 @@
 <script>tailwind.config={darkMode:"class",theme:{extend:{colors:{primary:"#ff2e62"}}}}</script>
 <style>
 *{box-sizing:border-box;}
-body{background:#000;color:#f1f5f9;font-family:'Space Grotesk',sans-serif;}
+body{background:#000;color:#f1f5f9;font-family:'Space Grotesk',sans-serif;visibility:hidden;}
 ::-webkit-scrollbar{width:4px;} ::-webkit-scrollbar-thumb{background:#1e293b;border-radius:4px;}
 
 .card{background:#0a0a0a;border:1px solid rgba(255,255,255,.07);border-radius:14px;overflow:hidden;transition:border-color .2s;}
@@ -143,7 +143,7 @@ input[type="email"].inp{
       <div class="w-2.5 h-2.5 bg-primary rounded-full animate-pulse"></div>
       <span class="text-base font-bold tracking-tighter uppercase">RAG<span class="text-primary font-black">CORE</span></span>
     </a>
-    <div class="flex items-center bg-white/5 border border-white/10 rounded-xl p-1 gap-0.5">
+    <div id="ragNavTabs" class="flex items-center bg-white/5 border border-white/10 rounded-xl p-1 gap-0.5">
       <a href="/app"        class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold text-slate-400 hover:text-white transition-all"><span class="material-symbols-outlined text-sm">folder_open</span><span class="hidden sm:inline">RAG</span></a>
       <a href="/dashboard"  class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold text-slate-400 hover:text-white transition-all"><span class="material-symbols-outlined text-sm">dashboard</span><span class="hidden sm:inline">Dashboard</span></a>
       <a href="/monitoring" class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold text-slate-400 hover:text-white transition-all"><span class="material-symbols-outlined text-sm">monitor_heart</span><span class="hidden sm:inline">Monitor</span></a>
@@ -399,6 +399,11 @@ async function loadProfile() {
     document.getElementById("lastLoginBadge").innerHTML =
       `<span class="material-symbols-outlined" style="font-size:9px;">schedule</span>` +
       (u.last_login ? "Last seen " + relTime(u.last_login) : "First visit");
+    document.body.style.visibility = "visible";
+    if (u.role === "admin") {
+      const n = document.getElementById("ragNavTabs");
+      if (n) n.style.display = "none";
+    }
   } catch { location.href = "/login"; }
 }
 

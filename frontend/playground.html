@@ -11,7 +11,7 @@
 <script>tailwind.config={darkMode:"class",theme:{extend:{colors:{primary:"#ff2e62","matte-black":"#0A0A0A"}}}}</script>
 <style>
 *{box-sizing:border-box;margin:0;padding:0;}
-body{background:#030303;color:#f1f5f9;font-family:'Space Grotesk',sans-serif;height:100vh;display:flex;flex-direction:column;overflow:hidden;}
+body{background:#030303;color:#f1f5f9;font-family:'Space Grotesk',sans-serif;height:100vh;display:flex;flex-direction:column;overflow:hidden;visibility:hidden;}
 ::-webkit-scrollbar{width:4px;height:4px;}
 ::-webkit-scrollbar-thumb{background:#1e293b;border-radius:4px;}
 
@@ -281,6 +281,7 @@ window.onload = async function() {
     const d = await r.json();
     if (!d.authenticated) { location.href="/login"; return; }
     document.getElementById("hdrUserText").textContent = d.username || "—";
+    document.body.style.visibility = "visible";
   } catch { location.href="/login"; }
   buildGraph();
 
