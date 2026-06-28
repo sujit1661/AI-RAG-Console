@@ -69,10 +69,17 @@ def extract_image_text(path: str) -> str:
                         {
                             "type": "text",
                             "text": (
-                                "Extract ALL text visible in this image. "
-                                "Preserve the structure: headings, paragraphs, lists, tables, labels. "
-                                "If there are numbers or data, include them exactly. "
-                                "Return only the extracted text, no commentary."
+                                "Analyze this image thoroughly and extract ALL information in structured text form:\n\n"
+                                "1. TEXT: Extract every word, number, label, and title visible.\n"
+                                "2. CHARTS/GRAPHS: Describe the chart type (bar, line, pie, etc.), "
+                                "   all axis labels, legend entries, data values, and key trends "
+                                "   (e.g. 'Revenue peaks at Q3 2023 with $2.4M, drops 15% in Q4').\n"
+                                "3. TABLES: Reproduce all rows and columns as plain text.\n"
+                                "4. DIAGRAMS/INFOGRAPHICS: Describe all elements, relationships, "
+                                "   arrows, and annotations.\n"
+                                "5. KEY INSIGHTS: Summarize the 2-3 most important data points "
+                                "   a reader should know from this image.\n\n"
+                                "Preserve all numbers exactly. Return only the extracted content, no commentary."
                             )
                         }
                     ]
@@ -144,3 +151,22 @@ def extract_excel_text(path):
 def extract_docx_text(path):
     doc = Document(path)
     return "\n".join([p.text for p in doc.paragraphs])
+
+
+# Plain-text extensions handled by extract_text_file
+TEXT_EXTENSIONS = {".txt", ".md", ".markdown", ".rst", ".csv", ".log"}
+
+
+def extract_text_file(path: str) -> str:
+    """
+    Extract text from plain-text files (.txt, .md, .markdown, etc.).
+    Tries UTF-8 first, falls back to latin-1.
+    """
+    for encoding in ("utf-8", "latin-1"):
+        try:
+            with open(path, "r", encoding=encoding) as f:
+                return f.read()
+        except UnicodeDecodeError:
+            continue
+    logger.warning(f"Could not decode {path} as text")
+    return ""
