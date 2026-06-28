@@ -1,0 +1,509 @@
+<!DOCTYPE html>
+<html class="dark" lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>RAGCORE — Admin</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined"/>
+<script>tailwind.config={darkMode:"class",theme:{extend:{colors:{primary:"#ff2e62"}}}}</script>
+<style>
+*{box-sizing:border-box;}
+body{background:#000;color:#f1f5f9;font-family:'Space Grotesk',sans-serif;visibility:hidden;}
+::-webkit-scrollbar{width:4px;height:4px;} ::-webkit-scrollbar-thumb{background:#1e293b;border-radius:4px;}
+.mono{font-family:'JetBrains Mono',monospace;}
+.card{background:#0a0a0a;border:1px solid rgba(255,255,255,.07);border-radius:14px;overflow:hidden;transition:border-color .2s;}
+.stat-card{background:#0a0a0a;border:1px solid rgba(255,255,255,.07);border-radius:14px;padding:18px 20px;transition:border-color .2s,transform .15s;}
+.stat-card:hover{border-color:rgba(255,46,98,.2);transform:translateY(-1px);}
+.badge{display:inline-flex;align-items:center;gap:3px;padding:2px 8px;border-radius:6px;font-size:.6rem;font-weight:700;}
+.badge-admin{background:rgba(255,46,98,.15);border:1px solid rgba(255,46,98,.3);color:#ff2e62;}
+.badge-user{background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);color:#64748b;}
+.badge-green{background:rgba(16,185,129,.1);border:1px solid rgba(16,185,129,.2);color:#10b981;}
+.badge-red{background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.2);color:#ef4444;}
+.badge-yellow{background:rgba(245,158,11,.1);border:1px solid rgba(245,158,11,.2);color:#f59e0b;}
+.tab-btn{padding:7px 16px;border-radius:8px;font-size:.75rem;font-weight:700;cursor:pointer;border:none;background:transparent;color:#64748b;transition:all .15s;font-family:'Space Grotesk',sans-serif;}
+.tab-btn:hover{color:#f1f5f9;background:rgba(255,255,255,.05);}
+.tab-btn.active{background:rgba(255,46,98,.15);color:#ff2e62;border:1px solid rgba(255,46,98,.25);}
+.tab-panel{display:none;} .tab-panel.active{display:block;}
+.inp{width:100%;background:#050505;border:1px solid rgba(255,255,255,.1);border-radius:9px;padding:9px 13px;font-size:.8rem;color:#f1f5f9;outline:none;transition:border-color .2s;font-family:'Space Grotesk',sans-serif;appearance:none;}
+.inp:focus{border-color:rgba(255,46,98,.5);}
+.inp:-webkit-autofill,.inp:-webkit-autofill:focus{-webkit-text-fill-color:#f1f5f9!important;-webkit-box-shadow:0 0 0 1000px #050505 inset!important;}
+.btn-primary{background:#ff2e62;color:#fff;border:none;border-radius:9px;padding:8px 18px;font-size:.78rem;font-weight:700;cursor:pointer;transition:all .15s;font-family:'Space Grotesk',sans-serif;display:inline-flex;align-items:center;gap:5px;}
+.btn-primary:hover{background:#ff1a52;transform:translateY(-1px);}
+.btn-ghost{background:transparent;color:#94a3b8;border:1px solid rgba(255,255,255,.1);border-radius:9px;padding:8px 16px;font-size:.78rem;font-weight:600;cursor:pointer;transition:all .15s;font-family:'Space Grotesk',sans-serif;display:inline-flex;align-items:center;gap:5px;}
+.btn-ghost:hover{border-color:rgba(255,255,255,.22);color:#fff;}
+.btn-danger{background:rgba(239,68,68,.08);color:#ef4444;border:1px solid rgba(239,68,68,.2);border-radius:9px;padding:8px 14px;font-size:.72rem;font-weight:700;cursor:pointer;transition:all .15s;font-family:'Space Grotesk',sans-serif;display:inline-flex;align-items:center;gap:4px;}
+.btn-danger:hover{background:rgba(239,68,68,.18);}
+.tbl{width:100%;border-collapse:collapse;}
+.tbl th{font-size:.58rem;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:#334155;padding:9px 14px;text-align:left;border-bottom:1px solid rgba(255,255,255,.06);background:#0a0a0a;position:sticky;top:0;z-index:1;}
+.tbl td{padding:10px 14px;font-size:.75rem;border-bottom:1px solid rgba(255,255,255,.04);vertical-align:middle;}
+.tbl tr:last-child td{border-bottom:none;}
+.tbl tbody tr:hover{background:rgba(255,255,255,.025);}
+.section-label{font-size:.58rem;font-weight:800;letter-spacing:.14em;text-transform:uppercase;color:#334155;margin-bottom:10px;display:flex;align-items:center;gap:6px;}
+.section-label::after{content:'';flex:1;height:1px;background:rgba(255,255,255,.04);}
+.skeleton{background:linear-gradient(90deg,rgba(255,255,255,.04) 25%,rgba(255,255,255,.07) 50%,rgba(255,255,255,.04) 75%);background-size:200% 100%;animation:shimmer 1.5s infinite;border-radius:6px;}
+@keyframes shimmer{0%{background-position:200% 0;}100%{background-position:-200% 0;}}
+.toast{position:fixed;bottom:24px;right:24px;background:#0f0f0f;border:1px solid rgba(255,255,255,.1);border-radius:12px;padding:11px 16px;font-size:.78rem;font-weight:600;display:flex;align-items:center;gap:8px;z-index:999;transform:translateY(80px);opacity:0;transition:transform .25s cubic-bezier(.34,1.56,.64,1),opacity .25s;}
+.toast.show{transform:translateY(0);opacity:1;}
+.toast.success{border-color:rgba(16,185,129,.25);color:#10b981;}
+.toast.error{border-color:rgba(239,68,68,.25);color:#ef4444;}
+</style>
+</head>
+<body class="min-h-screen">
+
+<!-- Header -->
+<header class="h-14 border-b border-white/5 bg-[#0A0A0A] flex items-center justify-between px-6 sticky top-0 z-50">
+  <div class="flex items-center gap-3">
+    <a href="/dashboard" class="flex items-center gap-2">
+      <div class="w-2.5 h-2.5 bg-primary rounded-full animate-pulse"></div>
+      <span class="text-base font-bold tracking-tighter uppercase">RAG<span class="text-primary font-black">CORE</span></span>
+    </a>
+    <span class="badge badge-admin"><span class="material-symbols-outlined" style="font-size:9px;">shield</span>Admin</span>
+  </div>
+  <div class="flex items-center gap-3">
+    <span class="text-xs text-slate-500 flex items-center gap-1.5">
+      <span class="material-symbols-outlined text-sm text-primary">manage_accounts</span>
+      <span id="adminUsername" class="font-semibold text-slate-300">—</span>
+    </span>
+    <a href="/dashboard" class="btn-ghost" style="padding:6px 12px;font-size:.72rem;">
+      <span class="material-symbols-outlined" style="font-size:13px;">dashboard</span>Dashboard
+    </a>
+    <a href="/settings" class="btn-ghost" style="padding:6px 12px;font-size:.72rem;">
+      <span class="material-symbols-outlined" style="font-size:13px;">settings</span>Settings
+    </a>
+    <button onclick="doLogout()" class="btn-ghost" style="padding:6px 12px;font-size:.72rem;color:#ef4444;border-color:rgba(239,68,68,.2);">
+      <span class="material-symbols-outlined" style="font-size:13px;">logout</span>Logout
+    </button>
+  </div>
+</header>
+
+<div class="max-w-7xl mx-auto px-6 py-8">
+
+  <!-- Page title -->
+  <div class="mb-8">
+    <div class="flex items-center gap-3 mb-2">
+      <a href="/dashboard" style="display:inline-flex;align-items:center;gap:5px;font-size:.7rem;font-weight:700;color:#475569;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.08);border-radius:8px;padding:4px 10px;text-decoration:none;transition:all .15s;" onmouseover="this.style.color='#f1f5f9'" onmouseout="this.style.color='#475569'">
+        <span class="material-symbols-outlined" style="font-size:13px;">arrow_back</span>Back
+      </a>
+    </div>
+    <h1 class="text-2xl font-black tracking-tight mb-1">Admin Panel</h1>
+    <p class="text-sm text-slate-500">Manage users, monitor system activity, and view debug traces.</p>
+  </div>
+
+  <!-- System stats grid -->
+  <div id="statsGrid" class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-8">
+    <div class="stat-card"><div class="skeleton h-3 w-16 rounded mb-3"></div><div class="skeleton h-7 w-12 rounded mb-2"></div><div class="skeleton h-2 w-20 rounded"></div></div>
+    <div class="stat-card"><div class="skeleton h-3 w-16 rounded mb-3"></div><div class="skeleton h-7 w-12 rounded mb-2"></div><div class="skeleton h-2 w-20 rounded"></div></div>
+    <div class="stat-card"><div class="skeleton h-3 w-16 rounded mb-3"></div><div class="skeleton h-7 w-12 rounded mb-2"></div><div class="skeleton h-2 w-20 rounded"></div></div>
+    <div class="stat-card"><div class="skeleton h-3 w-16 rounded mb-3"></div><div class="skeleton h-7 w-12 rounded mb-2"></div><div class="skeleton h-2 w-20 rounded"></div></div>
+    <div class="stat-card"><div class="skeleton h-3 w-16 rounded mb-3"></div><div class="skeleton h-7 w-12 rounded mb-2"></div><div class="skeleton h-2 w-20 rounded"></div></div>
+    <div class="stat-card"><div class="skeleton h-3 w-16 rounded mb-3"></div><div class="skeleton h-7 w-12 rounded mb-2"></div><div class="skeleton h-2 w-20 rounded"></div></div>
+    <div class="stat-card"><div class="skeleton h-3 w-16 rounded mb-3"></div><div class="skeleton h-7 w-12 rounded mb-2"></div><div class="skeleton h-2 w-20 rounded"></div></div>
+    <div class="stat-card"><div class="skeleton h-3 w-16 rounded mb-3"></div><div class="skeleton h-7 w-12 rounded mb-2"></div><div class="skeleton h-2 w-20 rounded"></div></div>
+  </div>
+
+  <!-- Tabs -->
+  <div class="flex items-center gap-1 mb-6 bg-white/5 border border-white/10 rounded-xl p-1 w-fit">
+    <button class="tab-btn active" onclick="switchTab('users')"><span class="material-symbols-outlined" style="font-size:14px;vertical-align:middle;">group</span> Users</button>
+    <button class="tab-btn" onclick="switchTab('queries')"><span class="material-symbols-outlined" style="font-size:14px;vertical-align:middle;">query_stats</span> Queries</button>
+    <button class="tab-btn" onclick="switchTab('errors')"><span class="material-symbols-outlined" style="font-size:14px;vertical-align:middle;">error</span> Errors</button>
+    <button class="tab-btn" onclick="switchTab('audit')"><span class="material-symbols-outlined" style="font-size:14px;vertical-align:middle;">history</span> Audit Log</button>
+  </div>
+
+  <!-- ── Users Tab ── -->
+  <div id="tab-users" class="tab-panel active">
+    <div class="flex items-center gap-3 mb-4">
+      <div class="section-label flex-1"><span class="material-symbols-outlined text-xs text-slate-600">group</span>All Users</div>
+      <input id="userSearch" class="inp" style="max-width:220px;" placeholder="Search username…" oninput="debounceSearch(this.value)"/>
+      <button onclick="loadUsers()" class="btn-ghost" style="padding:7px 12px;font-size:.72rem;">
+        <span class="material-symbols-outlined" style="font-size:13px;">refresh</span>
+      </button>
+    </div>
+    <div class="card">
+      <div style="overflow-x:auto;max-height:500px;overflow-y:auto;">
+        <table class="tbl">
+          <thead><tr>
+            <th>Username</th><th>Email</th><th>Role</th>
+            <th>Queries</th><th>Last Login</th><th>Joined</th><th>Actions</th>
+          </tr></thead>
+          <tbody id="usersBody">
+            <tr><td colspan="7" style="text-align:center;padding:32px;">
+              <div style="display:flex;align-items:center;justify-content:center;gap:8px;">
+                <div style="width:14px;height:14px;border:2px solid rgba(255,255,255,.08);border-top-color:#ff2e62;border-radius:50%;animation:spin .7s linear infinite;"></div>
+                <span style="color:#475569;">Loading users…</span>
+              </div>
+            </td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Queries Tab ── -->
+  <div id="tab-queries" class="tab-panel">
+    <div class="flex items-center gap-3 mb-4 flex-wrap">
+      <div class="section-label flex-1"><span class="material-symbols-outlined text-xs text-slate-600">query_stats</span>All Query Logs</div>
+      <input id="queryUserFilter" class="inp" style="max-width:160px;" placeholder="Filter user…"/>
+      <input id="queryWsFilter"   class="inp" style="max-width:160px;" placeholder="Filter workspace…"/>
+      <select id="queryStatusFilter" class="inp" style="max-width:130px;background:#050505;">
+        <option value="">All statuses</option>
+        <option value="OK">OK</option>
+        <option value="ERROR">ERROR</option>
+      </select>
+      <button onclick="loadQueries()" class="btn-primary" style="padding:7px 14px;font-size:.72rem;">
+        <span class="material-symbols-outlined" style="font-size:13px;">search</span>Filter
+      </button>
+    </div>
+    <div class="card">
+      <div style="overflow-x:auto;max-height:500px;overflow-y:auto;">
+        <table class="tbl">
+          <thead><tr>
+            <th>User</th><th>Workspace</th><th>Question</th>
+            <th>Latency</th><th>Tokens</th><th>Chunks</th><th>Status</th><th>Feedback</th><th>Time</th>
+          </tr></thead>
+          <tbody id="queriesBody">
+            <tr><td colspan="9" style="text-align:center;padding:32px;color:#475569;">Click Filter to load queries.</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Errors Tab ── -->
+  <div id="tab-errors" class="tab-panel">
+    <div class="flex items-center gap-3 mb-4">
+      <div class="section-label flex-1"><span class="material-symbols-outlined text-xs text-slate-600">error</span>Error Log</div>
+      <button onclick="loadErrors()" class="btn-ghost" style="padding:7px 12px;font-size:.72rem;">
+        <span class="material-symbols-outlined" style="font-size:13px;">refresh</span>Refresh
+      </button>
+    </div>
+    <div class="card">
+      <div style="overflow-x:auto;max-height:500px;overflow-y:auto;">
+        <table class="tbl">
+          <thead><tr><th>User</th><th>Workspace</th><th>Question</th><th>Latency</th><th>Time</th></tr></thead>
+          <tbody id="errorsBody">
+            <tr><td colspan="5" style="text-align:center;padding:32px;color:#475569;">Loading…</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Audit Tab ── -->
+  <div id="tab-audit" class="tab-panel">
+    <div class="flex items-center gap-3 mb-4">
+      <div class="section-label flex-1"><span class="material-symbols-outlined text-xs text-slate-600">history</span>Admin Audit Log</div>
+      <button onclick="loadAudit()" class="btn-ghost" style="padding:7px 12px;font-size:.72rem;">
+        <span class="material-symbols-outlined" style="font-size:13px;">refresh</span>Refresh
+      </button>
+    </div>
+    <div class="card">
+      <div style="overflow-x:auto;max-height:500px;overflow-y:auto;">
+        <table class="tbl">
+          <thead><tr><th>Admin</th><th>Action</th><th>Target</th><th>Detail</th><th>Time</th></tr></thead>
+          <tbody id="auditBody">
+            <tr><td colspan="5" style="text-align:center;padding:32px;color:#475569;">Loading…</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- User detail modal -->
+<div id="userModal" style="display:none;position:fixed;inset:0;z-index:200;background:rgba(0,0,0,.85);backdrop-filter:blur(6px);align-items:center;justify-content:center;padding:20px;" onclick="if(event.target===this)closeUserModal()">
+  <div style="background:#0f0f0f;border:1px solid rgba(255,255,255,.1);border-radius:18px;width:100%;max-width:480px;overflow:hidden;">
+    <div style="padding:18px 22px 14px;border-bottom:1px solid rgba(255,255,255,.06);display:flex;align-items:center;justify-content:space-between;">
+      <h3 style="font-size:.92rem;font-weight:700;" id="modalTitle">User</h3>
+      <button onclick="closeUserModal()" style="background:none;border:none;cursor:pointer;color:#475569;" class="hover:text-white">
+        <span class="material-symbols-outlined">close</span>
+      </button>
+    </div>
+    <div id="modalBody" style="padding:18px 22px;max-height:70vh;overflow-y:auto;"></div>
+  </div>
+</div>
+
+<div id="toast" class="toast"><span class="material-symbols-outlined text-sm" id="toastIcon">check_circle</span><span id="toastMsg"></span></div>
+<style>@keyframes spin{to{transform:rotate(360deg);}}</style>
+
+<script>
+function esc(s){const d=document.createElement("div");d.textContent=String(s||"");return d.innerHTML;}
+function relTime(iso){if(!iso)return "—";const diff=Date.now()-new Date(iso).getTime();const m=Math.floor(diff/60000);if(m<1)return "just now";if(m<60)return m+"m ago";const h=Math.floor(m/60);if(h<24)return h+"h ago";const dy=Math.floor(h/24);if(dy<30)return dy+"d ago";return new Date(iso).toLocaleDateString();}
+async function doLogout(){try{await fetch("/auth/logout",{method:"POST",credentials:"include"});}catch{}location.href="/";}
+function showToast(msg,type="success"){const t=document.getElementById("toast");document.getElementById("toastMsg").textContent=msg;document.getElementById("toastIcon").textContent=type==="success"?"check_circle":"error";t.className="toast show "+type;setTimeout(()=>t.className="toast "+type,3000);}
+
+function switchTab(name) {
+  document.querySelectorAll(".tab-btn").forEach((b,i)=>{b.classList.remove("active");});
+  document.querySelectorAll(".tab-panel").forEach(p=>p.classList.remove("active"));
+  const idx = ["users","queries","errors","audit"].indexOf(name);
+  document.querySelectorAll(".tab-btn")[idx].classList.add("active");
+  document.getElementById("tab-"+name).classList.add("active");
+  if(name==="errors") loadErrors();
+  if(name==="audit")  loadAudit();
+}
+
+// ── Stats ──────────────────────────────────────────────────────────────
+function statCard(icon, label, value, sub, color) {
+  return `<div class="stat-card">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
+      <div style="width:32px;height:32px;border-radius:9px;background:${color}18;border:1px solid ${color}25;display:flex;align-items:center;justify-content:center;">
+        <span class="material-symbols-outlined" style="font-size:16px;color:${color};">${icon}</span>
+      </div>
+    </div>
+    <div style="font-size:1.5rem;font-weight:800;color:#f1f5f9;line-height:1;">${esc(String(value))}</div>
+    <div style="font-size:.7rem;font-weight:600;color:#64748b;margin-top:4px;">${esc(label)}</div>
+    ${sub?`<div style="font-size:.6rem;color:#334155;margin-top:2px;">${esc(sub)}</div>`:""}
+  </div>`;
+}
+
+async function loadStats() {
+  try {
+    const r = await fetch("/admin/observability/stats",{credentials:"include"});
+    if(!r.ok) return;
+    const d = await r.json();
+    const err_pct = d.total_queries > 0 ? Math.round(d.total_errors/d.total_queries*100) : 0;
+    const fb_total = (d.thumbs_up||0)+(d.thumbs_down||0);
+    const approval = fb_total > 0 ? Math.round(d.thumbs_up/fb_total*100) : null;
+    document.getElementById("statsGrid").innerHTML =
+      statCard("group",        "Total Users",      d.total_users,       null, "#ff2e62") +
+      statCard("workspaces",   "Workspaces",       d.total_workspaces,  null, "#818cf8") +
+      statCard("description",  "Documents",        d.total_documents,   d.storage_fmt, "#3b82f6") +
+      statCard("memory",       "Chunks Indexed",   (d.total_chunks||0).toLocaleString(), "embeddings total", "#06b6d4") +
+      statCard("query_stats",  "Total Queries",    d.total_queries,     "avg "+d.avg_latency_ms+"ms", "#10b981") +
+      statCard("error",        "Errors",           d.total_errors,      err_pct+"% error rate", "#ef4444") +
+      statCard("thumb_up",     "Positive Feedback",d.thumbs_up||0,     approval!==null?approval+"% approval rate":null, "#10b981") +
+      statCard("thumb_down",   "Negative Feedback",d.thumbs_down||0,   null, "#f59e0b");
+  } catch(e) { console.error(e); }
+}
+
+// ── Users ──────────────────────────────────────────────────────────────
+let _searchTimer = null;
+function debounceSearch(v) { clearTimeout(_searchTimer); _searchTimer = setTimeout(()=>loadUsers(v), 350); }
+
+async function loadUsers(search="") {
+  const q = search || document.getElementById("userSearch").value;
+  document.getElementById("usersBody").innerHTML = `<tr><td colspan="7" style="text-align:center;padding:24px;color:#475569;">Loading…</td></tr>`;
+  try {
+    const r = await fetch(`/admin/users?search=${encodeURIComponent(q)}&limit=100`,{credentials:"include"});
+    if(!r.ok) { showToast("Failed to load users","error"); return; }
+    const d = await r.json();
+    const users = d.users || [];
+    if(!users.length) {
+      document.getElementById("usersBody").innerHTML = `<tr><td colspan="7" style="text-align:center;padding:24px;color:#475569;">No users found.</td></tr>`;
+      return;
+    }
+    document.getElementById("usersBody").innerHTML = users.map(u => {
+      const roleBadge = u.role==="admin"
+        ? `<span class="badge badge-admin"><span class="material-symbols-outlined" style="font-size:9px;">shield</span>admin</span>`
+        : `<span class="badge badge-user">user</span>`;
+      return `<tr>
+        <td><span style="font-weight:600;color:#f1f5f9;">${esc(u.username)}</span></td>
+        <td style="color:#64748b;font-size:.7rem;">${esc(u.email||"—")}</td>
+        <td>${roleBadge}</td>
+        <td><span class="mono" style="color:#64748b;font-size:.7rem;">${u.query_count||0}</span></td>
+        <td style="color:#475569;font-size:.7rem;">${relTime(u.last_login)}</td>
+        <td style="color:#475569;font-size:.7rem;">${relTime(u.created_at)}</td>
+        <td>
+          <div style="display:flex;gap:6px;align-items:center;">
+            <button onclick="openUserModal('${esc(u.username)}')" class="btn-ghost" style="padding:4px 10px;font-size:.65rem;">
+              <span class="material-symbols-outlined" style="font-size:12px;">edit</span>Edit
+            </button>
+            <button onclick="revokeUserSessions('${esc(u.username)}')" class="btn-ghost" style="padding:4px 10px;font-size:.65rem;" title="Force logout">
+              <span class="material-symbols-outlined" style="font-size:12px;">logout</span>
+            </button>
+            ${u.username !== _adminUsername ? `<button onclick="deleteUser('${esc(u.username)}')" class="btn-danger" style="padding:4px 10px;font-size:.65rem;">
+              <span class="material-symbols-outlined" style="font-size:12px;">delete</span>
+            </button>` : ""}
+          </div>
+        </td>
+      </tr>`;
+    }).join("");
+  } catch(e) { showToast(e.message,"error"); }
+}
+
+let _adminUsername = "";
+
+async function openUserModal(username) {
+  document.getElementById("modalTitle").textContent = username;
+  document.getElementById("modalBody").innerHTML = `<div style="text-align:center;padding:20px;color:#475569;">Loading…</div>`;
+  document.getElementById("userModal").style.display = "flex";
+  try {
+    const r = await fetch(`/admin/users/${encodeURIComponent(username)}`,{credentials:"include"});
+    const u = await r.json();
+    const roleOpts = ["user","admin"].map(role =>
+      `<option value="${role}" ${u.role===role?"selected":""}>${role}</option>`
+    ).join("");
+    document.getElementById("modalBody").innerHTML = `
+      <div style="display:flex;flex-direction:column;gap:14px;">
+        <div>
+          <p style="font-size:.58rem;font-weight:800;color:#475569;text-transform:uppercase;letter-spacing:.1em;margin-bottom:5px;">Role</p>
+          <select id="editRole" class="inp" style="background:#050505;">
+            ${roleOpts}
+          </select>
+        </div>
+        <div>
+          <p style="font-size:.58rem;font-weight:800;color:#475569;text-transform:uppercase;letter-spacing:.1em;margin-bottom:5px;">Email</p>
+          <input id="editEmail" class="inp" value="${esc(u.email||"")}" placeholder="email@example.com"/>
+        </div>
+        <div>
+          <p style="font-size:.58rem;font-weight:800;color:#475569;text-transform:uppercase;letter-spacing:.1em;margin-bottom:5px;">Reset Password</p>
+          <input id="editPw" class="inp" type="password" placeholder="Leave blank to keep current"/>
+        </div>
+        <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:4px;">
+          <button onclick="closeUserModal()" class="btn-ghost">Cancel</button>
+          <button onclick="saveUser('${esc(username)}')" class="btn-primary">
+            <span class="material-symbols-outlined" style="font-size:13px;">save</span>Save
+          </button>
+        </div>
+        <div style="margin-top:8px;padding-top:12px;border-top:1px solid rgba(255,255,255,.06);">
+          <p style="font-size:.65rem;color:#475569;margin-bottom:6px;">Account info</p>
+          <div style="display:flex;gap:12px;flex-wrap:wrap;">
+            <span style="font-size:.65rem;color:#334155;">Joined: ${relTime(u.created_at)}</span>
+            <span style="font-size:.65rem;color:#334155;">Last login: ${relTime(u.last_login)}</span>
+            <span style="font-size:.65rem;color:#334155;">Active sessions: ${u.active_sessions||0}</span>
+            <span style="font-size:.65rem;color:#334155;">Recent queries: ${(u.recent_queries||[]).length}</span>
+          </div>
+        </div>
+      </div>`;
+  } catch(e) {
+    document.getElementById("modalBody").innerHTML = `<p style="color:#ef4444;">${esc(e.message)}</p>`;
+  }
+}
+
+function closeUserModal() { document.getElementById("userModal").style.display="none"; }
+
+async function saveUser(username) {
+  const role  = document.getElementById("editRole").value;
+  const email = document.getElementById("editEmail").value;
+  const pw    = document.getElementById("editPw").value;
+  try {
+    const r = await fetch(`/admin/users/${encodeURIComponent(username)}`,{
+      method:"PATCH",credentials:"include",headers:{"Content-Type":"application/json"},
+      body: JSON.stringify({role, email})
+    });
+    if(!r.ok){const d=await r.json();showToast(d.detail||"Failed","error");return;}
+    if(pw) {
+      const r2 = await fetch(`/admin/users/${encodeURIComponent(username)}/reset-password`,{
+        method:"POST",credentials:"include",headers:{"Content-Type":"application/json"},
+        body: JSON.stringify({new_password:pw})
+      });
+      if(!r2.ok){const d=await r2.json();showToast(d.detail||"Password reset failed","error");return;}
+    }
+    closeUserModal();
+    showToast("User updated");
+    loadUsers();
+  } catch(e) { showToast(e.message,"error"); }
+}
+
+async function revokeUserSessions(username) {
+  if(!confirm(`Force-logout ${username}? All sessions will be revoked.`)) return;
+  const r = await fetch(`/admin/users/${encodeURIComponent(username)}/revoke-sessions`,{method:"POST",credentials:"include"});
+  if(r.ok) showToast(`Sessions revoked for ${username}`);
+  else showToast("Failed","error");
+}
+
+async function deleteUser(username) {
+  if(!confirm(`Permanently delete user "${username}"? This cannot be undone.`)) return;
+  const r = await fetch(`/admin/users/${encodeURIComponent(username)}`,{method:"DELETE",credentials:"include"});
+  if(r.ok){showToast(`User ${username} deleted`);loadUsers();}
+  else{const d=await r.json();showToast(d.detail||"Failed","error");}
+}
+
+// ── Queries ────────────────────────────────────────────────────────────
+async function loadQueries() {
+  document.getElementById("queriesBody").innerHTML = `<tr><td colspan="9" style="text-align:center;padding:20px;color:#475569;">Loading…</td></tr>`;
+  const uf = document.getElementById("queryUserFilter").value;
+  const wf = document.getElementById("queryWsFilter").value;
+  const sf = document.getElementById("queryStatusFilter").value;
+  try {
+    const p = new URLSearchParams({limit:200});
+    if(uf) p.set("username_filter",uf);
+    if(wf) p.set("workspace",wf);
+    if(sf) p.set("status_filter",sf);
+    const r = await fetch(`/admin/observability/queries?${p}`,{credentials:"include"});
+    const d = await r.json();
+    const rows = d.queries||[];
+    if(!rows.length){document.getElementById("queriesBody").innerHTML=`<tr><td colspan="9" style="text-align:center;padding:20px;color:#475569;">No results.</td></tr>`;return;}
+    document.getElementById("queriesBody").innerHTML = rows.map(q=>{
+      const latColor = !q.latency_ms?"#475569":q.latency_ms<1000?"#10b981":q.latency_ms<3000?"#f59e0b":"#ef4444";
+      const statusBadge = q.status==="ERROR"
+        ? `<span class="badge badge-red">ERR</span>`
+        : `<span class="badge badge-green">OK</span>`;
+      const fb = q.feedback==="up"?"👍":q.feedback==="down"?"👎":"—";
+      return `<tr>
+        <td class="mono" style="color:#94a3b8;font-size:.68rem;">${esc(q.username||"—")}</td>
+        <td class="mono" style="color:#475569;font-size:.68rem;">${esc(q.workspace_slug||"—")}</td>
+        <td style="max-width:260px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${esc(q.question)}">${esc(q.question||"—")}</td>
+        <td class="mono" style="color:${latColor};font-weight:600;font-size:.68rem;">${q.latency_ms?q.latency_ms+"ms":"—"}</td>
+        <td class="mono" style="color:#475569;font-size:.68rem;">${q.total_tokens||"—"}</td>
+        <td class="mono" style="color:#475569;font-size:.68rem;">${q.chunks_retrieved||0}</td>
+        <td>${statusBadge}</td>
+        <td style="font-size:.8rem;">${fb}</td>
+        <td style="color:#334155;font-size:.65rem;">${relTime(q.created_at)}</td>
+      </tr>`;
+    }).join("");
+  } catch(e){showToast(e.message,"error");}
+}
+
+// ── Errors ─────────────────────────────────────────────────────────────
+async function loadErrors() {
+  document.getElementById("errorsBody").innerHTML = `<tr><td colspan="5" style="text-align:center;padding:20px;color:#475569;">Loading…</td></tr>`;
+  try {
+    const r = await fetch("/admin/observability/errors?limit=100",{credentials:"include"});
+    const d = await r.json();
+    const errs = d.errors||[];
+    if(!errs.length){
+      document.getElementById("errorsBody").innerHTML=`<tr><td colspan="5">
+        <div style="display:flex;flex-direction:column;align-items:center;padding:32px;gap:8px;">
+          <span class="material-symbols-outlined" style="font-size:28px;color:#10b981;">check_circle</span>
+          <p style="font-size:.78rem;color:#10b981;font-weight:600;">No errors recorded</p>
+        </div>
+      </td></tr>`;
+      return;
+    }
+    document.getElementById("errorsBody").innerHTML = errs.map(e=>`<tr>
+      <td class="mono" style="color:#94a3b8;font-size:.68rem;">${esc(e.username||"—")}</td>
+      <td class="mono" style="color:#475569;font-size:.68rem;">${esc(e.workspace_slug||"—")}</td>
+      <td style="max-width:300px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#fca5a5;" title="${esc(e.question)}">${esc(e.question||"—")}</td>
+      <td class="mono" style="color:#ef4444;font-size:.68rem;">${e.latency_ms?e.latency_ms+"ms":"—"}</td>
+      <td style="color:#334155;font-size:.65rem;">${relTime(e.created_at)}</td>
+    </tr>`).join("");
+  } catch(e){showToast(e.message,"error");}
+}
+
+// ── Audit ──────────────────────────────────────────────────────────────
+async function loadAudit() {
+  document.getElementById("auditBody").innerHTML=`<tr><td colspan="5" style="text-align:center;padding:20px;color:#475569;">Loading…</td></tr>`;
+  try {
+    const r = await fetch("/admin/observability/audit-log?limit=100",{credentials:"include"});
+    const d = await r.json();
+    const logs = d.logs||[];
+    if(!logs.length){document.getElementById("auditBody").innerHTML=`<tr><td colspan="5" style="text-align:center;padding:20px;color:#475569;">No audit entries yet.</td></tr>`;return;}
+    document.getElementById("auditBody").innerHTML = logs.map(l=>`<tr>
+      <td class="mono" style="color:#ff2e62;font-size:.68rem;font-weight:600;">${esc(l.admin_user)}</td>
+      <td><span style="font-size:.7rem;font-weight:700;color:#f1f5f9;">${esc(l.action)}</span></td>
+      <td class="mono" style="color:#94a3b8;font-size:.68rem;">${esc(l.target_user||"—")}</td>
+      <td style="color:#475569;font-size:.68rem;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${esc(l.detail||"—")}</td>
+      <td style="color:#334155;font-size:.65rem;">${relTime(l.created_at)}</td>
+    </tr>`).join("");
+  } catch(e){showToast(e.message,"error");}
+}
+
+// ── Init ───────────────────────────────────────────────────────────────
+window.onload = async () => {
+  try {
+    const r = await fetch("/admin/me",{credentials:"include"});
+    if(!r.ok){ location.href="/login"; return; }
+    const d = await r.json();
+    _adminUsername = d.username;
+    document.getElementById("adminUsername").textContent = d.username;
+    document.body.style.visibility = "visible";
+  } catch { location.href="/login"; return; }
+  await Promise.all([loadStats(), loadUsers()]);
+};
+</script>
+</body>
+</html>
