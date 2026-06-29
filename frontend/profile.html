@@ -139,7 +139,7 @@ input[type="email"].inp{
 
 <header class="h-14 border-b border-white/5 bg-[#0A0A0A] flex items-center justify-between px-6 sticky top-0 z-50">
   <div class="flex items-center gap-3">
-    <a href="/app" class="flex items-center gap-2">
+    <a id="logoLink" href="/app" class="flex items-center gap-2">
       <div class="w-2.5 h-2.5 bg-primary rounded-full animate-pulse"></div>
       <span class="text-base font-bold tracking-tighter uppercase">RAG<span class="text-primary font-black">CORE</span></span>
     </a>
@@ -160,7 +160,7 @@ input[type="email"].inp{
 
   <div class="mb-7">
     <div class="flex items-center gap-3 mb-2">
-      <a href="/app" style="display:inline-flex;align-items:center;gap:5px;font-size:.7rem;font-weight:700;color:#475569;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.08);border-radius:8px;padding:4px 10px;text-decoration:none;transition:all .15s;" onmouseover="this.style.color='#f1f5f9';this.style.borderColor='rgba(255,255,255,.15)'" onmouseout="this.style.color='#475569';this.style.borderColor='rgba(255,255,255,.08)'">
+      <a id="backBtn" href="/app" style="display:inline-flex;align-items:center;gap:5px;font-size:.7rem;font-weight:700;color:#475569;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.08);border-radius:8px;padding:4px 10px;text-decoration:none;transition:all .15s;" onmouseover="this.style.color='#f1f5f9';this.style.borderColor='rgba(255,255,255,.15)'" onmouseout="this.style.color='#475569';this.style.borderColor='rgba(255,255,255,.08)'">
         <span class="material-symbols-outlined" style="font-size:13px;">arrow_back</span>Back to RAG
       </a>
     </div>
@@ -401,8 +401,11 @@ async function loadProfile() {
       (u.last_login ? "Last seen " + relTime(u.last_login) : "First visit");
     document.body.style.visibility = "visible";
     if (u.role === "admin") {
-      const n = document.getElementById("ragNavTabs");
-      if (n) n.style.display = "none";
+      document.getElementById("ragNavTabs")?.remove();
+      const logo = document.getElementById("logoLink");
+      if (logo) logo.href = "/admin-panel";
+      const back = document.getElementById("backBtn");
+      if (back) { back.href = "/admin-panel"; back.innerHTML = '<span class="material-symbols-outlined" style="font-size:13px;">arrow_back</span>Admin Panel'; }
     }
   } catch { location.href = "/login"; }
 }
